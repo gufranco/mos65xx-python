@@ -19,5 +19,21 @@ class VersionTest(unittest.TestCase):
         self.assertEqual(mos65xx.__version__, version.VERSION)
 
 
+class SurfaceTest(unittest.TestCase):
+    def test_everything_it_declares_is_reachable(self):
+        missing = [name for name in mos65xx.__all__ if not hasattr(mos65xx, name)]
+
+        self.assertEqual(missing, [])
+
+    def test_reading_bytes_needs_no_machine_to_run_them_in(self):
+        found = mos65xx.disassemble(bytes([0xEA, 0x60]), 0, 0x008000)
+
+        self.assertEqual([instruction.mnemonic for instruction in found], ["nop", "rts"])
+
+    def test_a_truncated_instruction_is_refused_rather_than_guessed(self):
+        with self.assertRaises(mos65xx.Truncated):
+            mos65xx.decode(bytes([0xA9]), 0, 0x008000, m=True)
+
+
 if __name__ == "__main__":
     unittest.main()

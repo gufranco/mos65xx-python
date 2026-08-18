@@ -15,10 +15,25 @@ quietly corrects any of that is wrong for the machine that shipped it.
 Nothing starts clean. Memory is scrambled unless a caller asks otherwise, and a
 reset sets only what the hardware itself defines, leaving the rest holding what
 it held.
+
+Reading is the other half of running. `disassemble` walks bytes without executing
+them, which is what anything surveying a ROM needs: an interpreter has to be
+given a machine to run in, and a survey has nothing but the file.
 """
 
 from .memory import Memory, SparseMemory, scramble
 from .models import MODELS, UnknownModelError, describe
+from .opcodes65816 import (
+    MODE_SIZE,
+    OPCODES,
+    Truncated,
+    apply_flags,
+    branch_target,
+    decode,
+    disassemble,
+    operand_size,
+    render,
+)
 from .version import VERSION
 from .wdc65816 import (
     FLAG_C,
@@ -57,6 +72,8 @@ __all__ = [
     "FLAG_X",
     "FLAG_Z",
     "MODELS",
+    "MODE_SIZE",
+    "OPCODES",
     "STEP_LIMIT",
     "UNSET_SEED",
     "Cpu",
@@ -65,9 +82,16 @@ __all__ = [
     "SparseMemory",
     "StepLimit",
     "Stopped",
+    "Truncated",
     "UnknownModelError",
     "UnsupportedError",
     "__version__",
+    "apply_flags",
+    "branch_target",
+    "decode",
     "describe",
+    "disassemble",
+    "operand_size",
+    "render",
     "scramble",
 ]

@@ -130,6 +130,21 @@ python3 mos65xx/wdc65816.test.py
 # OK
 ```
 
+## Reading without running
+
+An interpreter has to be given a machine to run in. A survey of a ROM has nothing but the file, so reading and running are separate halves and only one of them needs a machine.
+
+```python
+from mos65xx import disassemble
+
+for instruction in disassemble(rom, offset=0x1234, address=0x8C1234, count=3):
+    print(instruction.address, instruction.mnemonic, instruction.operand)
+```
+
+Operand width is not a property of the opcode. The same immediate load takes one byte or two depending on flags the processor set earlier, so `disassemble` carries `m` and `x` and tracks them across the instructions that change them. A disassembler that assumes sixteen bits produces plausible output that drifts one byte at a time until it is decoding operands as opcodes.
+
+A run of bytes too short to complete its instruction raises `Truncated` rather than returning a guess.
+
 ## Models
 
 The model is chosen at construction. `Cpu(memory)` gives a 65816.
