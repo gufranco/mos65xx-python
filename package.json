@@ -1,0 +1,14 @@
+{
+  "name": "mos65xx-python-release-tooling",
+  "version": "0.0.0-managed-by-semantic-release",
+  "private": true,
+  "description": "Release tooling only. The package itself is pure Python and carries no build artefact.",
+  "license": "MIT",
+  "devDependencies": {
+    "@semantic-release/exec": "7.1.0",
+    "@semantic-release/git": "10.0.1",
+    "@semantic-release/github": "11.0.6",
+    "semantic-release": "25.0.9"
+  },
+  "packageManager": "pnpm@11.22.0"
+}

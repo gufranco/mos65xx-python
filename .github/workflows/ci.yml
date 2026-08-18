@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  lint:
+    name: Format and lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install ruff
+        run: pipx install ruff==0.16.3
+
+      - name: Check formatting
+        run: ruff format --check .
+
+      - name: Lint
+        run: ruff check --output-format=github .
+
+  test:
+    name: Tests on Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install coverage
+        run: python -m pip install --disable-pip-version-check coverage==7.6.10
+
+      - name: Run every test file, under coverage
+        run: |
+          python -m coverage erase
+          status=0
+          while IFS= read -r file; do
+            echo "::group::${file}"
+            python -m coverage run -a "${file}" || status=1
+            echo "::endgroup::"
+          done < <(find mos65xx conformance -name '*.test.py' | sort)
+          exit "${status}"
+        shell: bash
+
+      - name: Coverage must be total
+        run: python -m coverage report
+
+  conformance:
+    name: Conformance against SingleStepTests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Read the pinned suite commit
+        id: pin
+        run: |
+          commit=$(python -c "import json,pathlib;print(json.loads(pathlib.Path('conformance/suites.json').read_text())['suites'][0]['commit'])")
+          echo "commit=${commit}" >> "${GITHUB_OUTPUT}"
+
+      - name: Cache the suite
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/conformance-suites
+          key: suites-${{ steps.pin.outputs.commit }}
+
+      - name: Fetch the suite
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: python conformance/fetch.py ~/.cache/conformance-suites
+
+      # A pull request runs a tenth of the suite for a quick answer. A push to
+      # main runs all twenty thousand cases per opcode, because that is the
+      # number the claim of conformance rests on.
+      - name: Run the suite
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            limit=1000
+          else
+            limit=0
+          fi
+          python conformance/singlestep.py \
+            ~/.cache/conformance-suites/65816/65816/v1 "${limit}"
+        shell: bash

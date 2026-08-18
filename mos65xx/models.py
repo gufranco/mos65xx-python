@@ -1,0 +1,101 @@
+"""Which parts of the 65xx family this package covers, and what each one is.
+
+A model is more than an opcode set. It is the address bus the part was given, the
+instructions its maker added, and the mistakes its silicon shipped with. The
+Ricoh part in the Famicom has decimal arithmetic disabled because the adder is
+not wired for it. The 6507 in the Atari has thirteen address lines and no
+interrupt pins. The NMOS parts execute undocumented opcodes that programs came to
+rely on. None of that is a defect to be corrected here: a core that quietly fixes
+a hardware bug is wrong for the machine that shipped it.
+
+Adding a model means adding an entry here and holding it to a conformance suite.
+A model with no suite behind it does not belong in this table, because then its
+fidelity would be a claim rather than a measurement.
+"""
+
+
+class UnknownModelError(Exception):
+    pass
+
+
+class Model:
+    """One part of the family: what it is, what it reaches, and how to build it."""
+
+    def __init__(self, name, summary, address_bits, data_bits, decimal, core, aliases=()):
+        self.name = name
+        self.summary = summary
+        self.address_bits = address_bits
+        self.data_bits = data_bits
+        self.decimal = decimal
+        self.core = core
+        self.aliases = tuple(aliases)
+
+    @property
+    def address_mask(self):
+        return (1 << self.address_bits) - 1
+
+    def build(self, memory, **options):
+        return self.core(self, memory, **options)
+
+    def __repr__(self):
+        return f"<Model {self.name}, {self.address_bits} address bits>"
+
+
+def _build_65816(model, memory, **options):
+    from .wdc65816 import Cpu as Cpu65816
+
+    cpu = Cpu65816(memory, **options)
+    cpu.model = model.name
+    cpu.address_mask = model.address_mask
+    return cpu
+
+
+_CATALOGUE = (
+    Model(
+        name="65816",
+        summary=(
+            "WDC W65C816S. Sixteen bit accumulator and index registers, twenty four "
+            "address lines, and an emulation mode that behaves as a 6502 down to its "
+            "stack and direct page wrapping."
+        ),
+        address_bits=24,
+        data_bits=16,
+        decimal=True,
+        core=_build_65816,
+        aliases=("w65c816", "w65c816s", "65c816", "65816s"),
+    ),
+    Model(
+        name="65802",
+        summary=(
+            "WDC W65C802. The same core in a 6502 pin out, with sixteen address lines, "
+            "so the bank registers exist but reach nothing outside the first bank."
+        ),
+        address_bits=16,
+        data_bits=16,
+        decimal=True,
+        core=_build_65816,
+        aliases=("w65c802", "65c802"),
+    ),
+)
+
+MODELS = {model.name: model for model in _CATALOGUE}
+
+_BY_ALIAS = {}
+for _model in _CATALOGUE:
+    _BY_ALIAS[_model.name] = _model
+    for _alias in _model.aliases:
+        _BY_ALIAS[_alias] = _model
+
+
+def _normalise(name):
+    return str(name).strip().lower().replace("-", "").replace("_", "")
+
+
+def describe(name):
+    """The model of that name, however it happens to be written."""
+    found = _BY_ALIAS.get(_normalise(name))
+    if found is None:
+        raise UnknownModelError(
+            f"{name} is not a model this family covers; it has {', '.join(sorted(MODELS))}"
+        )
+    return found

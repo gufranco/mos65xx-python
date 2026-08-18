@@ -1,0 +1,14 @@
+{
+  "comment": "Conformance suites this core is held to. Pinned by commit so a run is reproducible; the weekly job proposes bumps.",
+  "suites": [
+    {
+      "name": "65816",
+      "repository": "https://github.com/SingleStepTests/ProcessorTests.git",
+      "commit": "bb11756436da8fd16cce86aef63dc6725f48836f",
+      "sparse": ["65816"],
+      "path": "65816/v1",
+      "tests_per_opcode": 10000,
+      "files": 512
+    }
+  ]
+}

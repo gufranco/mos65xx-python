@@ -1,0 +1,132 @@
+name: Suite watch
+
+# The suite is pinned by commit so a build is reproducible and a red run always
+# has a commit of its own to explain it. That pin is also how a repository stops
+# noticing that the oracle it is judged against has moved.
+#
+# So this runs weekly against whatever upstream holds now. It never changes the
+# pin on its own. If the newer suite passes it opens a pull request proposing the
+# bump, with the run behind it. If the newer suite fails it opens an issue naming
+# the opcodes that disagree, because either the suite found a real defect here or
+# upstream changed its mind about the hardware. Both are worth a person reading.
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: suite-watch
+  cancel-in-progress: false
+
+jobs:
+  revalidate:
+    name: Re-validate against the newest suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Ask upstream where it is now
+        id: upstream
+        run: |
+          python - <<'PY' >> "${GITHUB_OUTPUT}"
+          import json, os, pathlib, sys
+          sys.path.insert(0, "conformance")
+          import fetch
+
+          suite = fetch.definitions()[0]
+          latest = fetch.latest_commit(suite)
+          print(f"pinned={suite['commit']}")
+          print(f"latest={latest or ''}")
+          print(f"moved={str(bool(latest) and latest != suite['commit']).lower()}")
+          PY
+
+      - name: Nothing to do
+        if: steps.upstream.outputs.latest == ''
+        run: |
+          echo "::warning::upstream could not be reached; leaving the pin alone"
+          exit 0
+
+      - name: Fetch the newer suite
+        if: steps.upstream.outputs.moved == 'true'
+        run: |
+          python - "${{ steps.upstream.outputs.latest }}" <<'PY'
+          import pathlib, sys
+          sys.path.insert(0, "conformance")
+          import fetch
+
+          suite = fetch.definitions()[0]
+          where = fetch.fetch(suite, pathlib.Path.home() / ".cache" / "suite", sys.argv[1])
+          print(where)
+          PY
+
+      - name: Run the whole suite
+        if: steps.upstream.outputs.moved == 'true'
+        id: run
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          python conformance/singlestep.py ~/.cache/suite/65816/v1 \
+            | tee /tmp/report.txt
+
+      - name: Propose the bump
+        if: steps.upstream.outputs.moved == 'true' && steps.run.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LATEST: ${{ steps.upstream.outputs.latest }}
+          PINNED: ${{ steps.upstream.outputs.pinned }}
+        run: |
+          branch="suite/${LATEST:0:12}"
+          if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
+            echo "already proposed"
+            exit 0
+          fi
+          python - <<'PY'
+          import json, os, pathlib
+
+          path = pathlib.Path("conformance/suites.json")
+          text = path.read_text()
+          path.write_text(text.replace(os.environ["PINNED"], os.environ["LATEST"]))
+          PY
+          git switch -c "${branch}"
+          git add conformance/suites.json
+          git commit -m "test: move the 65816 suite pin to ${LATEST:0:12}"
+          git push -u origin "${branch}"
+          gh pr create \
+            --title "test: move the 65816 suite pin to ${LATEST:0:12}" \
+            --body-file - <<BODY
+          Upstream has moved and the whole suite still passes against the newer commit, so the pin can follow it. No source change is needed.
+
+          Was \`${PINNED}\`, now \`${LATEST}\`.
+
+          $(cat /tmp/report.txt)
+          BODY
+
+      - name: Report the disagreement
+        if: steps.upstream.outputs.moved == 'true' && steps.run.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LATEST: ${{ steps.upstream.outputs.latest }}
+          PINNED: ${{ steps.upstream.outputs.pinned }}
+        run: |
+          title="Conformance fails against suite ${LATEST:0:12}"
+          if [ -n "$(gh issue list --search "${title} in:title" --state open --json number --jq '.[].number')" ]; then
+            echo "already reported"
+            exit 0
+          fi
+          gh issue create --title "${title}" --body-file - <<BODY
+          The pinned suite still passes. A newer upstream commit does not, so either it found a real defect here or upstream changed what it believes the hardware does. The pin has not moved.
+
+          Pinned \`${PINNED}\`, tried \`${LATEST}\`.
+
+          $(cat /tmp/report.txt)
+          BODY
