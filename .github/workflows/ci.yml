@@ -86,7 +86,7 @@ jobs:
 
       - name: Cache the suite
         id: cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/conformance-suites
           key: suites-${{ steps.pin.outputs.commit }}
