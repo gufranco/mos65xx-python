@@ -1,6 +1,6 @@
 <div align="center">
 
-<h1>mos65xx</h1>
+<h1>65xx Family</h1>
 
 <strong>Interpreters for the 65xx processor family, held to per-opcode conformance suites.</strong>
 
