@@ -24,6 +24,7 @@ given a machine to run in, and a survey has nothing but the file.
 from .memory import Memory, SparseMemory, scramble
 from .models import MODELS, UnknownModelError, describe
 from .opcodes65816 import (
+    FLAG_DEPENDENT,
     MODE_SIZE,
     OPCODES,
     Truncated,
@@ -65,6 +66,7 @@ def Cpu(memory, model=DEFAULT_MODEL, **options):  # noqa: N802
 __all__ = [
     "FLAG_C",
     "FLAG_D",
+    "FLAG_DEPENDENT",
     "FLAG_I",
     "FLAG_M",
     "FLAG_N",
