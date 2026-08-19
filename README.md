@@ -23,7 +23,7 @@
   <a href="https://github.com/gufranco/mos65xx-python/issues">Issues</a>
 </p>
 
-**5** parts · **10,240,000** conformance cases, **0** failures · **256** opcodes each, undocumented ones included · **294** tests · **100%** statement and branch coverage
+**8** parts · **17,900,000** conformance cases, **0** failures · **256** opcodes each · **346** tests · **100%** statement and branch coverage
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -52,9 +52,11 @@ That last part is the one that bites. Hardware does not hand over a clean machin
 
 Two commitments, and every design decision here follows from one of them.
 
-**Correctness is measured, never asserted.** Every core is checked against the per-opcode suite published for the part it models, 10,000 cases per opcode. All 10,240,000 pass. When a core and the suite disagreed, the suite was right every time, twelve times running, including on things no datasheet states plainly. Page wrapping, for one, is not uniform across addressing modes: indirect indexed by Y wraps inside its page and indexed indirect by X does not, and that is not a rule anybody would guess.
+**Correctness is measured, never asserted.** Every core is checked against the per-opcode suite published for the part it models, 10,000 cases per opcode. All 17,900,000 pass. When a core and the suite disagreed, the suite was right every time, thirteen times running, including on things no datasheet states plainly. Page wrapping, for one, is not uniform across addressing modes: indirect indexed by Y wraps inside its page and indexed indirect by X does not, and that is not a rule anybody would guess.
 
-The twelfth was one case in 2,560,000. A jump to a subroutine pushes its return address between reading the two halves of its own destination, so when the stack has walked into the instruction the push overwrites the destination's high byte and the jump goes wherever the pushed byte says. Reading the destination first and pushing afterwards gives the same answer every other time.
+One of them was a single case in 2,560,000. A jump to a subroutine pushes its return address between reading the two halves of its own destination, so when the stack has walked into the instruction the push overwrites the destination's high byte and the jump goes wherever the pushed byte says. Reading the destination first and pushing afterwards gives the same answer every other time.
+
+Another was decimal subtraction on the CMOS parts. Both parts produce the same digits whenever both operands are valid decimal numbers, and nothing stops a program subtracting one that is not. The older part borrows out of the low digit into the high one; the newer subtracts in binary and corrects afterwards. Feed both `$FC` and they differ by a whole digit.
 
 **Nothing starts clean.** Memory is filled with a reproducible scrambled pattern unless a caller asks for something else in writing. A reset sets only what the hardware itself defines and leaves the accumulator, the index registers and the low byte of the stack pointer holding what they held.
 
@@ -165,6 +167,9 @@ cpu = Cpu(SparseMemory(), model="65802")
 | `6502` | 16 | yes | MOS 6502. Aliases: `mos6502`, `nmos6502`, `6510`, `8500` |
 | `6507` | 13 | yes | The same die in a smaller package. Aliases: `mos6507` |
 | `2a03` | 16 | **no** | Ricoh 2A03 and 2A07. Aliases: `ricoh2a03`, `2a07`, `nes6502`, `famicom` |
+| `65c02` | 16 | yes | The base CMOS design. Aliases: `synertek65c02`, `cmos6502` |
+| `r65c02` | 16 | yes | Rockwell R65C02, adding thirty two single-bit instructions. Aliases: `rockwell65c02` |
+| `w65c02` | 16 | yes | WDC W65C02S, adding stop and wait. Aliases: `wdc65c02`, `w65c02s` |
 | `65802` | 16 | yes | WDC W65C802, the sixteen bit core in a 6502 pin out. Aliases: `w65c802`, `65c802` |
 | `65816` | 24 | yes | WDC W65C816S. Aliases: `w65c816`, `w65c816s`, `65c816`, `65816s` |
 
@@ -175,6 +180,8 @@ The address bus is not cosmetic. The 65802 has sixteen address lines, so bank bi
 Decimal mode is a property of the part. The Ricoh variant in the Famicom has the decimal adder left unwired, so the flag can be set and changes nothing. Code that sets it and expects decimal arithmetic is wrong, and the part will not say so.
 
 And the undocumented instructions are not optional. A hundred and fifty one of the 6502's opcodes were never documented, programs used them anyway, and a core that treats them as undefined is wrong for the machines that shipped.
+
+Revisions are separate models, including the ones that only fixed a bug, because a machine has whichever revision it was built with. The three CMOS parts differ in exactly two opcode columns and two opcodes: a bit-clear instruction on a part that does not have it is a no-operation, and nothing reports that the bit was never cleared.
 
 > [!NOTE]
 > A model is only listed once a conformance suite backs it. A model with no suite behind it would make its fidelity a claim rather than a measurement.
@@ -216,7 +223,13 @@ python3 conformance/singlestep.py ~/.cache/conformance-suites/6502/6502/v1 --mod
 python3 conformance/singlestep.py ~/.cache/conformance-suites/nes6502/nes6502/v1 --model 2a03
 #   256 files, as a 2a03
 #   2560000 agreed, 0 did not
+
+python3 conformance/singlestep.py ~/.cache/conformance-suites/wdc65c02/wdc65c02/v1 --model w65c02
+#   256 files, as a w65c02
+#   2540000 agreed, 0 did not
 ```
+
+The WDC suite is twenty thousand cases short of the others because two of its instructions stop the processor, and a suite that runs one instruction and compares the result has nothing to compare when the processor does not come back.
 
 The suite is several gigabytes, so [`conformance/fetch.py`](conformance/fetch.py) takes a partial clone that skips blob history and a sparse checkout of only the directories [`conformance/suites.json`](conformance/suites.json) names.
 
@@ -242,7 +255,9 @@ mos65xx/
   wdc65816.py         the 65816 core
   opcodes65816.py     the opcode table and a disassembler
   opcodes6502.py      the same for the eight bit parts, undocumented opcodes included
+  opcodes65c02.py     what the CMOS parts changed, written as the difference
   mos6502.py          the eight bit core
+  mos65c02.py         the CMOS core, which is that one with its bugs fixed
   version.py          rewritten by the release job and by nothing else
 conformance/
   fetch.py            partial, sparse, pinned checkout of the suites

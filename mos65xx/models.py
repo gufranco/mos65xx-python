@@ -21,7 +21,9 @@ class UnknownModelError(Exception):
 class Model:
     """One part of the family: what it is, what it reaches, and how to build it."""
 
-    def __init__(self, name, summary, address_bits, data_bits, decimal, core, aliases=()):
+    def __init__(
+        self, name, summary, address_bits, data_bits, decimal, core, aliases=(), revision=None
+    ):
         self.name = name
         self.summary = summary
         self.address_bits = address_bits
@@ -29,6 +31,7 @@ class Model:
         self.decimal = decimal
         self.core = core
         self.aliases = tuple(aliases)
+        self.revision = revision
 
     @property
     def address_mask(self):
@@ -45,6 +48,16 @@ def _build_6502(model, memory, **options):
     from .mos6502 import Cpu as Cpu6502
 
     cpu = Cpu6502(memory, decimal=model.decimal, **options)
+    cpu.model = model.name
+    cpu.address_mask = model.address_mask
+    return cpu
+
+
+def _build_65c02(model, memory, **options):
+    from .mos65c02 import Cpu as Cpu65c02
+    from .opcodes65c02 import TABLES
+
+    cpu = Cpu65c02(memory, table=TABLES[model.revision], decimal=model.decimal, **options)
     cpu.model = model.name
     cpu.address_mask = model.address_mask
     return cpu
@@ -98,6 +111,48 @@ _CATALOGUE = (
         decimal=False,
         core=_build_6502,
         aliases=("ricoh2a03", "2a07", "ricoh2a07", "nes6502", "famicom"),
+    ),
+    Model(
+        name="65c02",
+        summary=(
+            "The base CMOS design, as Synertek and others shipped it. Every "
+            "undocumented instruction is gone, replaced by new ones or by "
+            "no-operations of stated length, and the jump through a pointer no "
+            "longer reads its high byte from the wrong page."
+        ),
+        address_bits=16,
+        data_bits=8,
+        decimal=True,
+        core=_build_65c02,
+        aliases=("synertek65c02", "s65c02", "cmos6502"),
+        revision="65c02",
+    ),
+    Model(
+        name="r65c02",
+        summary=(
+            "Rockwell R65C02. The base design plus thirty two instructions for "
+            "setting, clearing and branching on one bit of the first page. On a "
+            "part without them the same bytes do nothing and say nothing."
+        ),
+        address_bits=16,
+        data_bits=8,
+        decimal=True,
+        core=_build_65c02,
+        aliases=("rockwell65c02", "rockwell"),
+        revision="rockwell",
+    ),
+    Model(
+        name="w65c02",
+        summary=(
+            "WDC W65C02S. Rockwell's instruction set plus two that stop the "
+            "processor or hold it until an interrupt arrives."
+        ),
+        address_bits=16,
+        data_bits=8,
+        decimal=True,
+        core=_build_65c02,
+        aliases=("wdc65c02", "w65c02s"),
+        revision="wdc",
     ),
     Model(
         name="65816",

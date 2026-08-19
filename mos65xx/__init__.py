@@ -21,7 +21,7 @@ them, which is what anything surveying a ROM needs: an interpreter has to be
 given a machine to run in, and a survey has nothing but the file.
 """
 
-from . import mos6502, opcodes6502
+from . import mos65c02, mos6502, opcodes65c02, opcodes6502
 from .memory import Memory, SparseMemory, scramble
 from .models import MODELS, UnknownModelError, describe
 from .opcodes65816 import (
@@ -94,7 +94,9 @@ __all__ = [
     "decode",
     "describe",
     "disassemble",
+    "mos65c02",
     "mos6502",
+    "opcodes65c02",
     "opcodes6502",
     "operand_size",
     "render",
