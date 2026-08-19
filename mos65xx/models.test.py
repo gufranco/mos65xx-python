@@ -87,5 +87,26 @@ class DescriptionTest(unittest.TestCase):
         self.assertIn("24", printed)
 
 
+class FamilyTest(unittest.TestCase):
+    def test_every_model_builds_a_processor_of_its_own_kind(self):
+        from mos65xx import Cpu, SparseMemory
+
+        for name in models.MODELS:
+            cpu = Cpu(SparseMemory(seed=1), model=name)
+
+            self.assertEqual(cpu.model, name)
+            self.assertEqual(cpu.address_mask, models.describe(name).address_mask)
+
+    def test_the_part_with_no_decimal_adder_says_so(self):
+        self.assertFalse(models.describe("2a03").decimal)
+
+    def test_the_parts_that_have_one_say_so(self):
+        for name in ("6502", "6507", "65816", "65802"):
+            self.assertTrue(models.describe(name).decimal, name)
+
+    def test_the_smaller_package_reaches_less(self):
+        self.assertLess(models.describe("6507").address_mask, models.describe("6502").address_mask)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -41,6 +41,15 @@ class Model:
         return f"<Model {self.name}, {self.address_bits} address bits>"
 
 
+def _build_6502(model, memory, **options):
+    from .mos6502 import Cpu as Cpu6502
+
+    cpu = Cpu6502(memory, decimal=model.decimal, **options)
+    cpu.model = model.name
+    cpu.address_mask = model.address_mask
+    return cpu
+
+
 def _build_65816(model, memory, **options):
     from .wdc65816 import Cpu as Cpu65816
 
@@ -51,6 +60,45 @@ def _build_65816(model, memory, **options):
 
 
 _CATALOGUE = (
+    Model(
+        name="6502",
+        summary=(
+            "MOS 6502. Eight bit registers, sixteen address lines, decimal arithmetic, "
+            "and a hundred and fifty one undocumented opcodes that programs came to "
+            "rely on. Its bugs are as well known as its instruction set."
+        ),
+        address_bits=16,
+        data_bits=8,
+        decimal=True,
+        core=_build_6502,
+        aliases=("mos6502", "nmos6502", "6510", "8500"),
+    ),
+    Model(
+        name="6507",
+        summary=(
+            "MOS 6507. The same die in a smaller package, with thirteen address lines "
+            "brought out and no interrupt pins, so it reaches eight kilobytes and "
+            "everything above that is a mirror."
+        ),
+        address_bits=13,
+        data_bits=8,
+        decimal=True,
+        core=_build_6502,
+        aliases=("mos6507",),
+    ),
+    Model(
+        name="2a03",
+        summary=(
+            "Ricoh 2A03 and 2A07. The 6502 with the decimal adder left unwired, so the "
+            "decimal flag can be set and changes nothing. Setting it and expecting "
+            "decimal arithmetic is a bug this part will not report."
+        ),
+        address_bits=16,
+        data_bits=8,
+        decimal=False,
+        core=_build_6502,
+        aliases=("ricoh2a03", "2a07", "ricoh2a07", "nes6502", "famicom"),
+    ),
     Model(
         name="65816",
         summary=(

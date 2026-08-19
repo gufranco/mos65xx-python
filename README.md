@@ -23,7 +23,7 @@
   <a href="https://github.com/gufranco/mos65xx-python/issues">Issues</a>
 </p>
 
-**256** opcodes · **92** mnemonics · **26** addressing modes · **5,120,000** conformance cases, **0** failures · **192** tests · **100%** statement and branch coverage
+**5** parts · **10,240,000** conformance cases, **0** failures · **256** opcodes each, undocumented ones included · **294** tests · **100%** statement and branch coverage
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -52,7 +52,9 @@ That last part is the one that bites. Hardware does not hand over a clean machin
 
 Two commitments, and every design decision here follows from one of them.
 
-**Correctness is measured, never asserted.** The core is checked against [SingleStepTests](https://github.com/SingleStepTests/ProcessorTests), which carries 10,000 cases for each opcode in each of the processor's two modes. All 5,120,000 pass. When this core and the suite disagreed, the suite was right eleven times running, including on things no datasheet states plainly. Page wrapping, for one, is not uniform across addressing modes: indirect indexed by Y wraps inside its page and indexed indirect by X does not, and that is not a rule anybody would guess.
+**Correctness is measured, never asserted.** Every core is checked against the per-opcode suite published for the part it models, 10,000 cases per opcode. All 10,240,000 pass. When a core and the suite disagreed, the suite was right every time, twelve times running, including on things no datasheet states plainly. Page wrapping, for one, is not uniform across addressing modes: indirect indexed by Y wraps inside its page and indexed indirect by X does not, and that is not a rule anybody would guess.
+
+The twelfth was one case in 2,560,000. A jump to a subroutine pushes its return address between reading the two halves of its own destination, so when the stack has walked into the instruction the push overwrites the destination's high byte and the jump goes wherever the pushed byte says. Reading the destination first and pushing afterwards gives the same answer every other time.
 
 **Nothing starts clean.** Memory is filled with a reproducible scrambled pattern unless a caller asks for something else in writing. A reset sets only what the hardware itself defines and leaves the accumulator, the index registers and the low byte of the stack pointer holding what they held.
 
@@ -158,12 +160,21 @@ describe("w65c802").address_bits
 cpu = Cpu(SparseMemory(), model="65802")
 ```
 
-| Model | Address bits | Notes |
-|:------|:------------:|:------|
-| `65816` | 24 | WDC W65C816S. Aliases: `w65c816`, `w65c816s`, `65c816`, `65816s` |
-| `65802` | 16 | WDC W65C802, the same core in a 6502 pin out. Bank registers exist and reach nothing outside the first bank. Aliases: `w65c802`, `65c802` |
+| Model | Address bits | Decimal | Notes |
+|:------|:------------:|:-------:|:------|
+| `6502` | 16 | yes | MOS 6502. Aliases: `mos6502`, `nmos6502`, `6510`, `8500` |
+| `6507` | 13 | yes | The same die in a smaller package. Aliases: `mos6507` |
+| `2a03` | 16 | **no** | Ricoh 2A03 and 2A07. Aliases: `ricoh2a03`, `2a07`, `nes6502`, `famicom` |
+| `65802` | 16 | yes | WDC W65C802, the sixteen bit core in a 6502 pin out. Aliases: `w65c802`, `65c802` |
+| `65816` | 24 | yes | WDC W65C816S. Aliases: `w65c816`, `w65c816s`, `65c816`, `65816s` |
 
-The address bus is not cosmetic. The 65802 has sixteen address lines, so bank bits never leave the chip and a read of `$7E0012` lands on `$0012`.
+Three of those differences are the kind that produce a bug rather than a compile error.
+
+The address bus is not cosmetic. The 65802 has sixteen address lines, so bank bits never leave the chip and a read of `$7E0012` lands on `$0012`. The 6507 has thirteen, so everything above eight kilobytes is a mirror of something below it.
+
+Decimal mode is a property of the part. The Ricoh variant in the Famicom has the decimal adder left unwired, so the flag can be set and changes nothing. Code that sets it and expects decimal arithmetic is wrong, and the part will not say so.
+
+And the undocumented instructions are not optional. A hundred and fifty one of the 6502's opcodes were never documented, programs used them anyway, and a core that treats them as undefined is wrong for the machines that shipped.
 
 > [!NOTE]
 > A model is only listed once a conformance suite backs it. A model with no suite behind it would make its fidelity a claim rather than a measurement.
@@ -193,14 +204,23 @@ cpu.a, cpu.x, cpu.y
 
 ```bash
 python3 conformance/fetch.py ~/.cache/conformance-suites
+
 python3 conformance/singlestep.py ~/.cache/conformance-suites/65816/65816/v1
-#   512 files from ~/.cache/conformance-suites/65816/65816/v1
+#   512 files, as a 65816
 #   5120000 agreed, 0 did not
+
+python3 conformance/singlestep.py ~/.cache/conformance-suites/6502/6502/v1 --model 6502
+#   256 files, as a 6502
+#   2560000 agreed, 0 did not
+
+python3 conformance/singlestep.py ~/.cache/conformance-suites/nes6502/nes6502/v1 --model 2a03
+#   256 files, as a 2a03
+#   2560000 agreed, 0 did not
 ```
 
 The suite is several gigabytes, so [`conformance/fetch.py`](conformance/fetch.py) takes a partial clone that skips blob history and a sparse checkout of only the directories [`conformance/suites.json`](conformance/suites.json) names.
 
-Each case gives a full initial state, the bytes in memory, and the state one instruction later. [`conformance/singlestep.py`](conformance/singlestep.py) builds exactly that machine, steps once, and compares every register, both mode flags and every named byte. Memory outside the named bytes is scrambled rather than cleared, because the suite says nothing about those addresses and filling them with zeroes would make an undefined read look deliberate.
+Each case gives a full initial state, the bytes in memory, and the state one instruction later. [`conformance/singlestep.py`](conformance/singlestep.py) builds exactly that machine, steps once, and compares every register the part has and every named byte. Only the registers a case names are set, because a suite for a part with fewer of them names fewer of them. Memory outside the named bytes is scrambled rather than cleared, because the suite says nothing about those addresses and filling them with zeroes would make an undefined read look deliberate.
 
 ### How the pin is kept honest
 
@@ -221,6 +241,8 @@ mos65xx/
   memory.py           memory that holds what it held
   wdc65816.py         the 65816 core
   opcodes65816.py     the opcode table and a disassembler
+  opcodes6502.py      the same for the eight bit parts, undocumented opcodes included
+  mos6502.py          the eight bit core
   version.py          rewritten by the release job and by nothing else
 conformance/
   fetch.py            partial, sparse, pinned checkout of the suites

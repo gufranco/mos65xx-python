@@ -5,10 +5,37 @@
       "name": "65816",
       "repository": "https://github.com/SingleStepTests/ProcessorTests.git",
       "commit": "bb11756436da8fd16cce86aef63dc6725f48836f",
-      "sparse": ["65816"],
+      "sparse": [
+        "65816"
+      ],
       "path": "65816/v1",
       "tests_per_opcode": 10000,
-      "files": 512
+      "files": 512,
+      "model": "65816"
+    },
+    {
+      "name": "6502",
+      "model": "6502",
+      "repository": "https://github.com/SingleStepTests/65x02.git",
+      "commit": "2f6980a2d95757486c7bee24355c360e40e2a224",
+      "sparse": [
+        "6502"
+      ],
+      "path": "6502/v1",
+      "tests_per_opcode": 10000,
+      "files": 256
+    },
+    {
+      "name": "nes6502",
+      "model": "2a03",
+      "repository": "https://github.com/SingleStepTests/65x02.git",
+      "commit": "2f6980a2d95757486c7bee24355c360e40e2a224",
+      "sparse": [
+        "nes6502"
+      ],
+      "path": "nes6502/v1",
+      "tests_per_opcode": 10000,
+      "files": 256
     }
   ]
 }

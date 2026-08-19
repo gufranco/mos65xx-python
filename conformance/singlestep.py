@@ -1,10 +1,15 @@
-"""Check the interpreter against the SingleStepTests suite for the 65816.
+"""Check a core against the per-opcode suite published for the part it models.
 
-The suite gives 20,000 tests per opcode, 10,000 in native mode and 10,000 in
-emulation mode. Each test carries a complete starting state, the bytes of memory
-the instruction touches, and the state one instruction later. Nothing in it
-starts clean: every register holds an arbitrary value, which is the point, and a
-core that quietly assumes a cleared machine fails on the first case.
+Each suite gives ten thousand tests per opcode, and the 65816 gives that twice
+over because it has two modes. Each test carries a complete starting state, the
+bytes of memory the instruction touches, and the state one instruction later.
+Nothing in any of them starts clean: every register holds an arbitrary value,
+which is the point, and a core that quietly assumes a cleared machine fails on
+the first case.
+
+The family shares one runner because the suites share one shape. What differs is
+which registers a part has, and that comes from the model rather than from a
+second copy of this file.
 
 The suite is not carried here. It is gigabytes of JSON that belongs to its own
 project, and this takes a path to a local checkout and reports honestly when
@@ -15,6 +20,11 @@ does not own.
         https://github.com/SingleStepTests/ProcessorTests.git
     git -C ProcessorTests sparse-checkout set 65816
     python3 conformance/singlestep.py ProcessorTests/65816/v1
+
+    git clone --filter=blob:none --sparse --depth=1 \\
+        https://github.com/SingleStepTests/65x02.git
+    git -C 65x02 sparse-checkout set 6502
+    python3 conformance/singlestep.py 65x02/6502/v1 --model 6502
 """
 
 import json
@@ -24,10 +34,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from mos65xx import Cpu, SparseMemory  # noqa: E402
+from mos65xx import Cpu, SparseMemory, UnknownModelError, describe  # noqa: E402
 
-ADDRESS_SPACE = 0x1000000
 EXAMPLE_LIMIT = 5
+
+DEFAULT_MODEL = "65816"
 
 REGISTERS = (
     ("a", "a"),
@@ -49,33 +60,32 @@ def suite_files(directory):
     return sorted(directory.glob("*.json"))
 
 
-def machine_for(initial):
+def machine_for(initial, model=DEFAULT_MODEL):
     """A processor and memory in exactly the state the test declares.
 
     Memory outside the bytes the test names is scrambled rather than cleared. The
     suite says nothing about those addresses, so an instruction that reads one is
     reading something undefined, and filling them with zeroes would make such a
     read look deliberate.
+
+    Only the registers the test names are set, because only the registers the
+    part has are named. Everything else keeps what the reset left it holding.
     """
     memory = SparseMemory(seed=initial["pc"])
     for address, value in initial["ram"]:
         memory.write8(address, value)
 
-    cpu = Cpu(memory, reset=False)
-    cpu.emulation = bool(initial["e"])
+    cpu = Cpu(memory, model=model, reset=False)
+    if "e" in initial:
+        cpu.emulation = bool(initial["e"])
     cpu.set_status(initial["p"])
-    cpu.a = initial["a"]
-    cpu.x = initial["x"]
-    cpu.y = initial["y"]
-    cpu.s = initial["s"]
-    cpu.d = initial["d"]
-    cpu.db = initial["dbr"]
-    cpu.pb = initial["pbr"]
-    cpu.pc = initial["pc"]
+    for name, attribute in REGISTERS:
+        if name in initial:
+            setattr(cpu, attribute, initial[name])
     return cpu, memory
 
 
-def check(test):
+def check(test, model=DEFAULT_MODEL):
     """Where the interpreter and the suite disagree after one instruction.
 
     The suite records how many cycles it let the instruction have, which matters
@@ -83,8 +93,9 @@ def check(test):
     hundred cycle window rather than a move of sixty thousand bytes. Every other
     instruction finishes well inside its window, so the budget changes nothing.
     """
-    cpu, memory = machine_for(test["initial"])
-    cpu.cycle_budget = len(test.get("cycles", ())) or None
+    cpu, memory = machine_for(test["initial"], model)
+    if hasattr(cpu, "cycle_budget"):
+        cpu.cycle_budget = len(test.get("cycles", ())) or None
     cpu.step()
 
     final = test["final"]
@@ -111,13 +122,13 @@ def check(test):
     return wrong
 
 
-def run_tests(tests):
+def run_tests(tests, model=DEFAULT_MODEL):
     """How many agreed, how many did not, and a few that did not."""
     passed = failed = 0
     examples = []
     for test in tests:
         try:
-            wrong = check(test)
+            wrong = check(test, model)
         except Exception as error:  # noqa: BLE001
             wrong = [("raised", type(error).__name__, str(error)[:60])]
         if wrong:
@@ -129,34 +140,64 @@ def run_tests(tests):
     return passed, failed, examples
 
 
-def run_file(path, limit=None):
+def run_file(path, limit=None, model=DEFAULT_MODEL):
     """One test file, optionally only its first few cases."""
     with Path(path).open() as handle:
         tests = json.load(handle)
     if limit:
         tests = tests[:limit]
-    return run_tests(tests)
+    return run_tests(tests, model)
+
+
+USAGE = "usage: singlestep.py <suite directory> [tests per file] [filter] [--model name]"
+
+
+class Usage(Exception):
+    pass
+
+
+def options(argv):
+    """The suite to run, how much of it, and which part it is a suite for."""
+    model = DEFAULT_MODEL
+    rest = []
+    argv = list(argv)
+    while argv:
+        entry = argv.pop(0)
+        if entry != "--model":
+            rest.append(entry)
+            continue
+        if not argv:
+            raise Usage("--model needs the name of a part after it")
+        model = argv.pop(0)
+
+    if not rest:
+        raise Usage("a suite directory is needed")
+    describe(model)
+    return rest, model
 
 
 def main(argv):
-    if not argv:
-        print("usage: singlestep.py <suite directory> [tests per file] [name filter]")
+    try:
+        rest, model = options(argv)
+    except (Usage, UnknownModelError) as refusal:
+        print(f"  {refusal}")
+        print(USAGE)
         return 2
 
-    directory = Path(argv[0])
-    limit = int(argv[1]) if len(argv) > 1 else None
-    wanted = argv[2] if len(argv) > 2 else ""
+    directory = Path(rest[0])
+    limit = int(rest[1]) if len(rest) > 1 else None
+    wanted = rest[2] if len(rest) > 2 else ""
 
     files = [path for path in suite_files(directory) if wanted in path.name]
     if not files:
         print(f"  no suite at {directory}; clone SingleStepTests/ProcessorTests to get one")
         return 0
 
-    print(f"  {len(files)} files from {directory}")
+    print(f"  {len(files)} files from {directory}, as a {model}")
     passed = failed = 0
     broken = []
     for path in files:
-        file_passed, file_failed, examples = run_file(path, limit)
+        file_passed, file_failed, examples = run_file(path, limit, model)
         passed += file_passed
         failed += file_failed
         if file_failed:

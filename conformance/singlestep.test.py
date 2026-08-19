@@ -261,5 +261,101 @@ class MainTest(unittest.TestCase):
         self.assertIn("more files with failures", output)
 
 
+class NarrowPartTest(unittest.TestCase):
+    """A suite for a part with fewer registers than the one this file grew up on.
+
+    The 6502 suite names no emulation flag, no direct page, and no bank
+    registers, because the part has none of them. Only what a test names is set,
+    so a runner that reached for all of them would fail on every case of every
+    suite except one.
+    """
+
+    def case(self):
+        return {
+            "name": "a9 42",
+            "initial": {
+                "pc": 0x8000,
+                "s": 0xFD,
+                "a": 0x00,
+                "x": 0x11,
+                "y": 0x22,
+                "p": 0x24,
+                "ram": [[0x8000, 0xA9], [0x8001, 0x42]],
+            },
+            "final": {
+                "pc": 0x8002,
+                "s": 0xFD,
+                "a": 0x42,
+                "x": 0x11,
+                "y": 0x22,
+                "p": 0x24,
+                "ram": [[0x8000, 0xA9], [0x8001, 0x42]],
+            },
+            "cycles": [[0x8000, 0xA9, "read"], [0x8001, 0x42, "read"]],
+        }
+
+    def test_a_narrow_part_runs_a_case_that_names_only_what_it_has(self):
+        self.assertEqual(singlestep.check(self.case(), model="6502"), [])
+
+    def test_a_narrow_part_reports_a_disagreement_the_same_way(self):
+        case = self.case()
+        case["final"]["a"] = 0x43
+
+        self.assertEqual(singlestep.check(case, model="6502")[0][0], "a")
+
+    def test_a_case_that_agrees_is_counted_as_agreeing(self):
+        passed, failed, _ = singlestep.run_tests([self.case()], model="2a03")
+
+        self.assertEqual((passed, failed), (1, 0))
+
+
+class OptionTest(unittest.TestCase):
+    def test_a_directory_alone_runs_the_default_part(self):
+        rest, model = singlestep.options(["suite"])
+
+        self.assertEqual(rest, ["suite"])
+        self.assertEqual(model, singlestep.DEFAULT_MODEL)
+
+    def test_a_named_part_is_taken_as_given(self):
+        _, model = singlestep.options(["suite", "--model", "6502"])
+
+        self.assertEqual(model, "6502")
+
+    def test_the_flag_can_come_before_the_directory(self):
+        rest, model = singlestep.options(["--model", "2a03", "suite"])
+
+        self.assertEqual((rest, model), (["suite"], "2a03"))
+
+    def test_a_flag_with_nothing_after_it_is_refused(self):
+        with self.assertRaises(singlestep.Usage):
+            singlestep.options(["suite", "--model"])
+
+    def test_no_directory_at_all_is_refused(self):
+        with self.assertRaises(singlestep.Usage):
+            singlestep.options([])
+
+    def test_a_part_this_package_does_not_carry_is_refused(self):
+        from mos65xx import UnknownModelError
+
+        with self.assertRaises(UnknownModelError):
+            singlestep.options(["suite", "--model", "z80"])
+
+    def test_the_limits_and_filter_survive_the_parsing(self):
+        rest, _ = singlestep.options(["suite", "20", "a9", "--model", "6502"])
+
+        self.assertEqual(rest, ["suite", "20", "a9"])
+
+
+class RefusalTest(unittest.TestCase):
+    def test_a_call_with_no_arguments_explains_itself(self):
+        self.assertEqual(singlestep.main([]), 2)
+
+    def test_a_part_it_does_not_carry_explains_itself(self):
+        self.assertEqual(singlestep.main(["suite", "--model", "nonsense"]), 2)
+
+    def test_a_flag_with_nothing_after_it_explains_itself(self):
+        self.assertEqual(singlestep.main(["suite", "--model"]), 2)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
