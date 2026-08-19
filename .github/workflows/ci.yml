@@ -36,6 +36,19 @@ jobs:
       - name: Lint
         run: ruff check --output-format=github .
 
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install the formatter
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Check that every JSON file is formatted
+        run: pnpm run format:check
+
   test:
     name: Tests on Python ${{ matrix.python }}
     runs-on: ubuntu-latest
