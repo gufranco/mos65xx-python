@@ -125,18 +125,31 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: python conformance/fetch.py ~/.cache/conformance-suites
 
-      # A pull request runs a tenth of the suite for a quick answer. A push to
-      # main runs all twenty thousand cases per opcode, because that is the
-      # number the claim of conformance rests on.
-      - name: Run the suite
+      # A pull request runs a tenth of each suite for a quick answer. A push to
+      # main runs every case, because the number of them is what the claim of
+      # conformance rests on, and the claim covers every part rather than one.
+      - name: Run every suite
         run: |
           if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
             limit=1000
           else
             limit=0
           fi
-          python conformance/singlestep.py \
-            ~/.cache/conformance-suites/65816/65816/v1 "${limit}"
+          status=0
+          while read -r suite model; do
+            echo "::group::${suite} as a ${model}"
+            python conformance/singlestep.py \
+              "${HOME}/.cache/conformance-suites/${suite}" "${limit}" --model "${model}" || status=1
+            echo "::endgroup::"
+          done <<'SUITES'
+          65816/65816/v1 65816
+          6502/6502/v1 6502
+          nes6502/nes6502/v1 2a03
+          synertek65c02/synertek65c02/v1 65c02
+          rockwell65c02/rockwell65c02/v1 r65c02
+          wdc65c02/wdc65c02/v1 w65c02
+          SUITES
+          exit "${status}"
         shell: bash
 
   cycles:
@@ -163,10 +176,10 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: python conformance/fetch.py ~/.cache/conformance-suites
 
-      # Every cycle of an NMOS part is a bus cycle, so this compares timing and
-      # side effects at once: address, value, and read against write, in order.
-      # The CMOS parts and the 65816 are refused by this runner on purpose, and
-      # conformance/divergences.json says what is measured and missing for them.
+      # Every cycle of an eight-bit part is a bus cycle, so this compares timing
+      # and side effects at once: address, value, and read against write, in
+      # order. The 65816 is refused by this runner on purpose, because its
+      # recordings carry pin states this core does not emit.
       - name: Compare the bus, cycle by cycle
         run: |
           if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
@@ -174,6 +187,18 @@ jobs:
           else
             limit=0
           fi
-          python conformance/cycles.py \
-            ~/.cache/conformance-suites/6502/6502/v1 "${limit}" --model 6502
+          status=0
+          while read -r suite model; do
+            echo "::group::${suite} as a ${model}"
+            python conformance/cycles.py \
+              "${HOME}/.cache/conformance-suites/${suite}" "${limit}" --model "${model}" || status=1
+            echo "::endgroup::"
+          done <<'SUITES'
+          6502/6502/v1 6502
+          nes6502/nes6502/v1 2a03
+          synertek65c02/synertek65c02/v1 65c02
+          rockwell65c02/rockwell65c02/v1 r65c02
+          wdc65c02/wdc65c02/v1 w65c02
+          SUITES
+          exit "${status}"
         shell: bash

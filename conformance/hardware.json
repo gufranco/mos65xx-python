@@ -182,14 +182,26 @@
         "branchTaken": "reads the instruction it is not going to run, and on a page change the low-byte-only sum as well",
         "hardwareInterrupt": "spends two cycles reading the program counter before it pushes anything"
       },
-      "measured": "Every one of the 2,440,000 non-halting cases in the pinned 6502 suite agrees address for address, value for value, read against write, in order. The 120,000 cases whose opcode halts the part are left out and counted separately.",
+      "measured": "Every one of the 2,440,000 non-halting cases in the pinned 6502 suite and every one of the 2,440,000 in the 2A03 suite agrees address for address, value for value, read against write, in order. The 120,000 cases per suite whose opcode halts the part are left out and counted separately.",
       "notStated": "A halted part keeps driving its address lines and the manual does not say with what. The recordings show a stuck pattern around the interrupt vector whose length is a property of the recording, so those cases are excluded rather than matched."
     },
-    "cmosCycleShapesNotYetImplemented": {
+    "cmosCycleShapes": {
       "document": "wdc816",
       "section": "3.14, and Table 6-5 of the W65C02S data sheet",
       "quote": "0 0 Internal Operation Address and Data Bus available. The Address Bus may be invalid.",
-      "whyItIsSeparateWork": "The CMOS parts spend their spare cycles at different addresses from the NMOS part, perform one write rather than two in a read-modify-write, and spend an extra cycle on decimal arithmetic. All of that is measured, per mode, in divergences.json. Until it is implemented the cycle runner refuses those parts rather than reporting a comparison."
+      "whatIsImplemented": {
+        "indexedSpareCycle": "re-reads the last byte of the instruction rather than the half-formed address",
+        "readModifyWrite": "reads its address twice and writes it once, where the NMOS part reads once and writes twice",
+        "shiftsAndRotatesOfAnIndexedAbsolute": "pay for indexing only when the index crosses a page; increment and decrement always pay",
+        "indirectJump": "reads the address the NMOS page-wrap bug would have used, discards it, then reads the right one",
+        "indexedIndirectJump": "spends its spare cycle re-reading the operand's low byte",
+        "decimalArithmetic": "costs one extra cycle, which re-reads the operand's address when there is one",
+        "undocumentedOpcodes": "the $x3 and $xB columns are one cycle and read nothing, except $CB where it is not the wait instruction; the rest take their addressing mode's shape and read the address they name",
+        "pullOfAnIndexRegister": "reads the stack slot below the one it wants first, as the older part's pulls do",
+        "bitBranch": "spends both of its extra cycles on the byte after the instruction rather than on a half-formed address"
+      },
+      "measured": "Every one of the 7,630,080 non-placeholder cases across the three CMOS suites agrees, cycle for cycle. The placeholder cases are the ones counted apart in divergences.json.",
+      "notStated": "No document describes the opcodes the CMOS design left unused, so their shapes are taken from the recordings and are marked as such. Three of the addresses the W65C02S timing chart gives for spare cycles are contradicted by those recordings, and that is recorded rather than reconciled."
     }
   }
 }

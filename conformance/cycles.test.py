@@ -152,9 +152,9 @@ class RefusalTest(unittest.TestCase):
         with self.assertRaises(cycles.Unsupported):
             cycles.options(["somewhere", "--model", "65816"])
 
-    def test_a_part_whose_spare_cycles_are_measured_but_not_implemented_is_refused(self) -> None:
+    def test_a_part_whose_bus_this_core_does_not_record_is_refused(self) -> None:
         with self.assertRaises(cycles.Unsupported):
-            cycles.options(["somewhere", "--model", "w65c02"])
+            cycles.options(["somewhere", "--model", "65802"])
 
     def test_the_parts_that_have_been_held_to_a_recording_are_accepted(self) -> None:
         for named in sorted(cycles.VERIFIED):
@@ -186,6 +186,60 @@ class RefusalTest(unittest.TestCase):
             code = cycles.main(["--model", "65816"])
 
         self.assertEqual(code, 2)
+
+
+class PlaceholderTest(unittest.TestCase):
+    """That the one cycle with no address to compute is counted apart, narrowly."""
+
+    ADC_IMMEDIATE = 0x69
+
+    def decimal_add(self, third: int) -> dict[str, Any]:
+        return a_case(
+            {0x8000: self.ADC_IMMEDIATE, 0x8001: 0x11},
+            [[0x8000, self.ADC_IMMEDIATE, "read"], [0x8001, 0x11, "read"], [third, 0x11, "read"]],
+            p=0x2C,
+        )
+
+    def test_a_case_differing_only_at_that_cycle_is_not_a_disagreement(self) -> None:
+        agreed, differed, skipped, _ = cycles.run_tests([self.decimal_add(0x7F)], "w65c02")
+
+        self.assertEqual((agreed, differed, skipped), (0, 0, 1))
+
+    def test_the_same_case_with_the_address_the_model_reads_agrees_outright(self) -> None:
+        agreed, differed, skipped, _ = cycles.run_tests([self.decimal_add(0x8001)], "w65c02")
+
+        self.assertEqual((agreed, differed, skipped), (1, 0, 0))
+
+    def test_an_opcode_outside_the_pair_is_never_excused(self) -> None:
+        moved = a_case(
+            {0x8000: LDA_ZERO_PAGE, 0x8001: 0x40, 0x0040: 0x7B},
+            [[0x8000, LDA_ZERO_PAGE, "read"], [0x8001, 0x40, "read"], [0x0041, 0x7B, "read"]],
+        )
+
+        self.assertFalse(cycles.only_placeholder(moved, cycles.recorded(LOADING)))
+
+    def test_a_difference_in_length_is_never_excused(self) -> None:
+        short = a_case(
+            {0x8000: self.ADC_IMMEDIATE, 0x8001: 0x11},
+            [[0x8000, self.ADC_IMMEDIATE, "read"], [0x8001, 0x11, "read"]],
+            p=0x2C,
+        )
+
+        self.assertFalse(cycles.only_placeholder(short, [(0, 0, "read")]))
+
+    def test_two_cycles_apart_is_never_excused(self) -> None:
+        held = self.decimal_add(0x7F)
+
+        self.assertFalse(
+            cycles.only_placeholder(held, [(1, 1, "read"), (2, 2, "read"), (3, 3, "read")])
+        )
+
+    def test_a_write_where_a_read_was_recorded_is_never_excused(self) -> None:
+        held = self.decimal_add(0x7F)
+        seen = cycles.recorded(held)
+        seen[2] = (0x8001, 0x11, "write")
+
+        self.assertFalse(cycles.only_placeholder(held, seen))
 
 
 class SuiteTest(unittest.TestCase):
@@ -229,6 +283,14 @@ class SuiteTest(unittest.TestCase):
             (agreed, differed, skipped, len(examples)),
             (0, cycles.EXAMPLE_LIMIT + 2, 0, cycles.EXAMPLE_LIMIT),
         )
+
+    def test_an_empty_file_is_no_cases_rather_than_a_crash(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            (Path(where) / "cb.json").write_text("")
+
+            held = cycles.run_file(Path(where) / "cb.json", model="6502")
+
+        self.assertEqual(held, (0, 0, 0, []))
 
     def test_a_limit_stops_reading_a_file_early(self) -> None:
         with tempfile.TemporaryDirectory() as where:

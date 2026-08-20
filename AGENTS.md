@@ -61,17 +61,26 @@ python3 conformance/singlestep.py
 
 ## The cycle claim, and what it rests on
 
-The NMOS parts are held to the bus, not only to state:
+All five eight-bit parts are held to the bus, not only to state:
 
 ```bash
-python3 conformance/cycles.py <suite>/6502/v1 --model 6502
+python3 conformance/cycles.py <suite>/wdc65c02/v1 --model w65c02
 ```
 
-Every cycle of an NMOS 6502 is a bus cycle, so that comparison covers timing and
-side effects at once, and all 2,440,000 non-halting cases in the pinned suite
-agree. The CMOS parts and the 65816 are refused by that runner on purpose. Their
-differences are measured and written down; implementing them is the next piece of
-work, and until then no claim is made.
+Every cycle of these parts is a bus cycle, so that comparison covers timing and
+side effects at once, and 12,510,080 cases agree. The 65816 is refused by that
+runner on purpose: its recordings carry pin states and cycles with no access at
+all, which this core does not emit. That is the next piece of work.
+
+Where a spare cycle reads is a property of the part, not of the addressing mode,
+and the two families disagree about every one of them. The hooks that carry the
+difference are `spare_for_index`, `spare_in_page_zero`, `settle`, `modify_kind`
+and `idles_after_opcode`. Add a part by overriding those rather than by copying an
+addressing mode.
+
+The weekly watcher still tracks only the 65816 repository's pin. The 65x02
+repository carries five of the six suites and its pin is not watched, so a bump
+there has to be noticed by hand.
 
 Two rules for touching any of this. A dummy access is a cycle, so it goes through
 `read8` or `write8` rather than around them, or it will not appear on the bus. And

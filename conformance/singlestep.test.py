@@ -363,5 +363,28 @@ class RefusalTest(unittest.TestCase):
         self.assertEqual(singlestep.main(["suite", "--model"]), 2)
 
 
+class EmptyFileTest(unittest.TestCase):
+    """That a file with nothing in it is no cases rather than a crash.
+
+    The suites carry one file per opcode, and the two whose whole behaviour is to
+    stop the part are empty because there is nothing to record. A runner that
+    raises on them cannot run the suite at all.
+    """
+
+    def test_an_empty_file_holds_no_cases(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            path = Path(where) / "cb.json"
+            path.write_text("")
+
+            self.assertEqual(singlestep.run_file(path, model="6502"), (0, 0, []))
+
+    def test_a_file_holding_only_whitespace_is_the_same(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            path = Path(where) / "db.json"
+            path.write_text("\n  \n")
+
+            self.assertEqual(singlestep.run_file(path, model="6502"), (0, 0, []))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -33,10 +33,22 @@ from __future__ import annotations
 
 from typing import Any, override
 
-from .mos6502 import READ
+from .mos6502 import MODIFY, READ, STACK_PAGE, WRITE
 from .mos6502 import Cpu as Nmos
 from .opcodes65c02 import CMOS
-from .opcodes6502 import MODE_SIZE
+
+SINGLE_CYCLE_NOPS = frozenset(
+    opcode for opcode in range(0x100) if opcode & 0x0F in (0x03, 0x0B)
+) - {0xCB}
+"""The undocumented opcodes that take one cycle and read nothing at all.
+
+Two whole columns of the matrix, minus the one the WDC part spent on waiting for
+an interrupt: on the parts that left it as a no-operation it still takes two
+cycles, like the documented one, rather than the one its neighbours take.
+"""
+
+SHORTCUT_MODIFIES = frozenset({"asl", "lsr", "rol", "ror"})
+"""Read-modify-writes that pay for indexing only when the index crosses a page."""
 
 
 class Cpu(Nmos):
@@ -52,12 +64,6 @@ class Cpu(Nmos):
     def reset(self, seed: int | None = None) -> Nmos:
         self.waiting = False
         return super().reset(seed) if seed is not None else super().reset()
-
-    @override
-    def effective(self, mode: str, kind: str = READ) -> int:
-        if mode == "indirectX":
-            return self.read16((self.fetch16() + self.x) & 0xFFFF)
-        return super().effective(mode, kind)
 
     @override
     def add_with_carry(self, value: int) -> None:
@@ -111,13 +117,106 @@ class Cpu(Nmos):
 
     @override
     def op_jmp(self, mode: str) -> None:
+        """Both indirect jumps cost a cycle the older part did not spend.
+
+        The older part read a pointer that ended a page from the start of the same
+        page. This one reads it properly, and the cycle it pays for doing so is
+        that same wrong read: it reads the address the older part would have used,
+        throws it away, and then reads the right one. When the pointer does not
+        end a page those two addresses are the same and the cycle looks like a
+        repeat, which is why it takes a pointer at $xxFF to see what it is.
+
+        Through an indexed pointer the spare cycle re-reads the operand's low
+        byte instead. Neither address is the one the data sheet's timing chart
+        gives, and both are what the recordings show in every case.
+        """
         if mode == "indirect":
-            self.pc = self.read16(self.fetch16())
+            pointer = self.fetch16()
+            low = self.read8(pointer)
+            self.dead((pointer & 0xFF00) | ((pointer + 1) & 0x00FF))
+            self.pc = low | (self.read8((pointer + 1) & 0xFFFF) << 8)
             return
         if mode == "indirectX":
-            self.pc = self.effective(mode)
+            base = self.fetch16()
+            self.dead((self.pc - 2) & 0xFFFF)
+            self.pc = self.read16((base + self.x) & 0xFFFF)
             return
         self.pc = self.fetch16()
+
+    @override
+    def modify_kind(self, mnemonic: str) -> str:
+        """The shifts and rotates take the shortcut a plain read takes.
+
+        Increment and decrement of an indexed absolute address always spend the
+        indexing cycle here, as they do on the older part. The four shifts and
+        rotates do not: they spend it only when the index crosses a page, which
+        makes them six cycles rather than seven and is the one place the data
+        sheet's own timing chart lumps all six together and is wrong.
+        """
+        return READ if mnemonic in SHORTCUT_MODIFIES else MODIFY
+
+    @override
+    def spare_for_index(self, base: int, target: int) -> int:
+        """This part re-reads the last byte of the instruction, not a wrong address.
+
+        The older part put the half-formed address on the bus while it worked out
+        the carry, which meant a spare cycle could read a device that had nothing
+        to do with the instruction. This one re-reads the byte it just fetched
+        instead, which reaches nothing new.
+        """
+        return (self.pc - 1) & 0xFFFF
+
+    @override
+    def settle(self, address: int, held: int) -> None:
+        """This part reads the address again rather than writing back what it read.
+
+        The older part wrote twice, the first time with the old contents, which a
+        device acting on writes saw as two writes. This one reads, reads again,
+        and writes once.
+        """
+        self.dead(address)
+
+    @override
+    def idles_after_opcode(self, opcode: int, mnemonic: str, mode: str) -> bool:
+        """Every one byte instruction spends a cycle on the next byte but one.
+
+        The undocumented single byte opcodes are one cycle on this part, which is
+        the only place in the family where an instruction does not read a second
+        byte at all. The documented no-operation is not one of them.
+        """
+        if mnemonic == "nop" and mode == "implied":
+            return opcode not in SINGLE_CYCLE_NOPS
+        return super().idles_after_opcode(opcode, mnemonic, mode)
+
+    def spent_on_decimal(self, mode: str) -> int:
+        """The operand, plus the cycle this part spends when decimal is set.
+
+        Decimal arithmetic costs an extra cycle here and nothing on the older
+        part. With an address to hand the part re-reads it. With an immediate
+        operand there is no address, and the recordings fill that cycle with a
+        constant that differs per suite and cannot be derived from any register,
+        so this reads the last byte of the instruction and conformance/
+        divergences.json records the difference rather than reproducing a
+        recorder's placeholder.
+        """
+        if mode == "immediate":
+            value = self.fetch8()
+            if self.d and self.decimal:
+                self.dead((self.pc - 1) & 0xFFFF)
+            return value
+        address = self.effective(mode)
+        value = self.read8(address)
+        if self.d and self.decimal:
+            self.dead(address)
+        return value
+
+    @override
+    def op_adc(self, mode: str) -> None:
+        self.add_with_carry(self.spent_on_decimal(mode))
+
+    @override
+    def op_sbc(self, mode: str) -> None:
+        self.subtract_with_carry(self.spent_on_decimal(mode))
 
     @override
     def op_brk(self, mode: str) -> None:
@@ -154,24 +253,46 @@ class Cpu(Nmos):
 
     @override
     def op_nop(self, mode: str) -> None:
-        for _ in range(MODE_SIZE[mode]):
+        """The opcodes nobody documented, which do nothing at their own pace.
+
+        This part turned every gap in the opcode matrix into a no-operation, and
+        they are not all the same size or the same length. The single byte ones
+        are one cycle, which is the only instruction on the part that does not
+        read a second byte. The rest read their operands, and the ones with an
+        address read that address and throw the byte away, so a device mapped
+        there sees the read.
+        """
+        if mode == "implied":
+            return
+        if mode == "immediate":
             self.fetch8()
+            return
+        if mode == "absolute":
+            self.fetch16()
+            return
+        if mode == "absoluteX":
+            self.fetch16()
+            self.dead((self.pc - 1) & 0xFFFF)
+            return
+        self.dead(self.effective(mode))
 
     def op_bra(self, mode: str) -> None:
         self.branch(True)
 
     def op_stz(self, mode: str) -> None:
-        self.write8(self.effective(mode), 0x00)
+        self.write8(self.effective(mode, WRITE), 0x00)
 
     def op_tsb(self, mode: str) -> None:
         address = self.effective(mode)
         value = self.read8(address)
+        self.settle(address, value)
         self.z = (self.a & value) == 0
         self.write8(address, value | self.a)
 
     def op_trb(self, mode: str) -> None:
         address = self.effective(mode)
         value = self.read8(address)
+        self.settle(address, value)
         self.z = (self.a & value) == 0
         self.write8(address, value & ~self.a & 0xFF)
 
@@ -205,10 +326,12 @@ class Cpu(Nmos):
         self.push8(self.y)
 
     def op_plx(self, mode: str) -> None:
+        self.dead(STACK_PAGE | self.s)
         self.x = self.pull8()
         self.set_nz(self.x)
 
     def op_ply(self, mode: str) -> None:
+        self.dead(STACK_PAGE | self.s)
         self.y = self.pull8()
         self.set_nz(self.y)
 
@@ -221,11 +344,30 @@ class Cpu(Nmos):
     def modify_bit(self, bit: int, set_it: bool) -> None:
         address = self.effective("zeroPage")
         value = self.read8(address)
+        self.settle(address, value)
         self.write8(address, value | (1 << bit) if set_it else value & ~(1 << bit) & 0xFF)
 
     def branch_on_bit(self, bit: int, wanted: bool) -> None:
-        value = self.read8(self.effective("zeroPage"))
-        self.branch(bool(value & (1 << bit)) == wanted)
+        """Read a bit in the first page, then branch on it, at its own pace.
+
+        This is the one branch on the part that does not put a half-formed address
+        on the bus when it crosses a page. It spends both of its extra cycles on
+        the byte after itself instead, which is where it is going to fetch from
+        next if the branch is not taken.
+        """
+        address = self.effective("zeroPage")
+        value = self.read8(address)
+        self.settle(address, value)
+        offset = self.fetch8()
+        if bool(value & (1 << bit)) != wanted:
+            return
+        self.dead(self.pc)
+        if offset & 0x80:
+            offset -= 0x100
+        target = (self.pc + offset) & 0xFFFF
+        if (target & 0xFF00) != (self.pc & 0xFF00):
+            self.dead(self.pc)
+        self.pc = target
 
 
 def _bit_handlers() -> None:

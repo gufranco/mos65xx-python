@@ -149,9 +149,16 @@ def run_tests(
 def run_file(
     path: Path, limit: int | None = None, model: str = DEFAULT_MODEL
 ) -> tuple[int, int, list[tuple[str, list[tuple[str, Any, Any]]]]]:
-    """One test file, optionally only its first few cases."""
-    with Path(path).open() as handle:
-        tests = json.load(handle)
+    """One test file, optionally only its first few cases.
+
+    A file with nothing in it is a file with no cases rather than a failure. The
+    suites carry one per opcode, and the two whose whole behaviour is to stop the
+    part are empty because there is nothing to record.
+    """
+    held = Path(path).read_text().strip()
+    if not held:
+        return 0, 0, []
+    tests = json.loads(held)
     if limit:
         tests = tests[:limit]
     return run_tests(tests, model)

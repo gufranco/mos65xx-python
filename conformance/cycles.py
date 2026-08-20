@@ -45,7 +45,18 @@ EXAMPLE_LIMIT = 3
 HALTS = "jam"
 """The mnemonic whose whole behaviour is to stop, which no cycle list bounds."""
 
-VERIFIED = frozenset({"6502", "6507", "2a03"})
+PLACEHOLDER_OPCODES = frozenset({0x69, 0xE9})
+"""Add and subtract with an immediate operand, on the CMOS parts.
+
+Decimal arithmetic costs those parts one extra cycle, and the data sheet says an
+internal cycle's address may be invalid. The recordings fill it with a constant:
+one value per suite for the add, zero for the subtract, the same whatever the
+program counter and the operands are. That is a recorder's placeholder rather
+than a measurement, so a case that differs only there is counted apart instead of
+being called a disagreement, and conformance/divergences.json carries the numbers.
+"""
+
+VERIFIED = frozenset({"6502", "6507", "2a03", "65c02", "r65c02", "w65c02"})
 """The parts whose bus activity has been held to a suite, cycle for cycle.
 
 The others are refused rather than reported on. The CMOS parts spend their spare
@@ -82,6 +93,26 @@ def halted(test: Mapping[str, Any], model: str) -> bool:
     return mnemonic == HALTS
 
 
+def only_placeholder(test: Mapping[str, Any], seen: Sequence[Cycle]) -> bool:
+    """Whether the one cycle that differs is the one with no address to compute.
+
+    Narrow on purpose: same length, exactly one cycle apart, both of them reads,
+    and the opcode one of the two whose extra decimal cycle has nowhere to point.
+    Anything wider would hide a real disagreement.
+    """
+    opcode = dict(test["initial"]["ram"]).get(test["initial"]["pc"])
+    if opcode not in PLACEHOLDER_OPCODES:
+        return False
+    want = recorded(test)
+    if len(want) != len(seen):
+        return False
+    apart = [index for index, cycle in enumerate(want) if cycle != seen[index]]
+    if len(apart) != 1:
+        return False
+    at = apart[0]
+    return want[at][2] == seen[at][2] == "read"
+
+
 def check(test: Mapping[str, Any], model: str = DEFAULT_MODEL) -> list[Cycle] | None:
     """What the model put on the bus, when that differs from the recording.
 
@@ -105,7 +136,12 @@ def check(test: Mapping[str, Any], model: str = DEFAULT_MODEL) -> list[Cycle] | 
 def run_tests(
     tests: Iterable[Mapping[str, Any]], model: str = DEFAULT_MODEL
 ) -> tuple[int, int, int, list[Example]]:
-    """How many agreed, how many did not, how many were left out, and examples."""
+    """How many agreed, how many did not, how many were left out, and examples.
+
+    Two kinds are left out and they are counted together: a case whose opcode
+    halts the part, and a case that differs only at a cycle whose recorded
+    address is a placeholder. Both are reported rather than hidden.
+    """
     agreed = differed = skipped = 0
     examples: list[Example] = []
     for test in tests:
@@ -116,6 +152,9 @@ def run_tests(
         if seen is None:
             agreed += 1
             continue
+        if only_placeholder(test, seen):
+            skipped += 1
+            continue
         differed += 1
         if len(examples) < EXAMPLE_LIMIT:
             examples.append((str(test["name"]), recorded(test), seen))
@@ -125,9 +164,16 @@ def run_tests(
 def run_file(
     path: Path, limit: int | None = None, model: str = DEFAULT_MODEL
 ) -> tuple[int, int, int, list[Example]]:
-    """One test file, optionally only its first few cases."""
-    with Path(path).open() as handle:
-        tests = json.load(handle)
+    """One test file, optionally only its first few cases.
+
+    A file with nothing in it is a file with no cases, not a failure. The suites
+    carry one for every opcode including the two whose whole behaviour is to stop
+    the part, and those two are empty because there is nothing to record.
+    """
+    held = Path(path).read_text().strip()
+    if not held:
+        return 0, 0, 0, []
+    tests = json.loads(held)
     if limit:
         tests = tests[:limit]
     return run_tests(tests, model)
@@ -197,7 +243,10 @@ def main(argv: Sequence[str]) -> int:
         if file_differed:
             broken.append((path.name, file_differed, examples))
 
-    print(f"  {agreed} agreed cycle for cycle, {differed} did not, {skipped} left out as halts")
+    print(
+        f"  {agreed} agreed cycle for cycle, {differed} did not, "
+        f"{skipped} left out as halts or placeholders"
+    )
     for name, count, examples in broken[:EXAMPLE_LIMIT]:
         print(f"    {name}: {count} differed")
         report(examples)

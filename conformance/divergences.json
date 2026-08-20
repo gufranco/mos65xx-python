@@ -1,5 +1,5 @@
 {
-  "note": "Where the manufacturer's document and the per-opcode suite disagree, with what was measured and what this project does about it. Both entries were found by reading the datasheet in full and then going to the suite for the cases the datasheet's claim would change. Neither is resolved: a resolution needs a program run on a real part, and this file says so rather than presenting a preference as a finding.",
+  "note": "Where a manufacturer's document and the per-opcode suite disagree, with what was measured and what this project does about it. Every entry was found by reading a data sheet in full and then going to the suite for the cases the document's claim would change. Some are settled by the recordings and say so; the ones that are not say what would settle them, rather than presenting a preference as a finding.",
   "howToReadThis": {
     "documentSays": "The manufacturer's sentence, verbatim.",
     "suiteSays": "What the recorded cycles show, with the case that shows it.",
@@ -154,11 +154,30 @@
             "at": "00347D",
             "readsCycled": ["00347D", "00347E", "00347F", "00347E", "0053F1", "0053F2"],
             "verdict": "the spare cycle re-reads PC+1, where the document says PC+2"
+          },
+          {
+            "mode": "JMP (a) with a pointer at $xxFF",
+            "opcode": "6C",
+            "at": "004BFF",
+            "readsCycled": ["004BFF", "004B00", "004C00"],
+            "verdict": "the spare cycle reads the wrapped address the older part would have used, and the true high byte comes last. All three CMOS suites agree, and the document puts the spare cycle fourth at PC+2 instead"
+          },
+          {
+            "mode": "ASL a,x against INC a,x",
+            "opcode": "1E against FE",
+            "measured": "ASL, LSR, ROL and ROR of an indexed absolute address take six cycles when the index stays inside a page and seven when it crosses. INC and DEC take seven either way. The document's timing chart gives all six instructions seven cycles",
+            "verdict": "two rules where the document has one"
+          },
+          {
+            "mode": "the opcodes nobody documented",
+            "opcode": "the $x3 and $xB columns",
+            "measured": "One cycle each, reading nothing beyond their own opcode, which is the only instruction on the part that does not read a second byte. $CB is the exception: on the two parts that left it a no-operation it takes two cycles, and the WDC part spends it on waiting for an interrupt",
+            "verdict": "measured per opcode, since no document describes them"
           }
         ]
       },
-      "whatThisProjectDoes": "Nothing yet, and the runner refuses the CMOS parts rather than reporting a comparison. The cores share their addressing code with the NMOS part, so a CMOS part currently spends its spare cycles where an NMOS part spends them, which the cases above show is wrong. That is why conformance/cycles.py names the parts it has been held to and refuses the rest.",
-      "whatWouldSettleIt": "The behaviour is settled by the recording, per cycle, per mode. What remains is implementing it, which is a per-part override of where a spare cycle reads, plus the single write that replaces the NMOS part's double write.",
+      "whatThisProjectDoes": "Follows the recording, per mode, and every one of the 7,630,080 non-placeholder cases in the three CMOS suites now agrees cycle for cycle. The spare cycle of an indexed access re-reads the last byte of the instruction. A read-modify-write reads its address twice and writes it once. The four shifts and rotates pay for indexing only when the index crosses a page, which the document's table does not distinguish from increment and decrement. And a plain indirect jump spends its spare cycle reading the address the NMOS part's page-wrap bug would have used, then reads the right one, which is a nicer account of how the bug was fixed than the document gives.",
+      "whatWouldSettleIt": "Nothing about the behaviour: it is settled per mode by the recordings, at full depth. What is unsettled is why the timing chart names other addresses, and only a run on real silicon would say whether it describes an earlier revision or is simply wrong.",
       "whyItIsNotJustCopied": "Because it changes the memory the part touches, not only its timing, and a change like that is held to the state suites as well."
     },
     {

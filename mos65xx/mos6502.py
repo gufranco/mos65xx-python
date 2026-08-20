@@ -227,11 +227,11 @@ class Cpu:
             return self.fetch8()
         if mode == "zeroPageX":
             base = self.fetch8()
-            self.dead(base)
+            self.dead(self.spare_in_page_zero(base))
             return (base + self.x) & 0xFF
         if mode == "zeroPageY":
             base = self.fetch8()
-            self.dead(base)
+            self.dead(self.spare_in_page_zero(base))
             return (base + self.y) & 0xFF
         if mode == "absolute":
             return self.fetch16()
@@ -241,7 +241,7 @@ class Cpu:
             return self.indexed(self.fetch16(), self.y, kind)
         if mode == "indexedIndirectX":
             base = self.fetch8()
-            self.dead(base)
+            self.dead(self.spare_in_page_zero(base))
             return self.read16_in_zero_page((base + self.x) & 0xFF)
         if mode == "indirectIndexedY":
             return self.indexed(self.read16_in_zero_page(self.fetch8()), self.y, kind)
@@ -266,8 +266,53 @@ class Cpu:
         target = (base + index) & 0xFFFF
         uncorrected = (base & 0xFF00) | (target & 0x00FF)
         if kind != READ or uncorrected != target:
-            self.dead(uncorrected)
+            self.dead(self.spare_for_index(base, target))
         return target
+
+    def idles_after_opcode(self, opcode: int, mnemonic: str, mode: str) -> bool:
+        """Whether a one byte instruction spends a cycle on the byte after it.
+
+        On this part every one of them does: it has no operand to fetch and
+        nothing else to drive, so it reads the next byte and ignores it. The CMOS
+        parts turned some of the opcodes nobody documented into single cycles,
+        which is why this is a question rather than a rule.
+        """
+        return not MODE_SIZE[mode]
+
+    def spare_for_index(self, base: int, target: int) -> int:
+        """Which address the spare cycle of an indexed access reads.
+
+        This part puts the half-formed address there: the low byte with the index
+        added and the high byte as it was. The CMOS parts do not, and that is a
+        per-part decision rather than a detail, so it is a method.
+        """
+        return (base & 0xFF00) | (target & 0x00FF)
+
+    def spare_in_page_zero(self, base: int) -> int:
+        """Which address the spare cycle of a page zero indexed access reads.
+
+        This part reads the page zero address before the index was added.
+        """
+        return base
+
+    def modify_kind(self, mnemonic: str) -> str:
+        """Whether a read-modify-write pays the indexing cycle unconditionally.
+
+        On this part every one of them does: it will not write to an address it
+        might have to correct, so the half-formed address goes on the bus first
+        whether or not a carry turns out to be needed. The CMOS parts pay it for
+        some of these instructions and not others, which is why this is a method.
+        """
+        return MODIFY
+
+    def settle(self, address: int, held: int) -> None:
+        """What this part does between reading a value and writing the new one.
+
+        It writes back what it just read. There is nowhere to keep the value while
+        the operation runs, so the address is written twice and the first write
+        carries the old contents.
+        """
+        self.write8(address, held)
 
     def operand(self, mode: str) -> int:
         if mode == "immediate":
@@ -355,7 +400,7 @@ class Cpu:
             raise StepLimit(f"stopped after {self.steps} steps at ${self.pc:04X}")
         opcode = self.fetch8()
         mnemonic, mode = self.table[opcode]
-        if not MODE_SIZE[mode]:
+        if self.idles_after_opcode(opcode, mnemonic, mode):
             self.dead(self.pc)
         handler = getattr(self, f"op_{mnemonic}", None)
         if handler is None:
@@ -475,10 +520,10 @@ class Cpu:
         self.compare(self.y, self.operand(mode))
 
     def op_inc(self, mode: str) -> None:
-        self.read_modify_write(mode, self.bump)
+        self.read_modify_write(mode, "inc", self.bump)
 
     def op_dec(self, mode: str) -> None:
-        self.read_modify_write(mode, self.drop)
+        self.read_modify_write(mode, "dec", self.drop)
 
     def bump(self, value: int) -> int:
         result = (value + 1) & 0xFF
@@ -533,7 +578,7 @@ class Cpu:
         return result
 
     def read_modify_write(
-        self, mode: str, transform: Callable[[int], int]
+        self, mode: str, mnemonic: str, transform: Callable[[int], int]
     ) -> tuple[int | None, int]:
         """Read it, write it back unchanged, then write the new value.
 
@@ -546,24 +591,24 @@ class Cpu:
         if mode == "accumulator":
             self.a = transform(self.a)
             return None, self.a
-        address = self.effective(mode, MODIFY)
+        address = self.effective(mode, self.modify_kind(mnemonic))
         held = self.read8(address)
-        self.write8(address, held)
+        self.settle(address, held)
         value = transform(held)
         self.write8(address, value)
         return address, value
 
     def op_asl(self, mode: str) -> None:
-        self.read_modify_write(mode, self.shift_left)
+        self.read_modify_write(mode, "asl", self.shift_left)
 
     def op_lsr(self, mode: str) -> None:
-        self.read_modify_write(mode, self.shift_right)
+        self.read_modify_write(mode, "lsr", self.shift_right)
 
     def op_rol(self, mode: str) -> None:
-        self.read_modify_write(mode, self.rotate_left)
+        self.read_modify_write(mode, "rol", self.rotate_left)
 
     def op_ror(self, mode: str) -> None:
-        self.read_modify_write(mode, self.rotate_right)
+        self.read_modify_write(mode, "ror", self.rotate_right)
 
     def op_jmp(self, mode: str) -> None:
         if mode == "indirect":
@@ -697,22 +742,22 @@ class Cpu:
         self.stopped = True
 
     def op_slo(self, mode: str) -> None:
-        _, value = self.read_modify_write(mode, self.shift_left)
+        _, value = self.read_modify_write(mode, "slo", self.shift_left)
         self.a |= value
         self.set_nz(self.a)
 
     def op_rla(self, mode: str) -> None:
-        _, value = self.read_modify_write(mode, self.rotate_left)
+        _, value = self.read_modify_write(mode, "rla", self.rotate_left)
         self.a &= value
         self.set_nz(self.a)
 
     def op_sre(self, mode: str) -> None:
-        _, value = self.read_modify_write(mode, self.shift_right)
+        _, value = self.read_modify_write(mode, "sre", self.shift_right)
         self.a ^= value
         self.set_nz(self.a)
 
     def op_rra(self, mode: str) -> None:
-        _, value = self.read_modify_write(mode, self.rotate_right)
+        _, value = self.read_modify_write(mode, "rra", self.rotate_right)
         self.add_with_carry(value)
 
     def op_sax(self, mode: str) -> None:
@@ -723,11 +768,11 @@ class Cpu:
         self.set_nz(self.a)
 
     def op_dcp(self, mode: str) -> None:
-        _, value = self.read_modify_write(mode, lambda held: (held - 1) & 0xFF)
+        _, value = self.read_modify_write(mode, "dcp", lambda held: (held - 1) & 0xFF)
         self.compare(self.a, value)
 
     def op_isc(self, mode: str) -> None:
-        _, value = self.read_modify_write(mode, lambda held: (held + 1) & 0xFF)
+        _, value = self.read_modify_write(mode, "isc", lambda held: (held + 1) & 0xFF)
         self.subtract_with_carry(value)
 
     def op_anc(self, mode: str) -> None:

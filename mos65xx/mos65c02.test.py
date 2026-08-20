@@ -416,5 +416,135 @@ class HardwareInterruptTest(unittest.TestCase):
         self.assertTrue(cpu.irq())
 
 
+class CycleShapeTest(unittest.TestCase):
+    """The spare cycles this part spends where the older one spends others."""
+
+    def trace(self, program: Sequence[int], at: int = 0x8000, **registers: Any) -> list[Any]:
+        cpu, _ = machine(program, at=at, **registers)
+        cpu.trace = []
+        cpu.step()
+        return [(hex(address), kind) for address, _, kind in cpu.trace]
+
+    def test_a_read_modify_write_reads_twice_and_writes_once(self) -> None:
+        self.assertEqual(
+            self.trace([0xE6, 0x40]),
+            [
+                ("0x8000", "read"),
+                ("0x8001", "read"),
+                ("0x40", "read"),
+                ("0x40", "read"),
+                ("0x40", "write"),
+            ],
+        )
+
+    def test_an_indexed_store_re_reads_the_last_byte_of_the_instruction(self) -> None:
+        self.assertEqual(
+            self.trace([0x9D, 0x00, 0x20], x=0x10),
+            [
+                ("0x8000", "read"),
+                ("0x8001", "read"),
+                ("0x8002", "read"),
+                ("0x8002", "read"),
+                ("0x2010", "write"),
+            ],
+        )
+
+    def test_a_shift_of_an_indexed_absolute_pays_nothing_extra_inside_a_page(self) -> None:
+        self.assertEqual(len(self.trace([0x1E, 0x00, 0x20], x=0x10)), 6)
+
+    def test_and_pays_when_the_index_crosses_one(self) -> None:
+        self.assertEqual(len(self.trace([0x1E, 0xF0, 0x20], x=0x20)), 7)
+
+    def test_an_increment_of_the_same_address_always_pays(self) -> None:
+        self.assertEqual(len(self.trace([0xFE, 0x00, 0x20], x=0x10)), 7)
+
+    def test_decimal_arithmetic_costs_a_cycle_that_reads_the_operand_again(self) -> None:
+        self.assertEqual(
+            self.trace([0x65, 0x40], d=True),
+            [("0x8000", "read"), ("0x8001", "read"), ("0x40", "read"), ("0x40", "read")],
+        )
+
+    def test_and_costs_it_with_an_immediate_operand_too(self) -> None:
+        self.assertEqual(len(self.trace([0x69, 0x11], d=True)), 3)
+
+    def test_but_nothing_when_decimal_is_clear(self) -> None:
+        self.assertEqual(len(self.trace([0x69, 0x11])), 2)
+
+    def test_the_same_holds_for_subtraction(self) -> None:
+        self.assertEqual(len(self.trace([0xE5, 0x40], d=True)), 4)
+
+    def test_an_undocumented_single_byte_opcode_is_one_cycle(self) -> None:
+        self.assertEqual(self.trace([0x03]), [("0x8000", "read")])
+
+    def test_the_documented_no_operation_is_still_two(self) -> None:
+        self.assertEqual(len(self.trace([0xEA])), 2)
+
+    def test_an_indirect_jump_reads_the_address_the_older_part_would_have_used(self) -> None:
+        cpu, memory = machine([0x6C, 0xFF, 0x30])
+        memory.write8(0x30FF, 0x34)
+        memory.write8(0x3000, 0xEE)
+        memory.write8(0x3100, 0x12)
+        cpu.trace = []
+
+        cpu.step()
+
+        self.assertEqual(
+            [hex(address) for address, _, _ in cpu.trace],
+            ["0x8000", "0x8001", "0x8002", "0x30ff", "0x3000", "0x3100"],
+        )
+
+    def test_and_still_arrives_at_the_corrected_destination(self) -> None:
+        cpu, memory = machine([0x6C, 0xFF, 0x30])
+        memory.write8(0x30FF, 0x34)
+        memory.write8(0x3000, 0xEE)
+        memory.write8(0x3100, 0x12)
+
+        cpu.step()
+
+        self.assertEqual(cpu.pc, 0x1234)
+
+    def test_an_indexed_indirect_jump_re_reads_the_operand_low_byte(self) -> None:
+        self.assertEqual(
+            [one[0] for one in self.trace([0x7C, 0x00, 0x30], x=0x02)],
+            ["0x8000", "0x8001", "0x8002", "0x8001", "0x3002", "0x3003"],
+        )
+
+    def test_a_pull_of_an_index_register_reads_the_slot_below_first(self) -> None:
+        self.assertEqual(
+            [one[0] for one in self.trace([0xFA], s=0x40)],
+            ["0x8000", "0x8001", "0x140", "0x141"],
+        )
+
+    def test_a_bit_branch_reads_its_page_zero_address_twice(self) -> None:
+        self.assertEqual(
+            [one[0] for one in self.trace([0x0F, 0x40, 0x10], table=opcodes65c02.TABLES["wdc"])],
+            ["0x8000", "0x8001", "0x40", "0x40", "0x8002"],
+        )
+
+    def test_and_spends_its_taken_cycle_on_the_byte_after_itself(self) -> None:
+        cpu, memory = machine([0x8F, 0x40, 0x10], table=opcodes65c02.TABLES["wdc"])
+        memory.write8(0x0040, 0x01)
+        cpu.trace = []
+
+        cpu.step()
+
+        self.assertEqual(
+            [hex(address) for address, _, _ in cpu.trace],
+            ["0x8000", "0x8001", "0x40", "0x40", "0x8002", "0x8003"],
+        )
+
+    def test_an_undocumented_indexed_opcode_reads_the_address_it_names(self) -> None:
+        self.assertEqual(
+            [one[0] for one in self.trace([0x54, 0x40], x=0x02)],
+            ["0x8000", "0x8001", "0x40", "0x42"],
+        )
+
+    def test_an_undocumented_three_byte_opcode_reads_neither_of_its_operands(self) -> None:
+        self.assertEqual(
+            [one[0] for one in self.trace([0x0F, 0x40, 0x10])],
+            ["0x8000", "0x8001", "0x8002"],
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

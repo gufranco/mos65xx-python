@@ -24,7 +24,7 @@
   <a href="https://github.com/gufranco/mos65xx-python/issues">Issues</a>
 </p>
 
-**8** parts · **17,900,000** conformance cases, **0** failures · **256** opcodes each · **346** tests · **100%** statement and branch coverage
+**8** parts · **17,900,000** state cases and **12,510,080** cycle-exact cases, **0** failures · **256** opcodes each · **476** tests · **100%** statement and branch coverage
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -53,7 +53,7 @@ That last part is the one that bites. Hardware does not hand over a clean machin
 
 Two commitments, and every design decision here follows from one of them.
 
-**Correctness is measured, never asserted.** Every core is checked against the per-opcode suite published for the part it models, 10,000 cases per opcode. All 17,900,000 pass. When a core and the suite disagreed, the suite was right every time, thirteen times running, including on things no datasheet states plainly. Page wrapping, for one, is not uniform across addressing modes: indirect indexed by Y wraps inside its page and indexed indirect by X does not, and that is not a rule anybody would guess.
+**Correctness is measured, never asserted.** Every core is checked against the per-opcode suite published for the part it models, 10,000 cases per opcode. All 17,900,000 pass, and for the five eight-bit parts the comparison goes further: 12,510,080 cases match the recorded bus activity cycle for cycle, address by address. When a core and the suite disagreed, the suite was right every time, thirteen times running, including on things no datasheet states plainly. Page wrapping, for one, is not uniform across addressing modes: indirect indexed by Y wraps inside its page and indexed indirect by X does not, and that is not a rule anybody would guess.
 
 One of them was a single case in 2,560,000. A jump to a subroutine pushes its return address between reading the two halves of its own destination, so when the stack has walked into the instruction the push overwrites the destination's high byte and the jump goes wherever the pushed byte says. Reading the destination first and pushing afterwards gives the same answer every other time.
 
@@ -317,6 +317,7 @@ Coverage is enforced at 100% of statements and branches by [`pyproject.toml`](py
 | `python3 conformance/fetch.py <dir>` | Fetch the pinned suites |
 | `python3 conformance/singlestep.py <dir> [limit] [filter]` | Run the suite against state |
 | `python3 conformance/cycles.py <dir> --model 6502` | Run the suite against the bus, cycle by cycle |
+| `python3 conformance/cycles.py <dir> --model w65c02` | The same, for any of the five eight-bit parts |
 
 ## Project conventions
 
@@ -404,33 +405,38 @@ hardware interrupt on these parts, so they rest on the datasheet rather than on 
 recording. The abort pin's rollback of the instruction it interrupts is not
 modelled at all, and the code says so where it lives.
 
-**Settled for the NMOS parts: every cycle, not just their number.** The 6502 puts
-an address on the bus in every cycle it runs, including the ones it spends
-thinking, so the recorded list of accesses is its timing and its side effects at
+**Settled for all five eight-bit parts: every cycle, not just their number.** These
+parts put an address on the bus in every cycle they run, including the ones they
+spend thinking, so the recorded list of accesses is timing and side effects at
 once. `conformance/cycles.py` compares that list address by address, value by
-value, read against write, in order. All 2,440,000 non-halting cases in the pinned
-6502 suite agree, across all 256 opcodes. The dummy reads are in: the discarded
-pointer read of `(zp,X)`, the read at the half-formed address when an index
-crosses a page, the second write a read-modify-write performs, the stack read
-before a pull, and the instruction a taken branch does not run.
+value, read against write, in order. **12,510,080 cases agree**, across all 256
+opcodes of the 6502, the 2A03, and the Synertek, Rockwell and WDC CMOS parts.
+
+The spare cycles are in, and they are not the same on every part. The NMOS parts
+put a half-formed address on the bus while they work out a carry, write twice in
+a read-modify-write, and read the pointer of an indirect jump wrongly at a page
+end. The CMOS parts re-read the last byte of the instruction instead, read twice
+and write once, spend an indirect jump's extra cycle on the address the older
+part's bug would have used, and turn two whole columns of the opcode matrix into
+one-cycle no-operations. Decimal arithmetic costs them a cycle it does not cost
+the NMOS part.
 
 A cycle count alone would not have caught any of that. A model can spend the right
-number of cycles reading the wrong addresses, and two of the three sources
-disagreed about exactly that.
+number of cycles reading the wrong addresses, and the documents disagree with the
+recordings about exactly that in five places, each one recorded in
+[`conformance/divergences.json`](conformance/divergences.json) with the case that
+shows it.
 
-**Not settled: the CMOS parts and the 65816.** The CMOS parts spend their spare
-cycles at different addresses, write once rather than twice in a
-read-modify-write, and take an extra cycle on decimal arithmetic. Every one of
-those differences is now measured, per mode, with the case that shows it, in
-[`conformance/divergences.json`](conformance/divergences.json). None is
-implemented, so the runner refuses those parts rather than reporting a comparison
-it cannot make. The 65816 needs more than addresses: its recordings carry pin
-states and cycles with no access at all.
+**Not settled: the 65816.** Its recordings carry pin states and cycles with no
+access at all, which this core does not emit, so the runner refuses that part
+rather than reporting a comparison it cannot make.
 
-**The 12 halting opcodes are outside the claim.** A jam stops the part, and what a
-stopped part drives for the rest of a recording is a property of the recording's
-length. Those cases are counted and reported separately rather than skipped
-quietly.
+**Two kinds of case sit outside the claim, counted and named.** A jam opcode stops
+an NMOS part, and what a stopped part drives for the rest of a recording is a
+property of the recording's length: 120,000 cases per NMOS suite. Decimal add and
+subtract with an immediate operand spend a cycle with no address to compute, and
+the recordings fill it with a constant that no register produces: about 10,000
+cases per CMOS suite.
 
 ## Project conventions
 
