@@ -1,0 +1,75 @@
+{
+  "note": "Where the manufacturer's document and the per-opcode suite disagree, with what was measured and what this project does about it. Both entries were found by reading the datasheet in full and then going to the suite for the cases the datasheet's claim would change. Neither is resolved: a resolution needs a program run on a real part, and this file says so rather than presenting a preference as a finding.",
+  "howToReadThis": {
+    "documentSays": "The manufacturer's sentence, verbatim.",
+    "suiteSays": "What the recorded cycles show, with the case that shows it.",
+    "whatThisProjectDoes": "The behaviour in the code today, and why.",
+    "whatWouldSettleIt": "The measurement that would end the disagreement."
+  },
+  "divergences": [
+    {
+      "subject": "the data bank register after a software interrupt in emulation mode",
+      "documentSays": {
+        "document": "W65C816S Data Sheet, 8.11.2",
+        "quote": "In the Emulation mode, the PBR and DBR registers are cleared to 00 when a hardware interrupt, BRK or COP is executed. In this case, previous contents of the PBR are not automatically saved."
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests/ProcessorTests 65816 v1",
+        "measured": "All 10,000 emulation BRK tests, all 10,000 emulation COP tests and all 10,000 native BRK tests leave the data bank register exactly as they found it. 9,960 of the emulation BRK tests start with a non-zero data bank, so the cases that would show a clear are present and none of them shows one. The program bank is zero afterwards in all 30,000, which is the half of the sentence both sources agree on."
+      },
+      "whatThisProjectDoes": "Clears the program bank and leaves the data bank alone, in both modes. The suite is the only evidence with a case count behind it, and the same caveat section is wrong about the native vector addresses and about which bank holds the (a,x) pointer, so its precision is not what its specificity suggests.",
+      "whatWouldSettleIt": "A program on a real part: set the data bank to something non-zero, drop into emulation mode, execute BRK, and have the handler push the data bank and read it back.",
+      "whyItMayNeverHaveMattered": "In emulation mode the data bank is not pushed, so a part that cleared it would give an interrupt handler no way to restore it. Software written for that part would have had to reload the bank itself, which is what software does anyway."
+    },
+    {
+      "subject": "whether a multi-byte pointer read out of the direct page stays inside the page, in emulation mode with the direct register page aligned",
+      "documentSays": {
+        "document": "W65C816S Data Sheet, 8.2.1 and 8.2.2",
+        "quote": "When in the Emulation mode, the direct addressing range is 000000 to 0000FF, except for [Direct] and [Direct],Y addressing modes and the PEI instruction which will increment from 0000FE or 0000FF into the Stack area.",
+        "meaning": "Three named exceptions leave the page and everything else wraps inside it."
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests/ProcessorTests 65816 v1",
+        "howItWasMeasured": "Every emulation-mode file for all five pointer modes and for PEI, 41 files and 410,000 tests, filtered to the cases where the direct register is page aligned and the pointer starts at the end of the page, then read straight off the recorded cycle addresses.",
+        "cases": [
+          {
+            "mode": "(d,x)",
+            "opcode": "E1",
+            "test": "e1 e 8669",
+            "pointerAt": "00F4FF",
+            "readsCycled": ["00F4FF", "00F500"],
+            "verdict": "left the page, which the document says it should not"
+          },
+          {
+            "mode": "[d]",
+            "opcode": "27",
+            "test": "27 e 3341",
+            "pointerAt": "002FFE",
+            "readsCycled": ["002FFE", "002FFF", "003000"],
+            "verdict": "left the page, which the document says it should"
+          },
+          {
+            "mode": "[d],y",
+            "opcode": "57",
+            "test": "57 e 6432",
+            "pointerAt": "0089FF",
+            "readsCycled": ["0089FF", "008900", "008901"],
+            "verdict": "wrapped inside the page, which the document says it should not"
+          },
+          {
+            "mode": "PEI",
+            "opcode": "D4",
+            "test": "the case at D=000C00 with an operand of FF",
+            "pointerAt": "000CFF",
+            "readsCycled": ["000CFF", "000C00"],
+            "verdict": "wrapped inside the page, which the document says it should not"
+          }
+        ],
+        "notCovered": "(d) and (d),y. The suite contains no emulation case for either where the direct register is page aligned and the pointer starts at FE or FF, so nothing measured constrains them."
+      },
+      "whatThisProjectDoes": "Follows the four measured cases exactly, and takes the document for the two the suite does not cover, which means (d) and (d),y wrap. The document's exception list is right about one of the four cases it covers, so it is not treated as a rule here, only as evidence where there is nothing else.",
+      "whatWouldSettleIt": "Six short programs on a real part, one per mode, each with the direct register page aligned and a pointer at FF, reading back the byte the part fetched. Until then this project's behaviour for (d) and (d),y is a document reading rather than a measurement, and is marked as such.",
+      "whyItIsOddEitherWay": "No simple rule produces the measured set. Whatever the part does, it is not deciding by pointer width and it is not deciding by whether the mode is one the 6502 had."
+    }
+  ]
+}

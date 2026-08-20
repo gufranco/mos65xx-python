@@ -6,7 +6,7 @@ import sys
 import unittest
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, override
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -563,6 +563,159 @@ class WordAndLongReadTest(unittest.TestCase):
         cpu.memory.write8(0x012342, 0x12)
 
         self.assertEqual(cpu.read24(0x012340), 0x123456)
+
+
+class BankZeroWordTest(unittest.TestCase):
+    """A word touched through the direct page stays in bank zero, both halves.
+
+    The manufacturer puts the direct page in bank zero and keeps it there: the
+    cycle table addresses every direct access as `0,D+DO` and its second half as
+    `0,D+DO+1`, and the caveats say the effective address of Direct, Direct,X and
+    Direct,Y is always inside 000000 to 00FFFF. So a sixteen bit access whose low
+    half sits at $FFFF finds its high half at $0000 of the same bank rather than
+    at $010000, and that holds for a read, a write, and the read and the write of
+    one read-modify-write.
+    """
+
+    def machine(self, code: Sequence[int]) -> Any:
+        memory = emu.Memory(0x1000000, fill=0)
+        cpu = emu.Cpu(memory, reset=False)
+        cpu.m8 = cpu.x8 = False
+        cpu.d = 0xFFF0
+        cpu.pb, cpu.pc = 0x00, 0x8000
+        for offset, byte in enumerate(code):
+            memory.write8(0x008000 + offset, byte)
+        return cpu, memory
+
+    def test_a_read_modify_write_reads_its_high_half_from_bank_zero(self) -> None:
+        cpu, memory = self.machine([0x06, 0x0F])
+        memory.write8(0x00FFFF, 0x01)
+        memory.write8(0x000000, 0x02)
+        memory.write8(0x010000, 0xEE)
+
+        cpu.step()
+
+        self.assertEqual(memory.read8(0x000000), 0x04)
+
+    def test_and_writes_it_there_too(self) -> None:
+        cpu, memory = self.machine([0x06, 0x0F])
+        memory.write8(0x00FFFF, 0x01)
+        memory.write8(0x000000, 0x02)
+        memory.write8(0x010000, 0xEE)
+
+        cpu.step()
+
+        self.assertEqual(memory.read8(0x010000), 0xEE)
+
+    def test_the_low_half_is_written_where_it_was_read(self) -> None:
+        cpu, memory = self.machine([0x06, 0x0F])
+        memory.write8(0x00FFFF, 0x01)
+        memory.write8(0x000000, 0x02)
+
+        cpu.step()
+
+        self.assertEqual(memory.read8(0x00FFFF), 0x02)
+
+    def test_a_bit_test_and_set_wraps_the_same_way(self) -> None:
+        cpu, memory = self.machine([0x04, 0x0F])
+        memory.write8(0x00FFFF, 0x01)
+        memory.write8(0x000000, 0x02)
+        memory.write8(0x010000, 0xEE)
+        cpu.a = 0x1010
+
+        cpu.step()
+
+        self.assertEqual((memory.read8(0x000000), memory.read8(0x010000)), (0x12, 0xEE))
+
+    def test_a_bit_test_and_reset_wraps_the_same_way(self) -> None:
+        cpu, memory = self.machine([0x14, 0x0F])
+        memory.write8(0x00FFFF, 0xFF)
+        memory.write8(0x000000, 0xFF)
+        memory.write8(0x010000, 0xEE)
+        cpu.a = 0x0F0F
+
+        cpu.step()
+
+        self.assertEqual((memory.read8(0x000000), memory.read8(0x010000)), (0xF0, 0xEE))
+
+    def test_a_store_already_wrapped_and_still_does(self) -> None:
+        cpu, memory = self.machine([0x85, 0x0F])
+        memory.write8(0x010000, 0xEE)
+        cpu.a = 0x1234
+
+        cpu.step()
+
+        self.assertEqual((memory.read8(0x000000), memory.read8(0x010000)), (0x12, 0xEE))
+
+
+class DirectPagePointerWrapTest(unittest.TestCase):
+    """Which pointer reads stay inside the direct page, per mode.
+
+    Emulation mode with a page-aligned direct register is the only place this
+    arises, and the part is not consistent about it. Four of these six are what a
+    recorded cycle address shows and two are what the datasheet says, and
+    conformance/divergences.json names which is which and holds the evidence.
+    """
+
+    def addresses(self, code: Sequence[int], operand: int = 0xFF) -> list[int]:
+        seen: list[int] = []
+
+        class Watched(FlatMemory):
+            @override
+            def read8(self, address: int) -> int:
+                seen.append(address)
+                return super().read8(address)
+
+        memory = Watched()
+        cpu = emu.Cpu(memory, reset=False)
+        cpu.emulation = True
+        cpu.d = 0x0C00
+        cpu.pb, cpu.pc = 0x00, 0x8000
+        cpu.x = cpu.y = 0x00
+        for offset, byte in enumerate([*code, operand]):
+            memory.cells[0x008000 + offset] = byte
+        del seen[:]
+        cpu.step()
+        return [address for address in seen if 0x000C00 <= address <= 0x000D01]
+
+    def test_a_direct_indirect_pointer_wraps_inside_the_page(self) -> None:
+        self.assertEqual(self.addresses([0xB2]), [0x000CFF, 0x000C00])
+
+    def test_a_direct_indexed_indirect_pointer_leaves_the_page(self) -> None:
+        self.assertEqual(self.addresses([0xA1]), [0x000CFF, 0x000D00])
+
+    def test_a_direct_indirect_indexed_pointer_wraps_inside_the_page(self) -> None:
+        self.assertEqual(self.addresses([0xB1]), [0x000CFF, 0x000C00])
+
+    def test_a_long_indirect_pointer_leaves_the_page(self) -> None:
+        self.assertEqual(self.addresses([0xA7]), [0x000CFF, 0x000D00, 0x000D01])
+
+    def test_a_long_indirect_indexed_pointer_wraps_inside_the_page(self) -> None:
+        self.assertEqual(self.addresses([0xB7]), [0x000CFF, 0x000C00, 0x000C01])
+
+    def test_the_pointer_pushed_by_pei_wraps_inside_the_page(self) -> None:
+        self.assertEqual(self.addresses([0xD4]), [0x000CFF, 0x000C00])
+
+    def test_none_of_it_happens_when_the_page_is_not_aligned(self) -> None:
+        seen: list[int] = []
+
+        class Watched(FlatMemory):
+            @override
+            def read8(self, address: int) -> int:
+                seen.append(address)
+                return super().read8(address)
+
+        memory = Watched()
+        cpu = emu.Cpu(memory, reset=False)
+        cpu.emulation = True
+        cpu.d = 0x0C01
+        cpu.pb, cpu.pc = 0x00, 0x8000
+        memory.cells[0x008000] = 0xB2
+        memory.cells[0x008001] = 0xFE
+        del seen[:]
+        cpu.step()
+
+        self.assertEqual([a for a in seen if 0x000C00 <= a <= 0x000D01], [0x000CFF, 0x000D00])
 
 
 class SoftwareInterruptTest(unittest.TestCase):

@@ -389,8 +389,12 @@ class Cpu:
         emulation mode with the page aligned, and only to some modes. Which ones
         is not a rule worth inventing: the hardware is inconsistent, and with the
         same page and the same operand `AND [dp]` reads its bank byte past the end
-        of the page while `ORA [dp],Y` wraps back to the start of it. The
-        conformance suite decides that, per mode.
+        of the page while `ORA [dp],Y` wraps back to the start of it.
+
+        Four of the six modes are settled by a recorded cycle address, and no rule
+        fits all four. The other two are taken from the datasheet, which is right
+        about one of the four it covers. Which mode rests on which is written down
+        in conformance/divergences.json, per mode, with the case.
         """
         bank = address & 0xFF0000
         if wraps_in_page and self.page_wraps:
@@ -421,7 +425,8 @@ class Cpu:
         if mode == "absoluteLongX":
             return self.fetch24() + self.x
         if mode == "indirect":
-            return (self.db << 16) | self.read_pointer(self.direct(self.fetch8()), 2)
+            pointer = self.direct(self.fetch8())
+            return (self.db << 16) | self.read_pointer(pointer, 2, wraps_in_page=True)
         if mode == "indexedIndirectX":
             pointer = self.direct(self.fetch8() + self.x)
             return (self.db << 16) | self.read_pointer(pointer, 2)
@@ -677,7 +682,8 @@ class Cpu:
             self.set_acc(operation(self.acc(), wide))
             return
         address = self.effective(mode, mnemonic)
-        self.write_value(address, operation(self.read_value(address, wide), wide), wide)
+        held = self.read_value(address, wide, mode)
+        self.write_value(address, operation(held, wide), wide, mode)
 
     def op_asl(self, mode: str) -> None:
         def shift(value: int, wide: bool) -> int:
@@ -736,16 +742,16 @@ class Cpu:
     def op_trb(self, mode: str) -> None:
         wide = not self.m8
         address = self.effective(mode, "trb")
-        value = self.read_value(address, wide)
+        value = self.read_value(address, wide, mode)
         self.z = (value & self.acc()) == 0
-        self.write_value(address, value & ~self.acc(), wide)
+        self.write_value(address, value & ~self.acc(), wide, mode)
 
     def op_tsb(self, mode: str) -> None:
         wide = not self.m8
         address = self.effective(mode, "tsb")
-        value = self.read_value(address, wide)
+        value = self.read_value(address, wide, mode)
         self.z = (value & self.acc()) == 0
-        self.write_value(address, value | self.acc(), wide)
+        self.write_value(address, value | self.acc(), wide, mode)
 
     def op_inx(self, mode: str) -> None:
         self.x = (self.x + 1) & (0xFF if self.x8 else 0xFFFF)
