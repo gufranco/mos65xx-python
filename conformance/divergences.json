@@ -70,6 +70,119 @@
       "whatThisProjectDoes": "Follows the four measured cases exactly, and takes the document for the two the suite does not cover, which means (d) and (d),y wrap. The document's exception list is right about one of the four cases it covers, so it is not treated as a rule here, only as evidence where there is nothing else.",
       "whatWouldSettleIt": "Six short programs on a real part, one per mode, each with the direct register page aligned and a pointer at FF, reading back the byte the part fetched. Until then this project's behaviour for (d) and (d),y is a document reading rather than a measurement, and is marked as such.",
       "whyItIsOddEitherWay": "No simple rule produces the measured set. Whatever the part does, it is not deciding by pointer width and it is not deciding by whether the mode is one the 6502 had."
+    },
+    {
+      "subject": "which address the NMOS 6502 puts on the bus during a taken branch",
+      "documentSays": {
+        "document": "MCS6500 Microcomputer Family Hardware Manual, Appendix A.5.8",
+        "quote": "T2* PC + 2 + offset (w/o carry), OP CODE, R/W 1, Offset Added to Program Counter; T3** PC + 2 + offset (with carry), OP CODE, R/W 1, Carry Added. *Skip if branch not taken. **Skip if branch not taken; skip if branch operation doesn't cross page boundary.",
+        "readFrom": "The scanned page A-13, read as an image rather than through the text layer, so this is what the manual prints rather than an artefact of the scan."
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests/65x02 6502 v1",
+        "measured": "A taken branch that stays inside its page spends its third cycle reading the instruction it is not going to run, at PC+2. A taken branch that leaves its page spends a fourth cycle at PC+2 with the offset added to the low byte only. So the address the manual gives for the third cycle is what the fourth cycle carries, and the address it gives for the fourth cycle never appears on the bus at all.",
+        "cases": [
+          {
+            "opcode": "10",
+            "test": "10 b3 8d",
+            "at": "0090CA",
+            "readsCycled": ["0090CA", "0090CB", "0090CC"],
+            "verdict": "third cycle at PC+2, and the branch went to 00907F"
+          },
+          {
+            "opcode": "10",
+            "test": "10 3c 3a",
+            "at": "0077E1",
+            "readsCycled": ["0077E1", "0077E2", "0077E3", "00771F"],
+            "verdict": "third at PC+2, fourth at the low-byte-only sum, and the branch went to 00781F"
+          }
+        ]
+      },
+      "whatThisProjectDoes": "Follows the recording: a dead read at PC+2 on any taken branch, and a second at the low-byte-only sum when the page changes. Every one of the 2,440,000 non-halting cases in the suite agrees, including 40,000 branch cases, which the manual's reading would fail.",
+      "whatWouldSettleIt": "Nothing needs settling about the behaviour. What is unsettled is whether the manual's two rows were transposed in print or describe an earlier part, and only a run on real silicon of that vintage would say.",
+      "whyItMatters": "A model built from the manual alone puts the wrong address on the bus on every taken branch, which is invisible in a state comparison and visible to any device that watches its own address lines."
+    },
+    {
+      "subject": "which address a CMOS 65C02 puts on the bus during its spare cycles",
+      "documentSays": {
+        "document": "W65C02S Data Sheet, Table 6-5 Instruction Timing Chart",
+        "quote": "3b. Absolute, X (R-M-W) a,x: cycle 4 AAH,AAL+X IO; cycle 5 AA+X Data; cycle 6 AA+X+1 IO; cycle 7 AA+X Data write. 5. Absolute Indirect (a) JMP (6C): cycle 4 PC+2 IO; cycle 5 0,AA New PCL; cycle 6 0,AA+1 New PCH. 2. Absolute Indexed Indirect (a,x) JMP (7C): cycle 4 PC+2 IO."
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests/65x02 wdc65c02 v1",
+        "measured": "Three of those addresses are not what the recording carries. The spare cycle of an indexed access re-reads the last instruction byte rather than the half-formed address. The read-modify-write's spare cycle re-reads the address it just read rather than the one after it. The indirect jump's spare cycle comes last and re-reads the pointer's high byte, and the indexed indirect jump's re-reads the operand's low byte at PC+1.",
+        "cases": [
+          {
+            "mode": "STA a,x",
+            "opcode": "9D",
+            "at": "00657C",
+            "readsCycled": ["00657C", "00657D", "00657E", "00657E", "003E9C write"],
+            "verdict": "the spare cycle is a re-read of PC+2, where the document says the half-formed address"
+          },
+          {
+            "mode": "LDA (d),y crossing a page",
+            "opcode": "B1",
+            "at": "00DF59",
+            "readsCycled": ["00DF59", "00DF5A", "0000AE", "0000AF", "00DF5A", "00BE85"],
+            "verdict": "the spare cycle is a re-read of PC+1, the operand byte"
+          },
+          {
+            "mode": "INC a,x",
+            "opcode": "FE",
+            "at": "008348",
+            "readsCycled": [
+              "008348",
+              "008349",
+              "00834A",
+              "00834A",
+              "00F0F6",
+              "00F0F6",
+              "00F0F6 write"
+            ],
+            "verdict": "two spare cycles, one re-reading PC+2 and one re-reading the target, and one write rather than the two the NMOS part performs"
+          },
+          {
+            "mode": "JMP (a)",
+            "opcode": "6C",
+            "at": "002FC2",
+            "readsCycled": ["002FC2", "002FC3", "002FC4", "000BA3", "000BA4", "000BA4"],
+            "verdict": "six cycles, the last a re-read of the pointer's high byte, where the document puts the spare cycle fourth at PC+2"
+          },
+          {
+            "mode": "JMP (a,x)",
+            "opcode": "7C",
+            "at": "00347D",
+            "readsCycled": ["00347D", "00347E", "00347F", "00347E", "0053F1", "0053F2"],
+            "verdict": "the spare cycle re-reads PC+1, where the document says PC+2"
+          }
+        ]
+      },
+      "whatThisProjectDoes": "Nothing yet, and the runner refuses the CMOS parts rather than reporting a comparison. The cores share their addressing code with the NMOS part, so a CMOS part currently spends its spare cycles where an NMOS part spends them, which the cases above show is wrong. That is why conformance/cycles.py names the parts it has been held to and refuses the rest.",
+      "whatWouldSettleIt": "The behaviour is settled by the recording, per cycle, per mode. What remains is implementing it, which is a per-part override of where a spare cycle reads, plus the single write that replaces the NMOS part's double write.",
+      "whyItIsNotJustCopied": "Because it changes the memory the part touches, not only its timing, and a change like that is held to the state suites as well."
+    },
+    {
+      "subject": "the address of the extra cycle a CMOS 65C02 spends on decimal arithmetic",
+      "documentSays": {
+        "document": "W65C02S Data Sheet, Table 6-5 note 6, with 8.5 of the W65C816S data sheet for what an internal cycle's address means",
+        "quote": "Add 1 cycle for decimal mode.",
+        "andAlso": "Note that when VDA and VPA are both low, invalid addresses may be generated. The Page and Bank addresses could also be invalid."
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests/65x02 wdc65c02 v1",
+        "measured": "Every recorded decimal ADC and SBC spends its extra cycle reading 00007F, whatever the program counter, the operands or the flags are. Four cases at four different program counters all carry 00007F.",
+        "cases": [
+          {
+            "opcode": "69",
+            "at": "00EC03",
+            "readsCycled": ["00EC03", "00EC04", "00007F"],
+            "verdict": "a constant, and therefore not an address the part computed"
+          }
+        ]
+      },
+      "whatThisProjectDoes": "Nothing yet. When the CMOS cycles are implemented, this one cannot be matched by computing an address, because there is no address to compute: the document says an internal cycle's address may be invalid, and the recording carries a placeholder rather than a measurement.",
+      "whatWouldSettleIt": "A logic analyser on a real W65C02S during a decimal add. Until then the extra cycle is real and its address is not evidence, and a model that reproduced 00007F would be reproducing the recorder rather than the part.",
+      "whyItIsRecordedNow": "So that whoever implements the CMOS cycles does not spend a day trying to derive 00007F from the state, and does not quietly hard-code it either."
     }
   ]
 }

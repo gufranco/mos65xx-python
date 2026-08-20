@@ -1,0 +1,210 @@
+"""Check the bus, cycle by cycle, against the suite that recorded it.
+
+The other runner compares state: where the registers, the flags and the touched
+bytes ended up. This one compares what happened on the way there. Every cycle of
+these parts is a bus cycle, so the recorded list of accesses is the instruction's
+timing and its side effects at once, and a model that agrees with it agrees about
+both.
+
+Nothing is inferred from a cycle count here. The comparison is address by address,
+value by value, read against write, in order. A model that takes the right number
+of cycles by reading the wrong address fails.
+
+    python3 conformance/cycles.py 65x02/6502/v1 --model 6502
+
+Two things are outside the comparison and both are named in the output. A halted
+part is one: a jam opcode stops the processor, and what a stopped part puts on the
+bus for the rest of a recording is a property of that recording's length rather
+than of the instruction. The 65816 is the other: its recordings carry pin states
+and cycles with no memory access at all, which this core does not yet emit, so the
+runner refuses every model it has not been held to rather than reporting an
+agreement it cannot establish. Which parts those are is in VERIFIED below.
+"""
+
+from __future__ import annotations
+
+import json
+import sys
+from collections.abc import Iterable, Mapping, Sequence
+from pathlib import Path
+from typing import Any
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
+from conformance.singlestep import (  # noqa: E402
+    DEFAULT_MODEL,
+    Usage,
+    machine_for,
+    suite_files,
+)
+from mos65xx import UnknownModelError, describe  # noqa: E402
+
+EXAMPLE_LIMIT = 3
+
+HALTS = "jam"
+"""The mnemonic whose whole behaviour is to stop, which no cycle list bounds."""
+
+VERIFIED = frozenset({"6502", "6507", "2a03"})
+"""The parts whose bus activity has been held to a suite, cycle for cycle.
+
+The others are refused rather than reported on. The CMOS parts spend their spare
+cycles at different addresses from the NMOS parts, which is measured and written
+down in divergences.json and not yet implemented, and the 65816 records pin states
+and cycles with no access at all, which this core does not emit. A runner that
+compared either would report a disagreement per case and teach a reader nothing,
+and one that skipped the comparison silently would be worse.
+"""
+
+Cycle = tuple[int, int, str]
+Example = tuple[str, list[Cycle], list[Cycle]]
+
+
+class Unsupported(Exception):
+    """Raised rather than reporting agreement the comparison cannot establish."""
+
+
+def recorded(test: Mapping[str, Any]) -> list[Cycle]:
+    """The cycles the suite recorded, in the shape the model reports its own."""
+    return [(int(address), int(value), str(kind)) for address, value, kind in test["cycles"]]
+
+
+def halted(test: Mapping[str, Any], model: str) -> bool:
+    """Whether this case runs an opcode whose whole behaviour is to stop."""
+    opcode = dict(test["initial"]["ram"]).get(test["initial"]["pc"])
+    if opcode is None:
+        return False
+    cpu, _ = machine_for(test["initial"], model)
+    table = getattr(cpu, "table", None)
+    if table is None:
+        return False
+    mnemonic: str = table[opcode][0]
+    return mnemonic == HALTS
+
+
+def check(test: Mapping[str, Any], model: str = DEFAULT_MODEL) -> list[Cycle] | None:
+    """What the model put on the bus, when that differs from the recording.
+
+    None means they agree. A list means they do not, and it is the model's own
+    sequence, which is what a reader needs beside the recorded one.
+    """
+    try:
+        cpu, _ = machine_for(test["initial"], model)
+        if not hasattr(cpu, "trace"):
+            raise Unsupported(f"a {model} does not record what it puts on the bus")
+        cpu.trace = []
+        cpu.step()
+    except Unsupported:
+        raise
+    except Exception as error:  # noqa: BLE001
+        return [(0, 0, f"raised {type(error).__name__}")]
+    seen: list[Cycle] = list(cpu.trace)
+    return None if seen == recorded(test) else seen
+
+
+def run_tests(
+    tests: Iterable[Mapping[str, Any]], model: str = DEFAULT_MODEL
+) -> tuple[int, int, int, list[Example]]:
+    """How many agreed, how many did not, how many were left out, and examples."""
+    agreed = differed = skipped = 0
+    examples: list[Example] = []
+    for test in tests:
+        if halted(test, model):
+            skipped += 1
+            continue
+        seen = check(test, model)
+        if seen is None:
+            agreed += 1
+            continue
+        differed += 1
+        if len(examples) < EXAMPLE_LIMIT:
+            examples.append((str(test["name"]), recorded(test), seen))
+    return agreed, differed, skipped, examples
+
+
+def run_file(
+    path: Path, limit: int | None = None, model: str = DEFAULT_MODEL
+) -> tuple[int, int, int, list[Example]]:
+    """One test file, optionally only its first few cases."""
+    with Path(path).open() as handle:
+        tests = json.load(handle)
+    if limit:
+        tests = tests[:limit]
+    return run_tests(tests, model)
+
+
+def options(argv: Sequence[str]) -> tuple[list[str], str]:
+    """The suite to run, how much of it, and which part it is a suite for."""
+    model = DEFAULT_MODEL
+    rest = []
+    remaining = list(argv)
+    while remaining:
+        entry = remaining.pop(0)
+        if entry != "--model":
+            rest.append(entry)
+            continue
+        if not remaining:
+            raise Usage("--model needs the name of a part after it")
+        model = remaining.pop(0)
+
+    if not rest:
+        raise Usage("a suite directory is needed")
+    named = describe(model).name
+    if named not in VERIFIED:
+        raise Unsupported(
+            f"a {named} has not been held to a cycle recording yet; "
+            f"see conformance/divergences.json for what is measured and missing"
+        )
+    return rest, model
+
+
+USAGE = "usage: cycles.py <suite directory> [tests per file] [filter] [--model name]"
+
+
+def report(examples: Sequence[Example]) -> None:
+    """One disagreement, both sequences, so a reader can see which cycle moved."""
+    first, want, got = examples[0]
+    print(f"      first {first}")
+    print(f"      recorded {want}")
+    print(f"      model    {got}")
+
+
+def main(argv: Sequence[str]) -> int:
+    try:
+        rest, model = options(argv)
+    except (Usage, UnknownModelError, Unsupported) as refusal:
+        print(f"  {refusal}")
+        print(USAGE)
+        return 2
+
+    directory = Path(rest[0])
+    limit = int(rest[1]) if len(rest) > 1 else None
+    wanted = rest[2] if len(rest) > 2 else ""
+
+    files = [path for path in suite_files(directory) if wanted in path.name]
+    if not files:
+        print(f"  no suite at {directory}; run conformance/fetch.py to get one")
+        return 0
+
+    print(f"  {len(files)} files from {directory}, as a {model}")
+    agreed = differed = skipped = 0
+    broken = []
+    for path in files:
+        file_agreed, file_differed, file_skipped, examples = run_file(path, limit, model)
+        agreed += file_agreed
+        differed += file_differed
+        skipped += file_skipped
+        if file_differed:
+            broken.append((path.name, file_differed, examples))
+
+    print(f"  {agreed} agreed cycle for cycle, {differed} did not, {skipped} left out as halts")
+    for name, count, examples in broken[:EXAMPLE_LIMIT]:
+        print(f"    {name}: {count} differed")
+        report(examples)
+    if len(broken) > EXAMPLE_LIMIT:
+        print(f"    and {len(broken) - EXAMPLE_LIMIT} more files with disagreements")
+    return 1 if differed else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

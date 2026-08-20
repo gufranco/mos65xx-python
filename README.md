@@ -297,6 +297,9 @@ for f in mos65xx/*.test.py conformance/*.test.py; do python3 "$f"; done
 | Memory | [`mos65xx/memory.test.py`](mos65xx/memory.test.py) | Scrambled fills, sparse derivation, address wrapping, seeding |
 | Models | [`mos65xx/models.test.py`](mos65xx/models.test.py) | The catalogue, alias matching, address masking |
 | Conformance harness | [`conformance/singlestep.test.py`](conformance/singlestep.test.py) | State construction, comparison, reporting, the command line |
+| Cycle harness | [`conformance/cycles.test.py`](conformance/cycles.test.py) | Bus comparison, the refusals, halts counted apart |
+| Hardware facts | [`conformance/hardware.test.py`](conformance/hardware.test.py) | Every recorded datasheet fact against the code |
+| Divergences | [`conformance/divergences.test.py`](conformance/divergences.test.py) | Each recorded disagreement, driven |
 | Suite fetch | [`conformance/fetch.test.py`](conformance/fetch.test.py) | Checkout shape, timeouts, failure reporting, against a real git repository |
 
 Nothing is stubbed. The fetch tests run git against a repository built in a temporary directory, because a stand-in for git would only prove the stand-in works.
@@ -312,7 +315,8 @@ Coverage is enforced at 100% of statements and branches by [`pyproject.toml`](py
 | `python3 -m coverage run -a <file>` | Run one test file under coverage |
 | `python3 -m coverage report` | Coverage, which fails below 100% |
 | `python3 conformance/fetch.py <dir>` | Fetch the pinned suites |
-| `python3 conformance/singlestep.py <dir> [limit] [filter]` | Run the suite |
+| `python3 conformance/singlestep.py <dir> [limit] [filter]` | Run the suite against state |
+| `python3 conformance/cycles.py <dir> --model 6502` | Run the suite against the bus, cycle by cycle |
 
 ## Project conventions
 
@@ -400,16 +404,33 @@ hardware interrupt on these parts, so they rest on the datasheet rather than on 
 recording. The abort pin's rollback of the instruction it interrupts is not
 modelled at all, and the code says so where it lives.
 
-**Not settled: cycles.** These cores do not count them. The corpora carry
-per-cycle bus activity, address by address, and this project reads only the length
-of that list, as a budget for the block-move instructions. So the data that would
-make these cores cycle-accurate is already downloaded on every conformance run and
-is not compared.
+**Settled for the NMOS parts: every cycle, not just their number.** The 6502 puts
+an address on the bus in every cycle it runs, including the ones it spends
+thinking, so the recorded list of accesses is its timing and its side effects at
+once. `conformance/cycles.py` compares that list address by address, value by
+value, read against write, in order. All 2,440,000 non-halting cases in the pinned
+6502 suite agree, across all 256 opcodes. The dummy reads are in: the discarded
+pointer read of `(zp,X)`, the read at the half-formed address when an index
+crosses a page, the second write a read-modify-write performs, the stack read
+before a pull, and the instruction a taken branch does not run.
 
-That is stated rather than glossed because a cycle claim nobody checks is worse
-than no claim. Closing it means every instruction emitting its bus cycles in order
-and the runner comparing them, and it is the largest piece of outstanding work
-here.
+A cycle count alone would not have caught any of that. A model can spend the right
+number of cycles reading the wrong addresses, and two of the three sources
+disagreed about exactly that.
+
+**Not settled: the CMOS parts and the 65816.** The CMOS parts spend their spare
+cycles at different addresses, write once rather than twice in a
+read-modify-write, and take an extra cycle on decimal arithmetic. Every one of
+those differences is now measured, per mode, with the case that shows it, in
+[`conformance/divergences.json`](conformance/divergences.json). None is
+implemented, so the runner refuses those parts rather than reporting a comparison
+it cannot make. The 65816 needs more than addresses: its recordings carry pin
+states and cycles with no access at all.
+
+**The 12 halting opcodes are outside the claim.** A jam stops the part, and what a
+stopped part drives for the rest of a recording is a property of the recording's
+length. Those cases are counted and reported separately rather than skipped
+quietly.
 
 ## Project conventions
 

@@ -111,18 +111,15 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Read the pinned suite commit
-        id: pin
-        run: |
-          commit=$(python -c "import json,pathlib;print(json.loads(pathlib.Path('conformance/suites.json').read_text())['suites'][0]['commit'])")
-          echo "commit=${commit}" >> "${GITHUB_OUTPUT}"
-
-      - name: Cache the suite
+      # One key for every suite, taken from the file that pins them all, so the
+      # two jobs that need them share one entry rather than filling the cache
+      # with the same gigabytes twice.
+      - name: Cache the suites
         id: cache
         uses: actions/cache@v6
         with:
           path: ~/.cache/conformance-suites
-          key: suites-${{ steps.pin.outputs.commit }}
+          key: suites-${{ hashFiles('conformance/suites.json') }}
 
       - name: Fetch the suite
         if: steps.cache.outputs.cache-hit != 'true'
@@ -140,4 +137,43 @@ jobs:
           fi
           python conformance/singlestep.py \
             ~/.cache/conformance-suites/65816/65816/v1 "${limit}"
+        shell: bash
+
+  cycles:
+    name: Cycle for cycle against SingleStepTests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      # One key for every suite, taken from the file that pins them all, so the
+      # two jobs that need them share one entry rather than filling the cache
+      # with the same gigabytes twice.
+      - name: Cache the suites
+        id: cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/conformance-suites
+          key: suites-${{ hashFiles('conformance/suites.json') }}
+
+      - name: Fetch the suite
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: python conformance/fetch.py ~/.cache/conformance-suites
+
+      # Every cycle of an NMOS part is a bus cycle, so this compares timing and
+      # side effects at once: address, value, and read against write, in order.
+      # The CMOS parts and the 65816 are refused by this runner on purpose, and
+      # conformance/divergences.json says what is measured and missing for them.
+      - name: Compare the bus, cycle by cycle
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            limit=1000
+          else
+            limit=0
+          fi
+          python conformance/cycles.py \
+            ~/.cache/conformance-suites/6502/6502/v1 "${limit}" --model 6502
         shell: bash

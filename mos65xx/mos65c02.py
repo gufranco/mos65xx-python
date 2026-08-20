@@ -33,6 +33,7 @@ from __future__ import annotations
 
 from typing import Any, override
 
+from .mos6502 import READ
 from .mos6502 import Cpu as Nmos
 from .opcodes65c02 import CMOS
 from .opcodes6502 import MODE_SIZE
@@ -53,10 +54,10 @@ class Cpu(Nmos):
         return super().reset(seed) if seed is not None else super().reset()
 
     @override
-    def effective(self, mode: str) -> int:
+    def effective(self, mode: str, kind: str = READ) -> int:
         if mode == "indirectX":
             return self.read16((self.fetch16() + self.x) & 0xFFFF)
-        return super().effective(mode)
+        return super().effective(mode, kind)
 
     @override
     def add_with_carry(self, value: int) -> None:

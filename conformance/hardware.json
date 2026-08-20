@@ -163,6 +163,33 @@
       "section": "Appendix A.4, Read-Modify-Write Operations",
       "quote": "Note: The ROR instruction will be available on MCS650X microprocessors after June, 1976.",
       "notModelled": "The earliest parts have no working ROR, and this project models the part that does. Recorded because a model of the family that claims to include its mistakes should say which mistake it leaves out."
+    },
+    "nmosCycleShapesNowImplemented": {
+      "document": "mos6500",
+      "section": "Appendix A, read in full",
+      "quote": "All instructions begin with T0 and the fetch of the OP CODE and continue through the required number of cycles until the next T0 and the fetch of the next OP CODE.",
+      "whatIsImplemented": {
+        "everySingleByteInstruction": "reads the byte after its opcode and discards it",
+        "zeroPageIndexed": "reads the un-indexed page zero address first, and discards it",
+        "absoluteIndexedRead": "reads the low-byte-only sum first, and only when that differs from the real address",
+        "absoluteIndexedWriteOrModify": "reads the low-byte-only sum first, always",
+        "indexedIndirect": "reads the pointer before the index is added, and discards it",
+        "readModifyWrite": "reads, writes the value it read back unchanged, then writes the new one",
+        "pushAndPull": "a pull reads the stack slot below the one it wants first",
+        "jumpToSubroutine": "reads the stack it is about to write, between the two halves of its destination",
+        "returnFromSubroutine": "reads the stack twice and the address it pulled once, all discarded",
+        "break": "reads its signature byte even though nothing uses it",
+        "branchTaken": "reads the instruction it is not going to run, and on a page change the low-byte-only sum as well",
+        "hardwareInterrupt": "spends two cycles reading the program counter before it pushes anything"
+      },
+      "measured": "Every one of the 2,440,000 non-halting cases in the pinned 6502 suite agrees address for address, value for value, read against write, in order. The 120,000 cases whose opcode halts the part are left out and counted separately.",
+      "notStated": "A halted part keeps driving its address lines and the manual does not say with what. The recordings show a stuck pattern around the interrupt vector whose length is a property of the recording, so those cases are excluded rather than matched."
+    },
+    "cmosCycleShapesNotYetImplemented": {
+      "document": "wdc816",
+      "section": "3.14, and Table 6-5 of the W65C02S data sheet",
+      "quote": "0 0 Internal Operation Address and Data Bus available. The Address Bus may be invalid.",
+      "whyItIsSeparateWork": "The CMOS parts spend their spare cycles at different addresses from the NMOS part, perform one write rather than two in a read-modify-write, and spend an extra cycle on decimal arithmetic. All of that is measured, per mode, in divergences.json. Until it is implemented the cycle runner refuses those parts rather than reporting a comparison."
     }
   }
 }

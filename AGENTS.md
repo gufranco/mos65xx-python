@@ -59,6 +59,25 @@ python3 conformance/fetch.py
 python3 conformance/singlestep.py
 ```
 
+## The cycle claim, and what it rests on
+
+The NMOS parts are held to the bus, not only to state:
+
+```bash
+python3 conformance/cycles.py <suite>/6502/v1 --model 6502
+```
+
+Every cycle of an NMOS 6502 is a bus cycle, so that comparison covers timing and
+side effects at once, and all 2,440,000 non-halting cases in the pinned suite
+agree. The CMOS parts and the 65816 are refused by that runner on purpose. Their
+differences are measured and written down; implementing them is the next piece of
+work, and until then no claim is made.
+
+Two rules for touching any of this. A dummy access is a cycle, so it goes through
+`read8` or `write8` rather than around them, or it will not appear on the bus. And
+a change to where a spare cycle reads changes what the part touches, so it is held
+to the state suites as well as the cycle one.
+
 ## Where the hardware facts live
 
 [`conformance/hardware.json`](conformance/hardware.json) holds every fact read out
