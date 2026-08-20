@@ -178,8 +178,8 @@ jobs:
 
       # Every cycle of an eight-bit part is a bus cycle, so this compares timing
       # and side effects at once: address, value, and read against write, in
-      # order. The 65816 is refused by this runner on purpose, because its
-      # recordings carry pin states this core does not emit.
+      # order. On the 65816 it also compares eight output pins per cycle, and the
+      # cycles where the part drives no valid address at all.
       - name: Compare the bus, cycle by cycle
         run: |
           if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
@@ -194,6 +194,7 @@ jobs:
               "${HOME}/.cache/conformance-suites/${suite}" "${limit}" --model "${model}" || status=1
             echo "::endgroup::"
           done <<'SUITES'
+          65816/65816/v1 65816
           6502/6502/v1 6502
           nes6502/nes6502/v1 2a03
           synertek65c02/synertek65c02/v1 65c02

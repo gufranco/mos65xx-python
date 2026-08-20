@@ -61,22 +61,27 @@ python3 conformance/singlestep.py
 
 ## The cycle claim, and what it rests on
 
-All five eight-bit parts are held to the bus, not only to state:
+Every part is held to the bus, not only to state:
 
 ```bash
-python3 conformance/cycles.py <suite>/wdc65c02/v1 --model w65c02
+python3 conformance/cycles.py <suite>/65816/v1 --model 65816
 ```
 
-Every cycle of these parts is a bus cycle, so that comparison covers timing and
-side effects at once, and 12,510,080 cases agree. The 65816 is refused by that
-runner on purpose: its recordings carry pin states and cycles with no access at
-all, which this core does not emit. That is the next piece of work.
+17,590,080 cases agree, across all eight parts. On the eight-bit parts every cycle
+is a bus cycle, so the comparison covers timing and side effects at once. On the
+65816 it also covers eight output pins per cycle, and cycles where the part drives
+no valid address at all.
 
 Where a spare cycle reads is a property of the part, not of the addressing mode,
-and the two families disagree about every one of them. The hooks that carry the
-difference are `spare_for_index`, `spare_in_page_zero`, `settle`, `modify_kind`
-and `idles_after_opcode`. Add a part by overriding those rather than by copying an
-addressing mode.
+and the two eight-bit families disagree about every one of them. The hooks that
+carry the difference are `spare_for_index`, `spare_in_page_zero`, `settle`,
+`modify_kind` and `idles_after_opcode`. Add a part by overriding those rather than
+by copying an addressing mode.
+
+On the 65816 the equivalents are `internal` for a cycle nothing answers, `pins`
+for the output lines, and the `locked` and `pulling` flags for memory lock and
+vector pull. A cycle that is not emitted through `read8`, `write8` or `internal`
+does not exist as far as the comparison is concerned.
 
 The weekly watcher still tracks only the 65816 repository's pin. The 65x02
 repository carries five of the six suites and its pin is not watched, so a bump

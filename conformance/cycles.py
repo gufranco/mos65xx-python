@@ -38,12 +38,18 @@ from conformance.singlestep import (  # noqa: E402
     machine_for,
     suite_files,
 )
-from mos65xx import UnknownModelError, describe  # noqa: E402
+from mos65xx import OPCODES, UnknownModelError, describe  # noqa: E402
 
 EXAMPLE_LIMIT = 3
 
-HALTS = "jam"
-"""The mnemonic whose whole behaviour is to stop, which no cycle list bounds."""
+HALTS = frozenset({"jam", "stp", "wai"})
+"""The mnemonics whose whole behaviour is to stop, which no cycle list bounds.
+
+One of them is the undocumented opcode that hangs an NMOS part. The other two are
+the deliberate ones the CMOS and 65816 parts added, and the recordings show what a
+waiting part looks like: cycles with no address, no value and every line inactive,
+for as long as the recording happens to run.
+"""
 
 PLACEHOLDER_OPCODES = frozenset({0x69, 0xE9})
 """Add and subtract with an immediate operand, on the CMOS parts.
@@ -56,18 +62,15 @@ than a measurement, so a case that differs only there is counted apart instead o
 being called a disagreement, and conformance/divergences.json carries the numbers.
 """
 
-VERIFIED = frozenset({"6502", "6507", "2a03", "65c02", "r65c02", "w65c02"})
+VERIFIED = frozenset({"6502", "6507", "2a03", "65c02", "r65c02", "w65c02", "65816", "65802"})
 """The parts whose bus activity has been held to a suite, cycle for cycle.
 
-The others are refused rather than reported on. The CMOS parts spend their spare
-cycles at different addresses from the NMOS parts, which is measured and written
-down in divergences.json and not yet implemented, and the 65816 records pin states
-and cycles with no access at all, which this core does not emit. A runner that
-compared either would report a disagreement per case and teach a reader nothing,
-and one that skipped the comparison silently would be worse.
+Anything else is refused rather than reported on. A runner that compared a part it
+had never been held to would report a disagreement per case and teach a reader
+nothing, and one that skipped the comparison silently would be worse.
 """
 
-Cycle = tuple[int, int, str]
+Cycle = tuple[int | None, int | None, str]
 Example = tuple[str, list[Cycle], list[Cycle]]
 
 
@@ -76,21 +79,42 @@ class Unsupported(Exception):
 
 
 def recorded(test: Mapping[str, Any]) -> list[Cycle]:
-    """The cycles the suite recorded, in the shape the model reports its own."""
-    return [(int(address), int(value), str(kind)) for address, value, kind in test["cycles"]]
+    """The cycles the suite recorded, in the shape the model reports its own.
+
+    A cycle with no value is one where the part drove neither address line, so
+    nothing answered. The 65816 records those; the eight-bit parts have none,
+    because they drive a real address in every cycle they run.
+    """
+    return [
+        (
+            None if address is None else int(address),
+            None if value is None else int(value),
+            str(kind),
+        )
+        for address, value, kind in test["cycles"]
+    ]
+
+
+def opcode_of(initial: Mapping[str, Any]) -> int | None:
+    """The byte the part is about to fetch, wherever the bank register puts it.
+
+    On the 65816 the program counter is only sixteen of the twenty four bits, and
+    a lookup that forgets the program bank finds the wrong byte or none at all.
+    """
+    at = (int(initial.get("pbr", 0)) << 16) | int(initial["pc"])
+    found = dict(initial["ram"]).get(at)
+    return None if found is None else int(found)
 
 
 def halted(test: Mapping[str, Any], model: str) -> bool:
     """Whether this case runs an opcode whose whole behaviour is to stop."""
-    opcode = dict(test["initial"]["ram"]).get(test["initial"]["pc"])
+    opcode = opcode_of(test["initial"])
     if opcode is None:
         return False
     cpu, _ = machine_for(test["initial"], model)
-    table = getattr(cpu, "table", None)
-    if table is None:
-        return False
+    table = getattr(cpu, "table", OPCODES)
     mnemonic: str = table[opcode][0]
-    return mnemonic == HALTS
+    return mnemonic in HALTS
 
 
 def only_placeholder(test: Mapping[str, Any], seen: Sequence[Cycle]) -> bool:
@@ -100,7 +124,7 @@ def only_placeholder(test: Mapping[str, Any], seen: Sequence[Cycle]) -> bool:
     and the opcode one of the two whose extra decimal cycle has nowhere to point.
     Anything wider would hide a real disagreement.
     """
-    opcode = dict(test["initial"]["ram"]).get(test["initial"]["pc"])
+    opcode = opcode_of(test["initial"])
     if opcode not in PLACEHOLDER_OPCODES:
         return False
     want = recorded(test)
@@ -123,6 +147,8 @@ def check(test: Mapping[str, Any], model: str = DEFAULT_MODEL) -> list[Cycle] | 
         cpu, _ = machine_for(test["initial"], model)
         if not hasattr(cpu, "trace"):
             raise Unsupported(f"a {model} does not record what it puts on the bus")
+        if hasattr(cpu, "cycle_budget"):
+            cpu.cycle_budget = len(test.get("cycles", ())) or None
         cpu.trace = []
         cpu.step()
     except Unsupported:

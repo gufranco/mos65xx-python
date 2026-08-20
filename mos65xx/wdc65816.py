@@ -67,6 +67,8 @@ conformance/hardware.json.
 """
 BREAK_FLAG = 0x10
 CYCLES_PER_MOVE = 7
+PARTIAL_LIMIT = 4
+"""How far into an interrupted iteration of a block move this model goes."""
 
 NATIVE_VECTORS = {"irq": IRQ_VECTOR, "nmi": NMI_VECTOR, "abort": ABORT_VECTOR}
 EMULATION_VECTORS = {
@@ -74,6 +76,15 @@ EMULATION_VECTORS = {
     "nmi": EMULATION_NMI_VECTOR,
     "abort": EMULATION_ABORT_VECTOR,
 }
+
+ALWAYS_INDEXES = frozenset(
+    {"sta", "stx", "sty", "stz", "asl", "lsr", "rol", "ror", "inc", "dec", "trb", "tsb"}
+)
+"""Instructions that spend the indexing cycle whether or not a carry is needed.
+
+A write is one: the part will not aim a write at an address it might have to
+correct. A read-modify-write is the other, for the same reason.
+"""
 
 BANK_ZERO_MODES = frozenset({"direct", "directX", "directY", "stack"})
 """Modes whose address is in bank zero and wraps inside it."""
@@ -125,6 +136,9 @@ class Cpu:
         self._emulation = False
         self._s = 0x01FF
         self.cycle_budget: int | None = None
+        self.trace: list[tuple[int, int | None, str]] | None = None
+        self.locked = False
+        self.pulling = False
         self.steps = 0
         self.stopped = False
         self.waiting = False
@@ -238,13 +252,76 @@ class Cpu:
             self.y &= 0xFF
             self.s = 0x0100 | (self.s & 0xFF)
 
-    def read8(self, address: int) -> int:
+    def pins(self, data: bool, program: bool, vector: bool, write: bool) -> str:
+        """The eight output lines, in the order the recordings print them.
+
+        Valid data address, valid program address, vector pull, read or write,
+        emulation, the two width bits, and memory lock. Both address lines low is
+        an internal cycle, and the manufacturer says the address on one of those
+        may be invalid, which is why an internal cycle is recorded with no value
+        rather than with whatever the bus happened to hold.
+        """
+        return "".join(
+            (
+                "d" if data else "-",
+                "p" if program else "-",
+                "v" if vector else "-",
+                "w" if write else "r",
+                "e" if self._emulation else "-",
+                "m" if self.m8 else "-",
+                "x" if self.x8 else "-",
+                "l" if self.locked else "-",
+            )
+        )
+
+    def read8(self, address: int, data: bool = True, program: bool = False) -> int:
         found = self.memory.read8(address & self.address_mask) & 0xFF
         assert isinstance(found, int)
+        if self.trace is not None:
+            self.trace.append(
+                (address & self.address_mask, found, self.pins(data, program, self.pulling, False))
+            )
         return found
 
     def write8(self, address: int, value: int) -> None:
         self.memory.write8(address & self.address_mask, value & 0xFF)
+        if self.trace is not None:
+            self.trace.append(
+                (address & self.address_mask, value & 0xFF, self.pins(True, False, False, True))
+            )
+
+    def internal(self, address: int, write: bool = False, value: int | None = None) -> None:
+        """A cycle the part spends without asking memory for anything.
+
+        The 6502 had none of these: it drove a real address every cycle and read
+        something it then ignored. This part lowers both address lines instead, so
+        nothing answers, and the address it drives is allowed to be wrong. That is
+        why there is usually nothing here rather than a byte.
+
+        The exception is the modify cycle of a read-modify-write in emulation
+        mode. There the part drives the byte it just read with the write line low
+        and no valid address, so the value is on the bus and no memory takes it.
+        That is how a part compatible with one that writes twice avoids writing
+        twice.
+        """
+        if self.trace is not None:
+            self.trace.append(
+                (address & self.address_mask, value, self.pins(False, False, False, write))
+            )
+
+    def opcode8(self) -> int:
+        """Fetch an opcode, which is the one cycle with both address lines high."""
+        value = self.read8((self.pb << 16) | self.pc, data=True, program=True)
+        self.pc = (self.pc + 1) & 0xFFFF
+        return value
+
+    def vector16(self, address: int) -> int:
+        """Read a vector, with the pull line low for both halves of it."""
+        self.pulling = True
+        try:
+            return self.read8(address) | (self.read8(address + 1) << 8)
+        finally:
+            self.pulling = False
 
     def read16(self, address: int) -> int:
         return self.read8(address) | (self.read8(address + 1) << 8)
@@ -257,10 +334,30 @@ class Cpu:
             return self.read8(address)
         return self.read8(address) | (self.read8(self.next_byte(address, mode)) << 8)
 
-    def write_value(self, address: int, value: int, wide: bool, mode: str | None = None) -> None:
-        self.write8(address, value)
-        if wide:
+    def write_value(
+        self,
+        address: int,
+        value: int,
+        wide: bool,
+        mode: str | None = None,
+        high_first: bool = False,
+    ) -> None:
+        """Write a byte, or a word in whichever order the instruction writes it.
+
+        A store writes the low half first. A read-modify-write writes the high
+        half first, having read the low half first, so the two halves of one
+        instruction go out in opposite orders. The registers end up the same
+        either way and the bus does not, which is why the order is a parameter.
+        """
+        if not wide:
+            self.write8(address, value)
+            return
+        if high_first:
             self.write8(self.next_byte(address, mode), value >> 8)
+            self.write8(address, value)
+            return
+        self.write8(address, value)
+        self.write8(self.next_byte(address, mode), value >> 8)
 
     def next_byte(self, address: int, mode: str | None) -> int:
         """The address one byte on, wrapped the way that kind of access wraps.
@@ -275,7 +372,7 @@ class Cpu:
         return address + 1
 
     def fetch8(self) -> int:
-        value = self.read8((self.pb << 16) | self.pc)
+        value = self.read8((self.pb << 16) | self.pc, data=False, program=True)
         self.pc = (self.pc + 1) & 0xFFFF
         return value
 
@@ -307,17 +404,6 @@ class Cpu:
     def pull16(self) -> int:
         """Pull a word the way the 6502 instructions do."""
         return self.pull8() | (self.pull8() << 8)
-
-    def push_flat(self, value: int, width: int) -> None:
-        """Push several bytes without folding into page one, highest first."""
-        if not self.emulation:
-            for shift in range(8 * (width - 1), -1, -8):
-                self.push8((value >> shift) & 0xFF)
-            return
-        base = self._s
-        for step, shift in enumerate(range(8 * (width - 1), -1, -8)):
-            self.write8((base - step) & 0xFFFF, (value >> shift) & 0xFF)
-        self.s = (base - width) & 0xFFFF
 
     def pull_flat(self, width: int) -> int:
         """Pull several bytes without folding into page one, lowest first."""
@@ -427,42 +513,110 @@ class Cpu:
             self.read8(bank | ((address + step) & 0xFFFF)) << (8 * step) for step in range(width)
         )
 
+    def here(self) -> int:
+        """The last byte the part fetched, which is where a spare cycle points."""
+        return (self.pb << 16) | ((self.pc - 1) & 0xFFFF)
+
+    def at_pc(self) -> int:
+        """The next byte to fetch, in the program bank.
+
+        The program counter is sixteen bits and the bank does not move with it, so
+        this wraps inside the bank rather than carrying out of it. The difference
+        shows on exactly one address in each bank and the recordings catch it.
+        """
+        return (self.pb << 16) | self.pc
+
+    def unaligned(self) -> None:
+        """The cycle a direct-page access costs when the register is not aligned.
+
+        Adding an eight bit offset to a register whose low byte is clear needs no
+        adder, so the part does it for nothing. When the low byte is not clear it
+        spends a cycle, and drives the operand's own address while it does.
+        """
+        if self.d & 0xFF:
+            self.internal(self.here())
+
+    def crosses(self, base: int, index: int) -> bool:
+        """Whether an indexed access spends its spare cycle.
+
+        Three things make it unavoidable: a carry out of the low byte, a write,
+        which the part will not aim at an address it might correct, and a sixteen
+        bit index, where there is no low-byte-only shortcut to take.
+        """
+        return not self.x8 or ((base + index) & 0xFF00) != (base & 0xFF00)
+
     def effective(self, mode: str, mnemonic: str) -> int:
         if mode == "direct":
-            return self.direct(self.fetch8())
+            offset = self.fetch8()
+            self.unaligned()
+            return self.direct(offset)
         if mode == "directX":
-            return self.direct(self.fetch8() + self.x)
+            offset = self.fetch8()
+            self.unaligned()
+            self.internal(self.here())
+            return self.direct(offset + self.x)
         if mode == "directY":
-            return self.direct(self.fetch8() + self.y)
+            offset = self.fetch8()
+            self.unaligned()
+            self.internal(self.here())
+            return self.direct(offset + self.y)
         if mode == "absolute":
             return (self.db << 16) | self.fetch16()
         if mode == "absoluteX":
-            return ((self.db << 16) | self.fetch16()) + self.x
+            return self.indexed(self.fetch16(), self.x, mnemonic)
         if mode == "absoluteY":
-            return ((self.db << 16) | self.fetch16()) + self.y
+            return self.indexed(self.fetch16(), self.y, mnemonic)
         if mode == "absoluteLong":
             return self.fetch24()
         if mode == "absoluteLongX":
             return self.fetch24() + self.x
         if mode == "indirect":
-            pointer = self.direct(self.fetch8())
+            offset = self.fetch8()
+            self.unaligned()
+            pointer = self.direct(offset)
             return (self.db << 16) | self.read_pointer(pointer, 2, wraps_in_page=True)
         if mode == "indexedIndirectX":
-            pointer = self.direct(self.fetch8() + self.x)
+            offset = self.fetch8()
+            self.unaligned()
+            self.internal(self.here())
+            pointer = self.direct(offset + self.x)
             return (self.db << 16) | self.read_pointer(pointer, 2)
         if mode == "indirectIndexedY":
-            pointer = self.direct(self.fetch8())
-            return ((self.db << 16) | self.read_pointer(pointer, 2, wraps_in_page=True)) + self.y
+            offset = self.fetch8()
+            self.unaligned()
+            pointer = self.direct(offset)
+            base = self.read_pointer(pointer, 2, wraps_in_page=True)
+            return self.indexed_from(base, self.y, mnemonic)
         if mode == "indirectLong":
-            return self.read_pointer(self.direct(self.fetch8()), 3)
+            offset = self.fetch8()
+            self.unaligned()
+            return self.read_pointer(self.direct(offset), 3)
         if mode == "indirectLongY":
-            return self.read_pointer(self.direct(self.fetch8()), 3, wraps_in_page=True) + self.y
+            offset = self.fetch8()
+            self.unaligned()
+            return self.read_pointer(self.direct(offset), 3, wraps_in_page=True) + self.y
         if mode == "stack":
-            return (self.s + self.fetch8()) & 0xFFFF
+            offset = self.fetch8()
+            self.internal(self.here())
+            return (self.s + offset) & 0xFFFF
         if mode == "stackIndirect":
-            pointer = (self.s + self.fetch8()) & 0xFFFF
-            return ((self.db << 16) | self.read_pointer(pointer, 2)) + self.y
+            offset = self.fetch8()
+            self.internal(self.here())
+            pointer = (self.s + offset) & 0xFFFF
+            base = self.read_pointer(pointer, 2)
+            self.internal((pointer + 1) & 0xFFFF)
+            return ((self.db << 16) | base) + self.y
         raise UnsupportedError(f"{mnemonic} cannot use {mode}")
+
+    def indexed(self, base: int, index: int, mnemonic: str) -> int:
+        """An absolute address plus an index, in the data bank."""
+        return self.indexed_from(base, index, mnemonic)
+
+    def indexed_from(self, base: int, index: int, mnemonic: str) -> int:
+        """Index an address and spend the cycle if the part would spend it."""
+        if mnemonic in ALWAYS_INDEXES or self.crosses(base, index):
+            self.internal((self.db << 16) | (base & 0xFF00) | ((base + index) & 0xFF))
+        return ((self.db << 16) | base) + index
 
     def operand(self, mode: str, mnemonic: str) -> int:
         wide = self.wide_for(mnemonic)
@@ -548,8 +702,10 @@ class Cpu:
         self.steps += 1
         if self.steps > self.step_limit:
             raise StepLimit(f"stopped after {self.steps} steps at ${self.pb:02X}:{self.pc:04X}")
-        opcode = self.fetch8()
+        opcode = self.opcode8()
         mnemonic, mode = OPCODES[opcode]
+        if not wdc65816.MODE_SIZE[mode]:
+            self.internal(self.at_pc())
         handler = getattr(self, f"op_{mnemonic}", None)
         if handler is None:
             raise UnsupportedError(f"{mnemonic} is not implemented")
@@ -648,6 +804,7 @@ class Cpu:
         self.set_nz(self.a, True)
 
     def op_xba(self, mode: str) -> None:
+        self.internal(self.at_pc())
         self.a = ((self.a >> 8) | (self.a << 8)) & 0xFFFF
         self.set_nz(self.a & 0xFF, False)
 
@@ -702,8 +859,17 @@ class Cpu:
             self.set_acc(operation(self.acc(), wide))
             return
         address = self.effective(mode, mnemonic)
-        held = self.read_value(address, wide, mode)
-        self.write_value(address, operation(held, wide), wide, mode)
+        self.locked = True
+        try:
+            held = self.read_value(address, wide, mode)
+            self.internal(
+                self.next_byte(address, mode) if wide else address,
+                write=self._emulation,
+                value=held if self._emulation else None,
+            )
+            self.write_value(address, operation(held, wide), wide, mode, high_first=True)
+        finally:
+            self.locked = False
 
     def op_asl(self, mode: str) -> None:
         def shift(value: int, wide: bool) -> int:
@@ -760,18 +926,18 @@ class Cpu:
         self._read_modify_write(mode, "dec", drop)
 
     def op_trb(self, mode: str) -> None:
-        wide = not self.m8
-        address = self.effective(mode, "trb")
-        value = self.read_value(address, wide, mode)
-        self.z = (value & self.acc()) == 0
-        self.write_value(address, value & ~self.acc(), wide, mode)
+        def clear(value: int, wide: bool) -> int:
+            self.z = (value & self.acc()) == 0
+            return value & ~self.acc()
+
+        self._read_modify_write(mode, "trb", clear)
 
     def op_tsb(self, mode: str) -> None:
-        wide = not self.m8
-        address = self.effective(mode, "tsb")
-        value = self.read_value(address, wide, mode)
-        self.z = (value & self.acc()) == 0
-        self.write_value(address, value | self.acc(), wide, mode)
+        def raise_bits(value: int, wide: bool) -> int:
+            self.z = (value & self.acc()) == 0
+            return value | self.acc()
+
+        self._read_modify_write(mode, "tsb", raise_bits)
 
     def op_inx(self, mode: str) -> None:
         self.x = (self.x + 1) & (0xFF if self.x8 else 0xFFFF)
@@ -811,15 +977,26 @@ class Cpu:
         self.v = False
 
     def op_rep(self, mode: str) -> None:
-        self.set_status(self.status() & ~self.fetch8())
+        """Clear the named status bits, in three cycles whatever they are.
+
+        The manufacturer says this and its opposite are always three cycles and
+        that the third drives the operand's own address with both address lines
+        low. Nothing about the operand changes that.
+        """
+        held = self.fetch8()
+        self.internal(self.here())
+        self.set_status(self.status() & ~held)
 
     def op_sep(self, mode: str) -> None:
-        self.set_status(self.status() | self.fetch8())
+        held = self.fetch8()
+        self.internal(self.here())
+        self.set_status(self.status() | held)
 
     def op_pha(self, mode: str) -> None:
         self.push8(self.a) if self.m8 else self.push16(self.a)
 
     def op_pla(self, mode: str) -> None:
+        self.internal(self.at_pc())
         value = self.pull8() if self.m8 else self.pull16()
         self.set_acc(value)
         self.set_nz(value, not self.m8)
@@ -828,6 +1005,7 @@ class Cpu:
         self.push8(self.x) if self.x8 else self.push16(self.x)
 
     def op_plx(self, mode: str) -> None:
+        self.internal(self.at_pc())
         self.x = self.pull8() if self.x8 else self.pull16()
         self.set_nz(self.x, not self.x8)
 
@@ -835,6 +1013,7 @@ class Cpu:
         self.push8(self.y) if self.x8 else self.push16(self.y)
 
     def op_ply(self, mode: str) -> None:
+        self.internal(self.at_pc())
         self.y = self.pull8() if self.x8 else self.pull16()
         self.set_nz(self.y, not self.x8)
 
@@ -842,12 +1021,14 @@ class Cpu:
         self.push8(self.status())
 
     def op_plp(self, mode: str) -> None:
+        self.internal(self.at_pc())
         self.set_status(self.pull8())
 
     def op_phb(self, mode: str) -> None:
         self.push8(self.db)
 
     def op_plb(self, mode: str) -> None:
+        self.internal(self.at_pc())
         self.db = self.pull8()
         self.set_nz(self.db, False)
 
@@ -855,6 +1036,7 @@ class Cpu:
         self.push16_flat(self.d)
 
     def op_pld(self, mode: str) -> None:
+        self.internal(self.at_pc())
         self.d = self.pull16_flat()
         self.set_nz(self.d, True)
 
@@ -865,10 +1047,14 @@ class Cpu:
         self.push16_flat(self.fetch16())
 
     def op_pei(self, mode: str) -> None:
-        self.push16_flat(self.read_pointer(self.direct(self.fetch8()), 2, wraps_in_page=True))
+        offset = self.fetch8()
+        self.unaligned()
+        pointer = self.direct(offset)
+        self.push16_flat(self.read_pointer(pointer, 2, wraps_in_page=True))
 
     def op_per(self, mode: str) -> None:
         offset = self.fetch16()
+        self.internal(self.here())
         self.push16_flat((self.pc + self._signed16(offset)) & 0xFFFF)
 
     @staticmethod
@@ -880,9 +1066,20 @@ class Cpu:
         return value - 0x10000 if value & 0x8000 else value
 
     def _branch(self, taken: bool) -> None:
+        """Take the branch, and spend what taking it costs.
+
+        A taken branch costs a cycle, and in emulation mode a taken branch that
+        crosses a page costs another, which is the one place this part still pays
+        for a page boundary the way a 6502 does. In native mode it does not.
+        """
         offset = self.fetch8()
-        if taken:
-            self.pc = (self.pc + self._signed8(offset)) & 0xFFFF
+        if not taken:
+            return
+        self.internal(self.here())
+        target = (self.pc + self._signed8(offset)) & 0xFFFF
+        if self._emulation and (target & 0xFF00) != (self.pc & 0xFF00):
+            self.internal(self.here())
+        self.pc = target
 
     def op_bra(self, mode: str) -> None:
         self._branch(True)
@@ -913,6 +1110,7 @@ class Cpu:
 
     def op_brl(self, mode: str) -> None:
         offset = self.fetch16()
+        self.internal(self.here())
         self.pc = (self.pc + self._signed16(offset)) & 0xFFFF
 
     def op_jmp(self, mode: str) -> None:
@@ -923,7 +1121,9 @@ class Cpu:
             self.pc = self.read_pointer(self.fetch16(), 2)
             return
         if mode == "indirectX":
-            pointer = (self.fetch16() + self.x) & 0xFFFF
+            base = self.fetch16()
+            self.internal(self.here())
+            pointer = (base + self.x) & 0xFFFF
             self.pc = self.read_pointer((self.pb << 16) | pointer, 2)
             return
         if mode == "indirectLongPC":
@@ -942,35 +1142,79 @@ class Cpu:
         self.pc = target & 0xFFFF
 
     def op_jsr(self, mode: str) -> None:
+        """Jump to a subroutine, in whichever order the mode calls for.
+
+        Through a plain address the part reads both halves, spends a cycle, and
+        then pushes. Through an indexed pointer it pushes between the two halves
+        of the address, the way the 6502 does, which is only visible when the
+        stack has walked into the instruction.
+        """
         if mode == "absolutePC":
             target = self.fetch16()
-        elif mode == "indirectX":
-            pointer = (self.fetch16() + self.x) & 0xFFFF
-            target = self.read_pointer((self.pb << 16) | pointer, 2)
-        else:
+            self.internal(self.here())
+            self.push16((self.pc - 1) & 0xFFFF)
+            self.pc = target
+            return
+        if mode != "indirectX":
             raise UnsupportedError(f"jsr cannot use {mode}")
-        self.push16((self.pc - 1) & 0xFFFF)
-        self.pc = target
+        low = self.fetch8()
+        self.push16(self.pc)
+        high = self.fetch8()
+        self.internal(self.here())
+        pointer = ((low | (high << 8)) + self.x) & 0xFFFF
+        self.pc = self.read_pointer((self.pb << 16) | pointer, 2)
 
     def op_jsl(self, mode: str) -> None:
-        target = self.fetch24()
-        self.push_flat((self.pb << 16) | ((self.pc - 1) & 0xFFFF), 3)
-        self.pb = (target >> 16) & 0xFF
-        self.pc = target & 0xFFFF
+        """Jump long, pushing the bank before the address it is leaving.
+
+        The bank goes out first, before the third operand byte has even been
+        read, and the two halves of the return address follow it. So a stack that
+        has walked into this instruction overwrites the bank byte it is about to
+        fetch, exactly as the plain jump to subroutine can overwrite its own high
+        byte.
+
+        Like every instruction the 65816 added, its pushes step straight through
+        the end of page one rather than folding back to the top of it, so in
+        emulation mode a push at $0100 continues at $00FF.
+        """
+        target = self.fetch16()
+        base = self._s
+        self.write8(base, self.pb)
+        self.internal(base)
+        bank = self.fetch8()
+        returning = (self.pc - 1) & 0xFFFF
+        self.write8((base - 1) & 0xFFFF, (returning >> 8) & 0xFF)
+        self.write8((base - 2) & 0xFFFF, returning & 0xFF)
+        self.s = (base - 3) & 0xFFFF
+        self.pb = bank
+        self.pc = target
 
     def op_rts(self, mode: str) -> None:
-        self.pc = (self.pull16() + 1) & 0xFFFF
+        self.internal(self.at_pc())
+        pulled = self.pull16()
+        self.internal(self.s)
+        self.pc = (pulled + 1) & 0xFFFF
 
     def op_rtl(self, mode: str) -> None:
+        self.internal(self.at_pc())
         pulled = self.pull_flat(3)
         self.pc = ((pulled & 0xFFFF) + 1) & 0xFFFF
         self.pb = (pulled >> 16) & 0xFF
 
     def op_rti(self, mode: str) -> None:
-        self.set_status(self.pull8())
+        """Pull the status, the address and the bank, and apply the status last.
+
+        The width bits come back from the stack, and the part does not act on them
+        while it is still pulling: the recorded cycles carry the widths it had
+        before, not the ones it is restoring. Applying the byte at the end leaves
+        the same registers and drives the same pins.
+        """
+        self.internal(self.at_pc())
+        pulled = self.pull8()
         self.pc = self.pull16()
         if not self.emulation:
             self.pb = self.pull8()
+        self.set_status(pulled)
 
     def _software_interrupt(self, native_vector: int, emulation_vector: int) -> None:
         """Take a software interrupt the way the current mode takes one.
@@ -1000,7 +1244,7 @@ class Cpu:
         self.irq_disable = True
         self.decimal = False
         self.pb = 0x00
-        self.pc = self.read16(vector)
+        self.pc = self.vector16(vector)
 
     def interrupt(self, kind: str) -> bool:
         """Take a hardware interrupt, and say whether it was taken.
@@ -1031,7 +1275,7 @@ class Cpu:
         self.irq_disable = True
         self.decimal = False
         self.pb = 0x00
-        self.pc = self.read16(vector)
+        self.pc = self.vector16(vector)
         return True
 
     def irq(self) -> bool:
@@ -1075,6 +1319,11 @@ class Cpu:
         performs as many whole seven cycle iterations as fit and then leaves the
         program counter part way through its own operands, exactly where the
         processor would be when the budget ran out.
+
+        Every iteration after the first re-fetches this instruction, because that
+        is what the part does: it rewound onto its own opcode and the next fetch
+        starts over. Those cycles are real and they are on the bus, so they are
+        here, which is why one call to step can drive dozens of them.
         """
         base = (self.pc - 1) & 0xFFFF
         destination = self.fetch8()
@@ -1086,18 +1335,50 @@ class Cpu:
         budget = self.cycle_budget
         whole = remaining if budget is None else min(remaining, max(0, budget) // CYCLES_PER_MOVE)
 
-        for _ in range(whole):
+        for moved in range(whole):
+            if moved:
+                self.opcode8()
+                self.fetch8()
+                self.fetch8()
             self.write8((destination << 16) | self.y, self.read8((source << 16) | self.x))
+            self.internal((destination << 16) | self.y)
+            self.internal((destination << 16) | self.y)
             self.x = (self.x + direction) & mask
             self.y = (self.y + direction) & mask
             self.a = (self.a - 1) & 0xFFFF
+            if moved + 1 < whole:
+                self.pc = base
 
         if whole >= remaining:
             self.pc = (base + 3) & 0xFFFF
             return
         assert budget is not None, "a move with no budget finishes, and returned above"
         spent = whole * CYCLES_PER_MOVE
-        self.pc = (base + min(max(0, budget - spent), 3)) & 0xFFFF
+        self.pc = base
+        self.partial_move(source, max(0, budget - spent))
+
+    def partial_move(self, source: int, leftover: int) -> None:
+        """The cycles of an iteration the window ended part way through.
+
+        A move that runs out of time in the middle of an iteration has already
+        driven that iteration's first few cycles, and they are on the bus. It
+        re-fetched its own opcode, then as many of its two operands as it had time
+        for, then read the source byte. It cannot have written: a write would move
+        a byte, and then the count would say fifteen where the recordings say
+        fourteen.
+
+        So four is as far as this goes. A window ending after the write of a
+        partial iteration is not modelled, because no recording shows one and the
+        alternative is to guess whether that byte counts.
+        """
+        if leftover >= 1:
+            self.opcode8()
+        if leftover >= 2:
+            self.fetch8()
+        if leftover >= 3:
+            self.fetch8()
+        if leftover >= PARTIAL_LIMIT:
+            self.read8((source << 16) | self.x)
 
     def op_mvn(self, mode: str) -> None:
         self._block_move(1)
@@ -1109,10 +1390,19 @@ class Cpu:
         return
 
     def op_wdm(self, mode: str) -> None:
-        self.fetch8()
+        """Two bytes, and the second is never read.
+
+        The opcode is reserved for a processor nobody has built. It is two bytes
+        long so that whatever it becomes has an operand, and the part steps over
+        the second byte with both address lines low rather than fetching it.
+        """
+        self.internal((self.pb << 16) | self.pc)
+        self.pc = (self.pc + 1) & 0xFFFF
 
     def op_stp(self, mode: str) -> None:
+        self.internal(self.at_pc())
         self.stopped = True
 
     def op_wai(self, mode: str) -> None:
+        self.internal(self.at_pc())
         self.waiting = True

@@ -202,6 +202,27 @@
       },
       "measured": "Every one of the 7,630,080 non-placeholder cases across the three CMOS suites agrees, cycle for cycle. The placeholder cases are the ones counted apart in divergences.json.",
       "notStated": "No document describes the opcodes the CMOS design left unused, so their shapes are taken from the recordings and are marked as such. Three of the addresses the W65C02S timing chart gives for spare cycles are contradicted by those recordings, and that is recorded rather than reconciled."
+    },
+    "sixteenBitCycleShapes": {
+      "document": "wdc816",
+      "section": "Table 6-7 Instruction Operation, read in full, with the notes and Table 6-8",
+      "quote": "To control the execution of instructions, the external 8 MHz clock is divided into phases for internal execution.",
+      "whatTheTableGives": "Every addressing mode and every stack, jump, return and interrupt sequence, cycle by cycle, with the address bus contents, what is on the data bus, the read or write line, and the vector-pull, memory-lock and address-valid pins.",
+      "whatIsImplemented": {
+        "internalCycles": "emitted with both address lines low and no value, because the manufacturer says that address may be invalid",
+        "unalignedDirectPage": "one extra cycle when the direct register's low byte is not zero, driving the operand's own address",
+        "indexing": "one extra cycle when the index carries out of the low byte, or the access is a write or a read-modify-write, or the index is sixteen bits wide, which has no low-byte shortcut to take",
+        "memoryLock": "low for the last three cycles of a read-modify-write, or five when the accumulator is wide",
+        "vectorPull": "low for both halves of every vector read",
+        "modifyCycle": "an internal cycle in native mode and a write in emulation mode, carrying the byte just read at an address nothing answers, per note 17",
+        "wordOrder": "a read-modify-write writes its high half first, having read its low half first, which a store does not",
+        "widthPins": "the emulation bit and the two width bits appear on every cycle, so a return from interrupt shows the widths it had while it is still pulling the ones it is restoring",
+        "reservedOpcode": "steps over its second byte with both address lines low rather than fetching it",
+        "blockMove": "re-fetches its own opcode and operands for every byte, because it rewinds onto itself, and spends two internal cycles after each byte it writes",
+        "longJumpStack": "the instructions the 65816 added push through the end of page one rather than folding back into it"
+      },
+      "measured": "Every one of the 5,080,000 cases in the pinned 65816 suite that does not stop the part agrees, cycle for cycle, including the pins. The 40,000 that stop it are counted apart.",
+      "notStated": "What a stopped part drives is not in the document, and the recordings show cycles with no address at all for as long as the recording runs. Those are excluded rather than modelled."
     }
   }
 }

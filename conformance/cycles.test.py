@@ -14,6 +14,7 @@ import json
 import sys
 import tempfile
 import unittest
+import unittest.mock
 from contextlib import redirect_stdout
 from pathlib import Path
 from typing import Any
@@ -134,8 +135,14 @@ class HaltTest(unittest.TestCase):
         self.assertFalse(cycles.halted(a_case({0x8000: JAM}, []), "65816"))
 
     def test_a_part_that_does_not_record_its_bus_is_refused_by_the_comparison(self) -> None:
-        with self.assertRaises(cycles.Unsupported):
-            cycles.check(LOADING, "65816")
+        class Deaf:
+            table = None
+
+        with (
+            unittest.mock.patch.object(cycles, "machine_for", lambda *_: (Deaf(), None)),
+            self.assertRaises(cycles.Unsupported),
+        ):
+            cycles.check(LOADING, "6502")
 
     def test_halts_are_counted_apart_from_agreements(self) -> None:
         agreed, differed, skipped, _ = cycles.run_tests(
@@ -148,15 +155,14 @@ class HaltTest(unittest.TestCase):
 class RefusalTest(unittest.TestCase):
     """That the runner refuses rather than reporting an agreement it cannot check."""
 
-    def test_the_model_whose_recordings_carry_pin_states_is_refused(self) -> None:
-        with self.assertRaises(cycles.Unsupported):
+    def test_a_part_nobody_has_held_to_a_recording_is_refused(self) -> None:
+        with (
+            unittest.mock.patch.object(cycles, "VERIFIED", frozenset({"6502"})),
+            self.assertRaises(cycles.Unsupported),
+        ):
             cycles.options(["somewhere", "--model", "65816"])
 
-    def test_a_part_whose_bus_this_core_does_not_record_is_refused(self) -> None:
-        with self.assertRaises(cycles.Unsupported):
-            cycles.options(["somewhere", "--model", "65802"])
-
-    def test_the_parts_that_have_been_held_to_a_recording_are_accepted(self) -> None:
+    def test_every_part_this_core_records_is_accepted(self) -> None:
         for named in sorted(cycles.VERIFIED):
             self.assertEqual(cycles.options(["somewhere", "--model", named])[1], named)
 
@@ -183,9 +189,39 @@ class RefusalTest(unittest.TestCase):
     def test_a_refusal_exits_two_rather_than_zero(self) -> None:
         output = io.StringIO()
         with redirect_stdout(output):
-            code = cycles.main(["--model", "65816"])
+            code = cycles.main(["--model", "6502"])
 
         self.assertEqual(code, 2)
+
+
+class BudgetTest(unittest.TestCase):
+    """That a part with an interruptible instruction is given the window."""
+
+    MOVE = 0x54
+
+    def test_the_recorded_length_bounds_a_block_move(self) -> None:
+        held = {
+            "name": "a move with nowhere near enough time",
+            "initial": {
+                "pc": 0x8000,
+                "s": 0x01FF,
+                "a": 0xFFFF,
+                "x": 0x0000,
+                "y": 0x0100,
+                "p": 0x30,
+                "e": 0,
+                "dbr": 0x00,
+                "pbr": 0x00,
+                "d": 0x0000,
+                "ram": [[0x8000, self.MOVE], [0x8001, 0x7E], [0x8002, 0x7F]],
+            },
+            "final": {},
+            "cycles": [[0, 0, "dp-r-mx-"]] * 7,
+        }
+
+        seen = cycles.check(held, "65816")
+
+        self.assertEqual(len(seen or []), 7)
 
 
 class PlaceholderTest(unittest.TestCase):
