@@ -21,6 +21,10 @@ them, which is what anything surveying a ROM needs: an interpreter has to be
 given a machine to run in, and a survey has nothing but the file.
 """
 
+from __future__ import annotations
+
+from typing import Any
+
 from . import mos65c02, mos6502, opcodes65c02, opcodes6502
 from .memory import Memory, SparseMemory, scramble
 from .models import MODELS, UnknownModelError, describe
@@ -59,7 +63,7 @@ __version__ = VERSION
 DEFAULT_MODEL = "65816"
 
 
-def Cpu(memory, model=DEFAULT_MODEL, **options):  # noqa: N802
+def Cpu(memory: Any, model: str = DEFAULT_MODEL, **options: Any) -> Any:  # noqa: N802
     """A processor of the named model, sharing one interface across the family."""
     return describe(model).build(memory, **options)
 

@@ -22,6 +22,10 @@ writing two hundred and fifty six entries again. The difference is the interesti
 part, and a second literal would hide it while inviting a transcription error.
 """
 
+from __future__ import annotations
+
+from typing import Any
+
 from .opcodes6502 import NMOS
 
 ONE_BYTE = "implied"
@@ -128,7 +132,7 @@ CHANGED = {
 }
 
 
-def _with(table, changes):
+def _with(table: Any, changes: Any) -> Any:
     built = list(table)
     for opcode, entry in changes.items():
         built[opcode] = entry

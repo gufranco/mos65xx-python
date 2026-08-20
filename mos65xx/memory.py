@@ -13,6 +13,7 @@ that touches a dozen and should not pay for sixteen megabytes to do it.
 """
 
 import random
+from collections.abc import Sequence
 
 UNSET_SEED = 0x5A5A5A5A
 
@@ -24,7 +25,7 @@ _SEED_STRIDE = 40503
 _WORD = 0xFFFFFFFF
 
 
-def scramble(size, seed=UNSET_SEED):
+def scramble(size: int, seed: int = UNSET_SEED) -> bytearray:
     """A deterministic fill that is nothing like a cleared machine.
 
     Reproducible from the seed, so a differential run stays comparable, and
@@ -41,23 +42,23 @@ class SparseMemory:
     and still reads the same twice, at no setup cost.
     """
 
-    def __init__(self, seed=UNSET_SEED):
-        self.cells = {}
+    def __init__(self, seed: int = UNSET_SEED) -> None:
+        self.cells: dict[int, int] = {}
         self.seed = seed & _WORD
 
-    def _unwritten(self, address):
+    def _unwritten(self, address: int) -> int:
         mixed = (address * _GOLDEN + self.seed * _SEED_STRIDE) & _WORD
         mixed ^= mixed >> 15
         mixed = (mixed * _MIX) & _WORD
         mixed ^= mixed >> 13
         return mixed & 0xFF
 
-    def read8(self, address):
+    def read8(self, address: int) -> int:
         address &= ADDRESS_MASK
         found = self.cells.get(address)
         return self._unwritten(address) if found is None else found
 
-    def write8(self, address, value):
+    def write8(self, address: int, value: int) -> None:
         self.cells[address & ADDRESS_MASK] = value & 0xFF
 
 
@@ -69,7 +70,12 @@ class Memory:
     and says so, which is the point: it becomes a decision rather than a default.
     """
 
-    def __init__(self, size=0x1000000, fill=None, seed=UNSET_SEED):
+    def __init__(
+        self,
+        size: int = 0x1000000,
+        fill: "int | Sequence[int] | None" = None,
+        seed: int = UNSET_SEED,
+    ) -> None:
         if fill is None:
             self.data = scramble(size, seed)
         elif isinstance(fill, int):
@@ -78,8 +84,8 @@ class Memory:
             self.data = bytearray(size)
             self.data[: len(fill)] = fill
 
-    def read8(self, address):
+    def read8(self, address: int) -> int:
         return self.data[address & ADDRESS_MASK]
 
-    def write8(self, address, value):
+    def write8(self, address: int, value: int) -> None:
         self.data[address & ADDRESS_MASK] = value & 0xFF

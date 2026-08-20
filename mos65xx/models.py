@@ -13,6 +13,11 @@ A model with no suite behind it does not belong in this table, because then its
 fidelity would be a claim rather than a measurement.
 """
 
+from __future__ import annotations
+
+from collections.abc import Callable, Iterable
+from typing import Any, override
+
 
 class UnknownModelError(Exception):
     pass
@@ -22,8 +27,16 @@ class Model:
     """One part of the family: what it is, what it reaches, and how to build it."""
 
     def __init__(
-        self, name, summary, address_bits, data_bits, decimal, core, aliases=(), revision=None
-    ):
+        self,
+        name: str,
+        summary: str,
+        address_bits: int,
+        data_bits: int,
+        decimal: bool,
+        core: Callable[..., Any],
+        aliases: Iterable[str] = (),
+        revision: str | None = None,
+    ) -> None:
         self.name = name
         self.summary = summary
         self.address_bits = address_bits
@@ -34,17 +47,18 @@ class Model:
         self.revision = revision
 
     @property
-    def address_mask(self):
+    def address_mask(self) -> int:
         return (1 << self.address_bits) - 1
 
-    def build(self, memory, **options):
+    def build(self, memory: Any, **options: Any) -> Any:
         return self.core(self, memory, **options)
 
-    def __repr__(self):
+    @override
+    def __repr__(self) -> str:
         return f"<Model {self.name}, {self.address_bits} address bits>"
 
 
-def _build_6502(model, memory, **options):
+def _build_6502(model: Model, memory: Any, **options: Any) -> Any:
     from .mos6502 import Cpu as Cpu6502
 
     cpu = Cpu6502(memory, decimal=model.decimal, **options)
@@ -53,17 +67,20 @@ def _build_6502(model, memory, **options):
     return cpu
 
 
-def _build_65c02(model, memory, **options):
+def _build_65c02(model: Model, memory: Any, **options: Any) -> Any:
     from .mos65c02 import Cpu as Cpu65c02
     from .opcodes65c02 import TABLES
 
+    assert model.revision is not None, (
+        f"{model.name} names no revision, and the 65C02 tables key on one"
+    )
     cpu = Cpu65c02(memory, table=TABLES[model.revision], decimal=model.decimal, **options)
     cpu.model = model.name
     cpu.address_mask = model.address_mask
     return cpu
 
 
-def _build_65816(model, memory, **options):
+def _build_65816(model: Model, memory: Any, **options: Any) -> Any:
     from .wdc65816 import Cpu as Cpu65816
 
     cpu = Cpu65816(memory, **options)
@@ -190,11 +207,11 @@ for _model in _CATALOGUE:
         _BY_ALIAS[_alias] = _model
 
 
-def _normalise(name):
+def _normalise(name: str) -> str:
     return str(name).strip().lower().replace("-", "").replace("_", "")
 
 
-def describe(name):
+def describe(name: str) -> Model:
     """The model of that name, however it happens to be written."""
     found = _BY_ALIAS.get(_normalise(name))
     if found is None:

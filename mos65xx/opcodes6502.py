@@ -20,6 +20,11 @@ no-operation of a stated length, so the two tables differ in more places than
 they agree and are kept separately rather than patched from one another.
 """
 
+from __future__ import annotations
+
+from collections.abc import Iterator, Sequence
+from typing import Any, override
+
 MODE_SIZE = {
     "implied": 0,
     "accumulator": 0,
@@ -347,7 +352,15 @@ class Truncated(Exception):
 class Instruction:
     """One decoded instruction and where it was found."""
 
-    def __init__(self, address, opcode, mnemonic, mode, operand, size):
+    def __init__(
+        self,
+        address: int,
+        opcode: int,
+        mnemonic: str,
+        mode: str,
+        operand: int,
+        size: int,
+    ) -> None:
         self.address = address
         self.opcode = opcode
         self.mnemonic = mnemonic
@@ -356,29 +369,30 @@ class Instruction:
         self.size = size
 
     @property
-    def undocumented(self):
+    def undocumented(self) -> bool:
         return self.mnemonic in UNDOCUMENTED
 
     @property
-    def unstable(self):
+    def unstable(self) -> bool:
         return self.mnemonic in UNSTABLE
 
-    def __repr__(self):
+    @override
+    def __repr__(self) -> str:
         return f"<{self.mnemonic} {self.mode} at {self.address:04X}>"
 
 
-def operand_size(mode):
+def operand_size(mode: str) -> int:
     """How many bytes follow the opcode."""
     return MODE_SIZE[mode]
 
 
-def branch_target(address, size, operand):
+def branch_target(address: int, size: int, operand: int) -> int:
     """Where a relative branch goes, counted from the instruction after it."""
     offset = operand - 0x100 if operand & 0x80 else operand
     return (address + size + offset) & 0xFFFF
 
 
-def render(mode, operand, address, size):
+def render(mode: str, operand: int, address: int, size: int) -> str:
     """The operand as a reader of assembly would write it."""
     if mode in ("implied", "accumulator"):
         return ""
@@ -411,7 +425,7 @@ def render(mode, operand, address, size):
     return f"(${operand:04X})"
 
 
-def decode(data, offset, address, table=NMOS):
+def decode(data: Sequence[int], offset: int, address: int, table: Any = NMOS) -> Any:
     """One instruction, or a refusal when the bytes run out before it ends."""
     if offset >= len(data):
         raise Truncated(f"no opcode at {offset}")
@@ -429,7 +443,14 @@ def decode(data, offset, address, table=NMOS):
     return Instruction(address, opcode, mnemonic, mode, operand, 1 + width)
 
 
-def disassemble(data, offset, address, count=None, table=NMOS, stop_at_return=False):
+def disassemble(
+    data: Sequence[int],
+    offset: int,
+    address: int,
+    count: int | None = None,
+    table: Any = NMOS,
+    stop_at_return: bool = False,
+) -> Iterator[Any]:
     """Instructions from that offset, until the bytes or the count run out."""
     produced = 0
     while offset < len(data) and (count is None or produced < count):

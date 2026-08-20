@@ -11,6 +11,7 @@
 [![Conformance](https://img.shields.io/badge/SingleStepTests-5%2C120%2C000%20%2F%205%2C120%2C000-brightgreen)](#conformance)
 [![Coverage](https://img.shields.io/badge/coverage-100%25%20statement%20%2B%20branch-brightgreen)](#tests)
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14-blue)](pyproject.toml)
+[![Types](https://img.shields.io/badge/mypy-strict-blue)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 </div>
@@ -358,3 +359,32 @@ The ones worth borrowing from are embedded in emulators and shaped by the machin
 ## License
 
 [MIT](LICENSE)
+
+## What is settled, and what is not
+
+**Settled: what every instruction does to state.** The SingleStepTests corpora,
+pinned by commit, check registers, flags and every byte of memory an instruction
+touched, across every opcode including the undocumented ones no datasheet
+describes. That is as strong as instruction-level evidence for these parts gets.
+
+**Not settled: cycles.** These cores do not count them. The corpora carry
+per-cycle bus activity, address by address, and this project reads only the length
+of that list, as a budget for the block-move instructions. So the data that would
+make these cores cycle-accurate is already downloaded on every conformance run and
+is not compared.
+
+That is stated rather than glossed because a cycle claim nobody checks is worse
+than no claim. Closing it means every instruction emitting its bus cycles in order
+and the runner comparing them, and it is the largest piece of outstanding work
+here.
+
+## Project conventions
+
+| Convention | Source |
+|:--|:--|
+| Commit format | [Conventional Commits](https://www.conventionalcommits.org/) |
+| Formatting and lint | [ruff](https://docs.astral.sh/ruff/), configured in [`pyproject.toml`](pyproject.toml) |
+| Types | [mypy](https://mypy.readthedocs.io/) at strict, configured in [`pyproject.toml`](pyproject.toml) |
+| Tests | Beside the module, named `<module>.test.py` |
+| Agent instructions | [`AGENTS.md`](AGENTS.md) |
+| Current behaviour | [`specs/current/`](specs/current/), requirements with checkable scenarios |

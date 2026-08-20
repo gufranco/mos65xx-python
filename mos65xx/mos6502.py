@@ -35,6 +35,11 @@ after a reset, because the hardware defines only the program counter, and a core
 that clears the rest makes a read of something never written look deliberate.
 """
 
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any
+
 from .memory import UNSET_SEED, scramble
 from .opcodes6502 import NMOS
 
@@ -75,13 +80,13 @@ class Cpu:
 
     def __init__(
         self,
-        memory,
-        step_limit=STEP_LIMIT,
-        seed=UNSET_SEED,
-        reset=True,
-        decimal=True,
-        table=NMOS,
-    ):
+        memory: Any,
+        step_limit: int = STEP_LIMIT,
+        seed: int = UNSET_SEED,
+        reset: bool = True,
+        decimal: bool = True,
+        table: Any = NMOS,
+    ) -> None:
         self.memory = memory
         self.step_limit = step_limit
         self.decimal = decimal
@@ -89,6 +94,7 @@ class Cpu:
         self.steps = 0
         self.stopped = False
         self.model = "6502"
+        self.address_mask = 0xFFFF
 
         self.a = self.x = self.y = 0x00
         self.s = 0xFD
@@ -99,7 +105,7 @@ class Cpu:
         if reset:
             self.reset(seed)
 
-    def reset(self, seed=UNSET_SEED):
+    def reset(self, seed: int = UNSET_SEED) -> Cpu:
         """What a reset actually defines, and nothing beyond it.
 
         The vector decides where execution starts and the interrupt disable is
@@ -116,7 +122,7 @@ class Cpu:
         self.pc = self.read16(RESET_VECTOR)
         return self
 
-    def status(self):
+    def status(self) -> int:
         """The status byte as anything reading it would see."""
         value = FLAG_U
         value |= FLAG_B if self.b else 0
@@ -128,7 +134,7 @@ class Cpu:
         value |= FLAG_C if self.c else 0
         return value
 
-    def set_status(self, value):
+    def set_status(self, value: int) -> None:
         """Take a status byte, keeping only the bits the register actually has."""
         self.b = bool(value & FLAG_B)
         self.n = bool(value & FLAG_N)
@@ -138,53 +144,55 @@ class Cpu:
         self.z = bool(value & FLAG_Z)
         self.c = bool(value & FLAG_C)
 
-    def read8(self, address):
-        return self.memory.read8(address & 0xFFFF) & 0xFF
+    def read8(self, address: int) -> int:
+        found = self.memory.read8(address & 0xFFFF) & 0xFF
+        assert isinstance(found, int)
+        return found
 
-    def write8(self, address, value):
+    def write8(self, address: int, value: int) -> None:
         self.memory.write8(address & 0xFFFF, value & 0xFF)
 
-    def read16(self, address):
+    def read16(self, address: int) -> int:
         return self.read8(address) | (self.read8(address + 1) << 8)
 
-    def read16_in_page(self, address):
+    def read16_in_page(self, address: int) -> int:
         """A pointer read the way the part reads one, without leaving its page."""
         high = (address & 0xFF00) | ((address + 1) & 0x00FF)
         return self.read8(address) | (self.read8(high) << 8)
 
-    def read16_in_zero_page(self, address):
+    def read16_in_zero_page(self, address: int) -> int:
         return self.read8(address & 0xFF) | (self.read8((address + 1) & 0xFF) << 8)
 
-    def fetch8(self):
+    def fetch8(self) -> int:
         value = self.read8(self.pc)
         self.pc = (self.pc + 1) & 0xFFFF
         return value
 
-    def fetch16(self):
+    def fetch16(self) -> int:
         low = self.fetch8()
         return low | (self.fetch8() << 8)
 
-    def push8(self, value):
+    def push8(self, value: int) -> None:
         self.write8(STACK_PAGE | self.s, value)
         self.s = (self.s - 1) & 0xFF
 
-    def pull8(self):
+    def pull8(self) -> int:
         self.s = (self.s + 1) & 0xFF
         return self.read8(STACK_PAGE | self.s)
 
-    def push16(self, value):
+    def push16(self, value: int) -> None:
         self.push8((value >> 8) & 0xFF)
         self.push8(value & 0xFF)
 
-    def pull16(self):
+    def pull16(self) -> int:
         low = self.pull8()
         return low | (self.pull8() << 8)
 
-    def set_nz(self, value):
+    def set_nz(self, value: int) -> None:
         self.z = (value & 0xFF) == 0
         self.n = bool(value & 0x80)
 
-    def effective(self, mode):
+    def effective(self, mode: str) -> int:
         """Where an instruction's operand lives, by the rules of its mode."""
         if mode == "zeroPage":
             return self.fetch8()
@@ -206,20 +214,20 @@ class Cpu:
             return self.read16_in_zero_page(self.fetch8())
         raise UnsupportedError(f"{mode} has no effective address")
 
-    def operand(self, mode):
+    def operand(self, mode: str) -> int:
         if mode == "immediate":
             return self.fetch8()
         if mode == "accumulator":
             return self.a
         return self.read8(self.effective(mode))
 
-    def unindexed_base(self, mode):
+    def unindexed_base(self, mode: str) -> tuple[int, int]:
         """The address before indexing, which the unstable stores need."""
         base = self.fetch16()
         index = self.x if mode == "absoluteX" else self.y
         return base, (base + index) & 0xFFFF
 
-    def add_with_carry(self, value):
+    def add_with_carry(self, value: int) -> None:
         carry = 1 if self.c else 0
         if self.d and self.decimal:
             low = (self.a & 0x0F) + (value & 0x0F) + carry
@@ -241,7 +249,7 @@ class Cpu:
         self.a = total & 0xFF
         self.set_nz(self.a)
 
-    def subtract_with_carry(self, value):
+    def subtract_with_carry(self, value: int) -> None:
         borrow = 0 if self.c else 1
         binary = (self.a - value - borrow) & 0xFF
         self.c = (self.a - value - borrow) >= 0
@@ -259,12 +267,12 @@ class Cpu:
             return
         self.a = binary
 
-    def compare(self, register, value):
+    def compare(self, register: int, value: int) -> None:
         result = (register - value) & 0xFF
         self.c = register >= value
         self.set_nz(result)
 
-    def branch(self, taken):
+    def branch(self, taken: bool) -> None:
         offset = self.fetch8()
         if not taken:
             return
@@ -272,7 +280,7 @@ class Cpu:
             offset -= 0x100
         self.pc = (self.pc + offset) & 0xFFFF
 
-    def step(self):
+    def step(self) -> None:
         if self.stopped:
             raise Stopped("the processor has been stopped")
         self.steps += 1
@@ -285,12 +293,12 @@ class Cpu:
             raise UnsupportedError(f"{mnemonic} is not implemented")
         handler(mode)
 
-    def run_until(self, predicate):
+    def run_until(self, predicate: Callable[[Cpu], bool]) -> Cpu:
         while not predicate(self):
             self.step()
         return self
 
-    def call(self, address):
+    def call(self, address: int) -> Cpu:
         """Run from an address until the routine it names returns."""
         self.pc = address & 0xFFFF
         depth = 0
@@ -304,152 +312,154 @@ class Cpu:
                 depth += 1
             self.step()
 
-    def op_lda(self, mode):
+    def op_lda(self, mode: str) -> None:
         self.a = self.operand(mode)
         self.set_nz(self.a)
 
-    def op_ldx(self, mode):
+    def op_ldx(self, mode: str) -> None:
         self.x = self.operand(mode)
         self.set_nz(self.x)
 
-    def op_ldy(self, mode):
+    def op_ldy(self, mode: str) -> None:
         self.y = self.operand(mode)
         self.set_nz(self.y)
 
-    def op_sta(self, mode):
+    def op_sta(self, mode: str) -> None:
         self.write8(self.effective(mode), self.a)
 
-    def op_stx(self, mode):
+    def op_stx(self, mode: str) -> None:
         self.write8(self.effective(mode), self.x)
 
-    def op_sty(self, mode):
+    def op_sty(self, mode: str) -> None:
         self.write8(self.effective(mode), self.y)
 
-    def op_tax(self, mode):
+    def op_tax(self, mode: str) -> None:
         self.x = self.a
         self.set_nz(self.x)
 
-    def op_tay(self, mode):
+    def op_tay(self, mode: str) -> None:
         self.y = self.a
         self.set_nz(self.y)
 
-    def op_txa(self, mode):
+    def op_txa(self, mode: str) -> None:
         self.a = self.x
         self.set_nz(self.a)
 
-    def op_tya(self, mode):
+    def op_tya(self, mode: str) -> None:
         self.a = self.y
         self.set_nz(self.a)
 
-    def op_tsx(self, mode):
+    def op_tsx(self, mode: str) -> None:
         self.x = self.s
         self.set_nz(self.x)
 
-    def op_txs(self, mode):
+    def op_txs(self, mode: str) -> None:
         self.s = self.x
 
-    def op_pha(self, mode):
+    def op_pha(self, mode: str) -> None:
         self.push8(self.a)
 
-    def op_php(self, mode):
+    def op_php(self, mode: str) -> None:
         self.push8(self.status() | FLAG_B)
 
-    def op_pla(self, mode):
+    def op_pla(self, mode: str) -> None:
         self.a = self.pull8()
         self.set_nz(self.a)
 
-    def op_plp(self, mode):
+    def op_plp(self, mode: str) -> None:
         self.set_status(self.pull8())
         self.b = False
 
-    def op_and(self, mode):
+    def op_and(self, mode: str) -> None:
         self.a &= self.operand(mode)
         self.set_nz(self.a)
 
-    def op_ora(self, mode):
+    def op_ora(self, mode: str) -> None:
         self.a |= self.operand(mode)
         self.set_nz(self.a)
 
-    def op_eor(self, mode):
+    def op_eor(self, mode: str) -> None:
         self.a ^= self.operand(mode)
         self.set_nz(self.a)
 
-    def op_bit(self, mode):
+    def op_bit(self, mode: str) -> None:
         value = self.operand(mode)
         self.z = (self.a & value) == 0
         self.n = bool(value & 0x80)
         self.v = bool(value & 0x40)
 
-    def op_adc(self, mode):
+    def op_adc(self, mode: str) -> None:
         self.add_with_carry(self.operand(mode))
 
-    def op_sbc(self, mode):
+    def op_sbc(self, mode: str) -> None:
         self.subtract_with_carry(self.operand(mode))
 
-    def op_cmp(self, mode):
+    def op_cmp(self, mode: str) -> None:
         self.compare(self.a, self.operand(mode))
 
-    def op_cpx(self, mode):
+    def op_cpx(self, mode: str) -> None:
         self.compare(self.x, self.operand(mode))
 
-    def op_cpy(self, mode):
+    def op_cpy(self, mode: str) -> None:
         self.compare(self.y, self.operand(mode))
 
-    def op_inc(self, mode):
+    def op_inc(self, mode: str) -> None:
         address = self.effective(mode)
         value = (self.read8(address) + 1) & 0xFF
         self.write8(address, value)
         self.set_nz(value)
 
-    def op_dec(self, mode):
+    def op_dec(self, mode: str) -> None:
         address = self.effective(mode)
         value = (self.read8(address) - 1) & 0xFF
         self.write8(address, value)
         self.set_nz(value)
 
-    def op_inx(self, mode):
+    def op_inx(self, mode: str) -> None:
         self.x = (self.x + 1) & 0xFF
         self.set_nz(self.x)
 
-    def op_iny(self, mode):
+    def op_iny(self, mode: str) -> None:
         self.y = (self.y + 1) & 0xFF
         self.set_nz(self.y)
 
-    def op_dex(self, mode):
+    def op_dex(self, mode: str) -> None:
         self.x = (self.x - 1) & 0xFF
         self.set_nz(self.x)
 
-    def op_dey(self, mode):
+    def op_dey(self, mode: str) -> None:
         self.y = (self.y - 1) & 0xFF
         self.set_nz(self.y)
 
-    def shift_left(self, value):
+    def shift_left(self, value: int) -> int:
         self.c = bool(value & 0x80)
         result = (value << 1) & 0xFF
         self.set_nz(result)
         return result
 
-    def shift_right(self, value):
+    def shift_right(self, value: int) -> int:
         self.c = bool(value & 0x01)
         result = value >> 1
         self.set_nz(result)
         return result
 
-    def rotate_left(self, value):
+    def rotate_left(self, value: int) -> int:
         carry = 1 if self.c else 0
         self.c = bool(value & 0x80)
         result = ((value << 1) | carry) & 0xFF
         self.set_nz(result)
         return result
 
-    def rotate_right(self, value):
+    def rotate_right(self, value: int) -> int:
         carry = 0x80 if self.c else 0
         self.c = bool(value & 0x01)
         result = (value >> 1) | carry
         self.set_nz(result)
         return result
 
-    def read_modify_write(self, mode, transform):
+    def read_modify_write(
+        self, mode: str, transform: Callable[[int], int]
+    ) -> tuple[int | None, int]:
         if mode == "accumulator":
             self.a = transform(self.a)
             return None, self.a
@@ -458,144 +468,144 @@ class Cpu:
         self.write8(address, value)
         return address, value
 
-    def op_asl(self, mode):
+    def op_asl(self, mode: str) -> None:
         self.read_modify_write(mode, self.shift_left)
 
-    def op_lsr(self, mode):
+    def op_lsr(self, mode: str) -> None:
         self.read_modify_write(mode, self.shift_right)
 
-    def op_rol(self, mode):
+    def op_rol(self, mode: str) -> None:
         self.read_modify_write(mode, self.rotate_left)
 
-    def op_ror(self, mode):
+    def op_ror(self, mode: str) -> None:
         self.read_modify_write(mode, self.rotate_right)
 
-    def op_jmp(self, mode):
+    def op_jmp(self, mode: str) -> None:
         if mode == "indirect":
             self.pc = self.read16_in_page(self.fetch16())
             return
         self.pc = self.fetch16()
 
-    def op_jsr(self, mode):
+    def op_jsr(self, mode: str) -> None:
         low = self.fetch8()
         self.push16(self.pc)
         self.pc = (self.fetch8() << 8) | low
 
-    def op_rts(self, mode):
+    def op_rts(self, mode: str) -> None:
         self.pc = (self.pull16() + 1) & 0xFFFF
 
-    def op_rti(self, mode):
+    def op_rti(self, mode: str) -> None:
         self.set_status(self.pull8())
         self.b = False
         self.pc = self.pull16()
 
-    def op_brk(self, mode):
+    def op_brk(self, mode: str) -> None:
         self.pc = (self.pc + 1) & 0xFFFF
         self.push16(self.pc)
         self.push8(self.status() | FLAG_B)
         self.i = True
         self.pc = self.read16(BREAK_VECTOR)
 
-    def op_bpl(self, mode):
+    def op_bpl(self, mode: str) -> None:
         self.branch(not self.n)
 
-    def op_bmi(self, mode):
+    def op_bmi(self, mode: str) -> None:
         self.branch(self.n)
 
-    def op_bvc(self, mode):
+    def op_bvc(self, mode: str) -> None:
         self.branch(not self.v)
 
-    def op_bvs(self, mode):
+    def op_bvs(self, mode: str) -> None:
         self.branch(self.v)
 
-    def op_bcc(self, mode):
+    def op_bcc(self, mode: str) -> None:
         self.branch(not self.c)
 
-    def op_bcs(self, mode):
+    def op_bcs(self, mode: str) -> None:
         self.branch(self.c)
 
-    def op_bne(self, mode):
+    def op_bne(self, mode: str) -> None:
         self.branch(not self.z)
 
-    def op_beq(self, mode):
+    def op_beq(self, mode: str) -> None:
         self.branch(self.z)
 
-    def op_clc(self, mode):
+    def op_clc(self, mode: str) -> None:
         self.c = False
 
-    def op_sec(self, mode):
+    def op_sec(self, mode: str) -> None:
         self.c = True
 
-    def op_cli(self, mode):
+    def op_cli(self, mode: str) -> None:
         self.i = False
 
-    def op_sei(self, mode):
+    def op_sei(self, mode: str) -> None:
         self.i = True
 
-    def op_clv(self, mode):
+    def op_clv(self, mode: str) -> None:
         self.v = False
 
-    def op_cld(self, mode):
+    def op_cld(self, mode: str) -> None:
         self.d = False
 
-    def op_sed(self, mode):
+    def op_sed(self, mode: str) -> None:
         self.d = True
 
-    def op_nop(self, mode):
+    def op_nop(self, mode: str) -> None:
         if mode not in ("implied", "accumulator"):
             self.operand(mode)
 
-    def op_jam(self, mode):
+    def op_jam(self, mode: str) -> None:
         self.stopped = True
 
-    def op_slo(self, mode):
+    def op_slo(self, mode: str) -> None:
         _, value = self.read_modify_write(mode, self.shift_left)
         self.a |= value
         self.set_nz(self.a)
 
-    def op_rla(self, mode):
+    def op_rla(self, mode: str) -> None:
         _, value = self.read_modify_write(mode, self.rotate_left)
         self.a &= value
         self.set_nz(self.a)
 
-    def op_sre(self, mode):
+    def op_sre(self, mode: str) -> None:
         _, value = self.read_modify_write(mode, self.shift_right)
         self.a ^= value
         self.set_nz(self.a)
 
-    def op_rra(self, mode):
+    def op_rra(self, mode: str) -> None:
         _, value = self.read_modify_write(mode, self.rotate_right)
         self.add_with_carry(value)
 
-    def op_sax(self, mode):
+    def op_sax(self, mode: str) -> None:
         self.write8(self.effective(mode), self.a & self.x)
 
-    def op_lax(self, mode):
+    def op_lax(self, mode: str) -> None:
         self.a = self.x = self.operand(mode)
         self.set_nz(self.a)
 
-    def op_dcp(self, mode):
+    def op_dcp(self, mode: str) -> None:
         address = self.effective(mode)
         value = (self.read8(address) - 1) & 0xFF
         self.write8(address, value)
         self.compare(self.a, value)
 
-    def op_isc(self, mode):
+    def op_isc(self, mode: str) -> None:
         address = self.effective(mode)
         value = (self.read8(address) + 1) & 0xFF
         self.write8(address, value)
         self.subtract_with_carry(value)
 
-    def op_anc(self, mode):
+    def op_anc(self, mode: str) -> None:
         self.a &= self.fetch8()
         self.set_nz(self.a)
         self.c = self.n
 
-    def op_alr(self, mode):
+    def op_alr(self, mode: str) -> None:
         self.a &= self.fetch8()
         self.a = self.shift_right(self.a)
 
-    def op_arr(self, mode):
+    def op_arr(self, mode: str) -> None:
         value = self.fetch8()
         self.a &= value
         carry = 0x80 if self.c else 0
@@ -619,27 +629,27 @@ class Cpu:
         self.c = bool(self.a & 0x40)
         self.v = bool(((self.a >> 6) ^ (self.a >> 5)) & 0x01)
 
-    def op_sbx(self, mode):
+    def op_sbx(self, mode: str) -> None:
         value = self.fetch8()
         result = (self.a & self.x) - value
         self.c = result >= 0
         self.x = result & 0xFF
         self.set_nz(self.x)
 
-    def op_las(self, mode):
+    def op_las(self, mode: str) -> None:
         value = self.operand(mode) & self.s
         self.a = self.x = self.s = value
         self.set_nz(value)
 
-    def op_ane(self, mode):
+    def op_ane(self, mode: str) -> None:
         self.a = (self.a | MAGIC) & self.x & self.fetch8()
         self.set_nz(self.a)
 
-    def op_lxa(self, mode):
+    def op_lxa(self, mode: str) -> None:
         self.a = self.x = (self.a | MAGIC) & self.fetch8()
         self.set_nz(self.a)
 
-    def unstable_store(self, mode, register):
+    def unstable_store(self, mode: str, register: int) -> None:
         if mode in ("absoluteX", "absoluteY"):
             base, address = self.unindexed_base(mode)
         else:
@@ -650,15 +660,15 @@ class Cpu:
             address = (address & 0x00FF) | (value << 8)
         self.write8(address, value)
 
-    def op_sha(self, mode):
+    def op_sha(self, mode: str) -> None:
         self.unstable_store(mode, self.a & self.x)
 
-    def op_shx(self, mode):
+    def op_shx(self, mode: str) -> None:
         self.unstable_store(mode, self.x)
 
-    def op_shy(self, mode):
+    def op_shy(self, mode: str) -> None:
         self.unstable_store(mode, self.y)
 
-    def op_tas(self, mode):
+    def op_tas(self, mode: str) -> None:
         self.s = self.a & self.x
         self.unstable_store(mode, self.s)

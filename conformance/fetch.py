@@ -11,11 +11,15 @@ repository red with no commit of its own to explain it. The weekly workflow is
 where a newer suite is tried, and it proposes a bump rather than taking one.
 """
 
+from __future__ import annotations
+
 import json
 import os
 import subprocess
 import sys
+from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parent
 DEFINITION = ROOT / "suites.json"
@@ -27,7 +31,7 @@ FETCH_TIMEOUT = 3600
 """Seconds to wait on a transfer that is measured in gigabytes."""
 
 
-def definitions(path=None):
+def definitions(path: Path | str | None = None) -> list[dict[str, Any]]:
     """Every suite this core declares, as written down.
 
     The default is resolved on the call rather than bound into the signature. A
@@ -36,10 +40,14 @@ def definitions(path=None):
     on reading the original file.
     """
     with Path(path or DEFINITION).open() as handle:
-        return json.load(handle)["suites"]
+        held = json.load(handle)["suites"]
+    assert isinstance(held, list), f"{path or DEFINITION} declares no list of suites"
+    return held
 
 
-def checkout_command(suite, directory, commit=None):
+def checkout_command(
+    suite: Mapping[str, Any], directory: Path, commit: str | None = None
+) -> list[list[str]]:
     """The git steps that bring one suite down, without its history or blobs."""
     wanted = commit or suite["commit"]
     where = str(directory)
@@ -63,7 +71,7 @@ def checkout_command(suite, directory, commit=None):
     ]
 
 
-def _git_environment():
+def _git_environment() -> dict[str, str]:
     """Git that never stops to ask a question.
 
     A prompt for credentials waits for a terminal that a scheduled job does not
@@ -73,7 +81,7 @@ def _git_environment():
     return {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
 
 
-def latest_commit(suite, timeout=PROBE_TIMEOUT):
+def latest_commit(suite: Mapping[str, Any], timeout: int = PROBE_TIMEOUT) -> str | None:
     """What upstream is at now, or nothing if it cannot be reached in time."""
     try:
         found = subprocess.run(
@@ -91,7 +99,13 @@ def latest_commit(suite, timeout=PROBE_TIMEOUT):
     return found.stdout.split()[0]
 
 
-def fetch(suite, directory, commit=None, quiet=True, timeout=FETCH_TIMEOUT):
+def fetch(
+    suite: Mapping[str, Any],
+    directory: Path,
+    commit: str | None = None,
+    quiet: bool = True,
+    timeout: int = FETCH_TIMEOUT,
+) -> Any:
     """Bring one suite down into a directory, returning where its tests live."""
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
@@ -114,7 +128,7 @@ def fetch(suite, directory, commit=None, quiet=True, timeout=FETCH_TIMEOUT):
     return directory / suite["path"]
 
 
-def main(argv, definition=None):
+def main(argv: Sequence[str], definition: Any = None) -> int:
     directory = (
         Path(argv[0])
         if argv and not argv[0].startswith("-")

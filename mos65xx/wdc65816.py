@@ -11,6 +11,11 @@ state below sets only what the hardware itself defines, and `Memory` fills with
 a caller supplied pattern rather than with zeroes.
 """
 
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any
+
 from . import opcodes65816 as wdc65816
 from .memory import ADDRESS_MASK, UNSET_SEED, Memory, SparseMemory, scramble
 
@@ -86,14 +91,20 @@ class Cpu:
     looking correct here and failing on a console.
     """
 
-    def __init__(self, memory, step_limit=STEP_LIMIT, seed=UNSET_SEED, reset=True):
+    def __init__(
+        self,
+        memory: Any,
+        step_limit: int = STEP_LIMIT,
+        seed: int = UNSET_SEED,
+        reset: bool = True,
+    ) -> None:
         self.memory = memory
         self.step_limit = step_limit
         self.model = "65816"
         self.address_mask = ADDRESS_MASK
         self._emulation = False
         self._s = 0x01FF
-        self.cycle_budget = None
+        self.cycle_budget: int | None = None
         self.steps = 0
         self.stopped = False
         self.waiting = False
@@ -112,11 +123,11 @@ class Cpu:
             self.emulation = False
 
     @property
-    def emulation(self):
+    def emulation(self) -> bool:
         return self._emulation
 
     @emulation.setter
-    def emulation(self, value):
+    def emulation(self, value: bool) -> None:
         """Entering emulation mode narrows the machine, and does so at once.
 
         The index registers become eight bits and lose their high halves, the
@@ -133,15 +144,15 @@ class Cpu:
             self._s = 0x0100 | (self._s & 0xFF)
 
     @property
-    def s(self):
+    def s(self) -> int:
         return self._s
 
     @s.setter
-    def s(self, value):
+    def s(self, value: int) -> None:
         value &= 0xFFFF
         self._s = 0x0100 | (value & 0xFF) if self._emulation else value
 
-    def reset(self, seed=UNSET_SEED):
+    def reset(self, seed: int = UNSET_SEED) -> None:
         """Put the processor where a reset puts it, undefined parts included."""
         undefined = scramble(8, seed)
         self.a = undefined[0] | (undefined[1] << 8)
@@ -169,7 +180,7 @@ class Cpu:
         self.stopped = False
         self.waiting = False
 
-    def status(self):
+    def status(self) -> int:
         value = 0
         value |= FLAG_N if self.n else 0
         value |= FLAG_V if self.v else 0
@@ -181,7 +192,7 @@ class Cpu:
         value |= FLAG_C if self.c else 0
         return value
 
-    def set_status(self, value):
+    def set_status(self, value: int) -> None:
         self.n = bool(value & FLAG_N)
         self.v = bool(value & FLAG_V)
         self.decimal = bool(value & FLAG_D)
@@ -198,7 +209,7 @@ class Cpu:
             self.x &= 0xFF
             self.y &= 0xFF
 
-    def set_emulation(self, value):
+    def set_emulation(self, value: bool) -> None:
         self.emulation = bool(value)
         if self.emulation:
             self.m8 = True
@@ -207,29 +218,31 @@ class Cpu:
             self.y &= 0xFF
             self.s = 0x0100 | (self.s & 0xFF)
 
-    def read8(self, address):
-        return self.memory.read8(address & self.address_mask) & 0xFF
+    def read8(self, address: int) -> int:
+        found = self.memory.read8(address & self.address_mask) & 0xFF
+        assert isinstance(found, int)
+        return found
 
-    def write8(self, address, value):
+    def write8(self, address: int, value: int) -> None:
         self.memory.write8(address & self.address_mask, value & 0xFF)
 
-    def read16(self, address):
+    def read16(self, address: int) -> int:
         return self.read8(address) | (self.read8(address + 1) << 8)
 
-    def read24(self, address):
+    def read24(self, address: int) -> int:
         return self.read16(address) | (self.read8(address + 2) << 16)
 
-    def read_value(self, address, wide, mode=None):
+    def read_value(self, address: int, wide: bool, mode: str | None = None) -> int:
         if not wide:
             return self.read8(address)
         return self.read8(address) | (self.read8(self.next_byte(address, mode)) << 8)
 
-    def write_value(self, address, value, wide, mode=None):
+    def write_value(self, address: int, value: int, wide: bool, mode: str | None = None) -> None:
         self.write8(address, value)
         if wide:
             self.write8(self.next_byte(address, mode), value >> 8)
 
-    def next_byte(self, address, mode):
+    def next_byte(self, address: int, mode: str | None) -> int:
         """The address one byte on, wrapped the way that kind of access wraps.
 
         The direct page and the stack live in bank zero and stay there, so a word
@@ -241,41 +254,41 @@ class Cpu:
             return (address & 0xFF0000) | ((address + 1) & 0xFFFF)
         return address + 1
 
-    def fetch8(self):
+    def fetch8(self) -> int:
         value = self.read8((self.pb << 16) | self.pc)
         self.pc = (self.pc + 1) & 0xFFFF
         return value
 
-    def fetch16(self):
+    def fetch16(self) -> int:
         return self.fetch8() | (self.fetch8() << 8)
 
-    def fetch24(self):
+    def fetch24(self) -> int:
         return self.fetch16() | (self.fetch8() << 16)
 
-    def push8(self, value):
+    def push8(self, value: int) -> None:
         self.write8(self.s, value)
         if self.emulation:
             self.s = 0x0100 | ((self.s - 1) & 0xFF)
         else:
             self.s = (self.s - 1) & 0xFFFF
 
-    def pull8(self):
+    def pull8(self) -> int:
         if self.emulation:
             self.s = 0x0100 | ((self.s + 1) & 0xFF)
         else:
             self.s = (self.s + 1) & 0xFFFF
         return self.read8(self.s)
 
-    def push16(self, value):
+    def push16(self, value: int) -> None:
         """Push a word the way the 6502 instructions do, folding into page one."""
         self.push8((value >> 8) & 0xFF)
         self.push8(value & 0xFF)
 
-    def pull16(self):
+    def pull16(self) -> int:
         """Pull a word the way the 6502 instructions do."""
         return self.pull8() | (self.pull8() << 8)
 
-    def push_flat(self, value, width):
+    def push_flat(self, value: int, width: int) -> None:
         """Push several bytes without folding into page one, highest first."""
         if not self.emulation:
             for shift in range(8 * (width - 1), -1, -8):
@@ -286,7 +299,7 @@ class Cpu:
             self.write8((base - step) & 0xFFFF, (value >> shift) & 0xFF)
         self.s = (base - width) & 0xFFFF
 
-    def pull_flat(self, width):
+    def pull_flat(self, width: int) -> int:
         """Pull several bytes without folding into page one, lowest first."""
         if not self.emulation:
             value = 0
@@ -300,7 +313,7 @@ class Cpu:
         self.s = (base + width) & 0xFFFF
         return value
 
-    def push16_flat(self, value):
+    def push16_flat(self, value: int) -> None:
         """Push a word without folding into page one.
 
         Emulation mode confines the stack pointer to page one, and the original
@@ -318,7 +331,7 @@ class Cpu:
         self.write8((base - 1) & 0xFFFF, value & 0xFF)
         self.s = (base - 2) & 0xFFFF
 
-    def pull16_flat(self):
+    def pull16_flat(self) -> int:
         """Pull a word without folding into page one, as the push above does."""
         if not self.emulation:
             return self.pull16()
@@ -328,27 +341,27 @@ class Cpu:
         self.s = (base + 2) & 0xFFFF
         return low | (high << 8)
 
-    def acc(self):
+    def acc(self) -> int:
         return self.a & 0xFF if self.m8 else self.a & 0xFFFF
 
-    def set_acc(self, value):
+    def set_acc(self, value: int) -> None:
         if self.m8:
             self.a = (self.a & 0xFF00) | (value & 0xFF)
         else:
             self.a = value & 0xFFFF
 
-    def set_nz(self, value, wide):
+    def set_nz(self, value: int, wide: bool) -> None:
         mask = 0xFFFF if wide else 0xFF
         self.z = (value & mask) == 0
         self.n = bool(value & (0x8000 if wide else 0x80))
 
-    def wide_for(self, mnemonic):
+    def wide_for(self, mnemonic: str) -> bool:
         if mnemonic in INDEX_WIDTH_OPS:
             return not self.x8
         return not self.m8
 
     @property
-    def page_wraps(self):
+    def page_wraps(self) -> bool:
         """Whether direct page addressing stays inside one page.
 
         In emulation mode with the low byte of the direct page register clear,
@@ -359,13 +372,13 @@ class Cpu:
         """
         return self.emulation and (self.d & 0xFF) == 0
 
-    def direct(self, offset):
+    def direct(self, offset: int) -> int:
         """A direct page address, wrapped the way the current mode wraps it."""
         if self.page_wraps:
             return (self.d & 0xFF00) | (offset & 0xFF)
         return (self.d + offset) & 0xFFFF
 
-    def read_pointer(self, address, width, wraps_in_page=False):
+    def read_pointer(self, address: int, width: int, wraps_in_page: bool = False) -> int:
         """A pointer read out of the direct page or the stack.
 
         Two wraps apply and they are not the same. Every pointer stays inside the
@@ -390,7 +403,7 @@ class Cpu:
             self.read8(bank | ((address + step) & 0xFFFF)) << (8 * step) for step in range(width)
         )
 
-    def effective(self, mode, mnemonic):
+    def effective(self, mode: str, mnemonic: str) -> int:
         if mode == "direct":
             return self.direct(self.fetch8())
         if mode == "directX":
@@ -426,7 +439,7 @@ class Cpu:
             return ((self.db << 16) | self.read_pointer(pointer, 2)) + self.y
         raise UnsupportedError(f"{mnemonic} cannot use {mode}")
 
-    def operand(self, mode, mnemonic):
+    def operand(self, mode: str, mnemonic: str) -> int:
         wide = self.wide_for(mnemonic)
         if mode in IMMEDIATE_MODES:
             if mode == "immediate":
@@ -434,7 +447,7 @@ class Cpu:
             return self.fetch16() if wide else self.fetch8()
         return self.read_value(self.effective(mode, mnemonic), wide, mode)
 
-    def add_with_carry(self, value):
+    def add_with_carry(self, value: int) -> None:
         wide = not self.m8
         bits = 16 if wide else 8
         left = self.acc()
@@ -470,7 +483,7 @@ class Cpu:
         self.set_nz(result, wide)
         self.set_acc(result)
 
-    def subtract_with_carry(self, value):
+    def subtract_with_carry(self, value: int) -> None:
         wide = not self.m8
         bits = 16 if wide else 8
         mask = 0xFFFF if wide else 0xFF
@@ -499,12 +512,12 @@ class Cpu:
         self.set_nz(result, wide)
         self.set_acc(result)
 
-    def compare(self, register, value, wide):
+    def compare(self, register: int, value: int, wide: bool) -> None:
         mask = 0xFFFF if wide else 0xFF
         self.c = register >= value
         self.set_nz((register - value) & mask, wide)
 
-    def step(self):
+    def step(self) -> None:
         if self.stopped:
             raise Stopped("the processor has been stopped")
         self.steps += 1
@@ -517,7 +530,7 @@ class Cpu:
             raise UnsupportedError(f"{mnemonic} is not implemented")
         handler(mode)
 
-    def call(self, address):
+    def call(self, address: int) -> Cpu:
         self.pb = (address >> 16) & 0xFF
         self.pc = address & 0xFFFF
         depth = 0
@@ -531,124 +544,124 @@ class Cpu:
                 depth += 1
             self.step()
 
-    def run_until(self, predicate):
+    def run_until(self, predicate: Callable[[Cpu], bool]) -> Cpu:
         while not predicate(self):
             self.step()
         return self
 
-    def op_lda(self, mode):
+    def op_lda(self, mode: str) -> None:
         value = self.operand(mode, "lda")
         self.set_acc(value)
         self.set_nz(value, not self.m8)
 
-    def op_ldx(self, mode):
+    def op_ldx(self, mode: str) -> None:
         value = self.operand(mode, "ldx")
         self.x = value
         self.set_nz(value, not self.x8)
 
-    def op_ldy(self, mode):
+    def op_ldy(self, mode: str) -> None:
         value = self.operand(mode, "ldy")
         self.y = value
         self.set_nz(value, not self.x8)
 
-    def op_sta(self, mode):
+    def op_sta(self, mode: str) -> None:
         self.write_value(self.effective(mode, "sta"), self.acc(), not self.m8, mode)
 
-    def op_stx(self, mode):
+    def op_stx(self, mode: str) -> None:
         self.write_value(self.effective(mode, "stx"), self.x, not self.x8, mode)
 
-    def op_sty(self, mode):
+    def op_sty(self, mode: str) -> None:
         self.write_value(self.effective(mode, "sty"), self.y, not self.x8, mode)
 
-    def op_stz(self, mode):
+    def op_stz(self, mode: str) -> None:
         self.write_value(self.effective(mode, "stz"), 0, not self.m8, mode)
 
-    def op_tax(self, mode):
+    def op_tax(self, mode: str) -> None:
         self.x = self.a & (0xFF if self.x8 else 0xFFFF)
         self.set_nz(self.x, not self.x8)
 
-    def op_tay(self, mode):
+    def op_tay(self, mode: str) -> None:
         self.y = self.a & (0xFF if self.x8 else 0xFFFF)
         self.set_nz(self.y, not self.x8)
 
-    def op_txa(self, mode):
+    def op_txa(self, mode: str) -> None:
         self.set_acc(self.x)
         self.set_nz(self.acc(), not self.m8)
 
-    def op_tya(self, mode):
+    def op_tya(self, mode: str) -> None:
         self.set_acc(self.y)
         self.set_nz(self.acc(), not self.m8)
 
-    def op_txy(self, mode):
+    def op_txy(self, mode: str) -> None:
         self.y = self.x
         self.set_nz(self.y, not self.x8)
 
-    def op_tyx(self, mode):
+    def op_tyx(self, mode: str) -> None:
         self.x = self.y
         self.set_nz(self.x, not self.x8)
 
-    def op_tsx(self, mode):
+    def op_tsx(self, mode: str) -> None:
         self.x = self.s & (0xFF if self.x8 else 0xFFFF)
         self.set_nz(self.x, not self.x8)
 
-    def op_txs(self, mode):
+    def op_txs(self, mode: str) -> None:
         self.s = 0x0100 | (self.x & 0xFF) if self.emulation else self.x & 0xFFFF
 
-    def op_tas(self, mode):
+    def op_tas(self, mode: str) -> None:
         self.s = 0x0100 | (self.a & 0xFF) if self.emulation else self.a & 0xFFFF
 
-    def op_tsa(self, mode):
+    def op_tsa(self, mode: str) -> None:
         self.a = self.s & 0xFFFF
         self.set_nz(self.a, True)
 
-    def op_tad(self, mode):
+    def op_tad(self, mode: str) -> None:
         self.d = self.a & 0xFFFF
         self.set_nz(self.d, True)
 
-    def op_tda(self, mode):
+    def op_tda(self, mode: str) -> None:
         self.a = self.d & 0xFFFF
         self.set_nz(self.a, True)
 
-    def op_xba(self, mode):
+    def op_xba(self, mode: str) -> None:
         self.a = ((self.a >> 8) | (self.a << 8)) & 0xFFFF
         self.set_nz(self.a & 0xFF, False)
 
-    def op_xce(self, mode):
+    def op_xce(self, mode: str) -> None:
         carry = self.c
         self.c = self.emulation
         self.set_emulation(carry)
 
-    def op_and(self, mode):
+    def op_and(self, mode: str) -> None:
         value = self.acc() & self.operand(mode, "and")
         self.set_acc(value)
         self.set_nz(value, not self.m8)
 
-    def op_ora(self, mode):
+    def op_ora(self, mode: str) -> None:
         value = self.acc() | self.operand(mode, "ora")
         self.set_acc(value)
         self.set_nz(value, not self.m8)
 
-    def op_eor(self, mode):
+    def op_eor(self, mode: str) -> None:
         value = self.acc() ^ self.operand(mode, "eor")
         self.set_acc(value)
         self.set_nz(value, not self.m8)
 
-    def op_adc(self, mode):
+    def op_adc(self, mode: str) -> None:
         self.add_with_carry(self.operand(mode, "adc"))
 
-    def op_sbc(self, mode):
+    def op_sbc(self, mode: str) -> None:
         self.subtract_with_carry(self.operand(mode, "sbc"))
 
-    def op_cmp(self, mode):
+    def op_cmp(self, mode: str) -> None:
         self.compare(self.acc(), self.operand(mode, "cmp"), not self.m8)
 
-    def op_cpx(self, mode):
+    def op_cpx(self, mode: str) -> None:
         self.compare(self.x, self.operand(mode, "cpx"), not self.x8)
 
-    def op_cpy(self, mode):
+    def op_cpy(self, mode: str) -> None:
         self.compare(self.y, self.operand(mode, "cpy"), not self.x8)
 
-    def op_bit(self, mode):
+    def op_bit(self, mode: str) -> None:
         value = self.operand(mode, "bit")
         wide = not self.m8
         self.z = (self.acc() & value) == 0
@@ -656,7 +669,9 @@ class Cpu:
             self.n = bool(value & (0x8000 if wide else 0x80))
             self.v = bool(value & (0x4000 if wide else 0x40))
 
-    def _read_modify_write(self, mode, mnemonic, operation):
+    def _read_modify_write(
+        self, mode: str, mnemonic: str, operation: Callable[[int, bool], int]
+    ) -> None:
         wide = not self.m8
         if mode == "implied":
             self.set_acc(operation(self.acc(), wide))
@@ -664,8 +679,8 @@ class Cpu:
         address = self.effective(mode, mnemonic)
         self.write_value(address, operation(self.read_value(address, wide), wide), wide)
 
-    def op_asl(self, mode):
-        def shift(value, wide):
+    def op_asl(self, mode: str) -> None:
+        def shift(value: int, wide: bool) -> int:
             self.c = bool(value & (0x8000 if wide else 0x80))
             result = (value << 1) & (0xFFFF if wide else 0xFF)
             self.set_nz(result, wide)
@@ -673,8 +688,8 @@ class Cpu:
 
         self._read_modify_write(mode, "asl", shift)
 
-    def op_lsr(self, mode):
-        def shift(value, wide):
+    def op_lsr(self, mode: str) -> None:
+        def shift(value: int, wide: bool) -> int:
             self.c = bool(value & 1)
             result = value >> 1
             self.set_nz(result, wide)
@@ -682,8 +697,8 @@ class Cpu:
 
         self._read_modify_write(mode, "lsr", shift)
 
-    def op_rol(self, mode):
-        def rotate(value, wide):
+    def op_rol(self, mode: str) -> None:
+        def rotate(value: int, wide: bool) -> int:
             carry = 1 if self.c else 0
             self.c = bool(value & (0x8000 if wide else 0x80))
             result = ((value << 1) | carry) & (0xFFFF if wide else 0xFF)
@@ -692,8 +707,8 @@ class Cpu:
 
         self._read_modify_write(mode, "rol", rotate)
 
-    def op_ror(self, mode):
-        def rotate(value, wide):
+    def op_ror(self, mode: str) -> None:
+        def rotate(value: int, wide: bool) -> int:
             carry = (0x8000 if wide else 0x80) if self.c else 0
             self.c = bool(value & 1)
             result = (value >> 1) | carry
@@ -702,179 +717,179 @@ class Cpu:
 
         self._read_modify_write(mode, "ror", rotate)
 
-    def op_inc(self, mode):
-        def bump(value, wide):
+    def op_inc(self, mode: str) -> None:
+        def bump(value: int, wide: bool) -> int:
             result = (value + 1) & (0xFFFF if wide else 0xFF)
             self.set_nz(result, wide)
             return result
 
         self._read_modify_write(mode, "inc", bump)
 
-    def op_dec(self, mode):
-        def drop(value, wide):
+    def op_dec(self, mode: str) -> None:
+        def drop(value: int, wide: bool) -> int:
             result = (value - 1) & (0xFFFF if wide else 0xFF)
             self.set_nz(result, wide)
             return result
 
         self._read_modify_write(mode, "dec", drop)
 
-    def op_trb(self, mode):
+    def op_trb(self, mode: str) -> None:
         wide = not self.m8
         address = self.effective(mode, "trb")
         value = self.read_value(address, wide)
         self.z = (value & self.acc()) == 0
         self.write_value(address, value & ~self.acc(), wide)
 
-    def op_tsb(self, mode):
+    def op_tsb(self, mode: str) -> None:
         wide = not self.m8
         address = self.effective(mode, "tsb")
         value = self.read_value(address, wide)
         self.z = (value & self.acc()) == 0
         self.write_value(address, value | self.acc(), wide)
 
-    def op_inx(self, mode):
+    def op_inx(self, mode: str) -> None:
         self.x = (self.x + 1) & (0xFF if self.x8 else 0xFFFF)
         self.set_nz(self.x, not self.x8)
 
-    def op_iny(self, mode):
+    def op_iny(self, mode: str) -> None:
         self.y = (self.y + 1) & (0xFF if self.x8 else 0xFFFF)
         self.set_nz(self.y, not self.x8)
 
-    def op_dex(self, mode):
+    def op_dex(self, mode: str) -> None:
         self.x = (self.x - 1) & (0xFF if self.x8 else 0xFFFF)
         self.set_nz(self.x, not self.x8)
 
-    def op_dey(self, mode):
+    def op_dey(self, mode: str) -> None:
         self.y = (self.y - 1) & (0xFF if self.x8 else 0xFFFF)
         self.set_nz(self.y, not self.x8)
 
-    def op_clc(self, mode):
+    def op_clc(self, mode: str) -> None:
         self.c = False
 
-    def op_sec(self, mode):
+    def op_sec(self, mode: str) -> None:
         self.c = True
 
-    def op_cld(self, mode):
+    def op_cld(self, mode: str) -> None:
         self.decimal = False
 
-    def op_sed(self, mode):
+    def op_sed(self, mode: str) -> None:
         self.decimal = True
 
-    def op_cli(self, mode):
+    def op_cli(self, mode: str) -> None:
         self.irq_disable = False
 
-    def op_sei(self, mode):
+    def op_sei(self, mode: str) -> None:
         self.irq_disable = True
 
-    def op_clv(self, mode):
+    def op_clv(self, mode: str) -> None:
         self.v = False
 
-    def op_rep(self, mode):
+    def op_rep(self, mode: str) -> None:
         self.set_status(self.status() & ~self.fetch8())
 
-    def op_sep(self, mode):
+    def op_sep(self, mode: str) -> None:
         self.set_status(self.status() | self.fetch8())
 
-    def op_pha(self, mode):
+    def op_pha(self, mode: str) -> None:
         self.push8(self.a) if self.m8 else self.push16(self.a)
 
-    def op_pla(self, mode):
+    def op_pla(self, mode: str) -> None:
         value = self.pull8() if self.m8 else self.pull16()
         self.set_acc(value)
         self.set_nz(value, not self.m8)
 
-    def op_phx(self, mode):
+    def op_phx(self, mode: str) -> None:
         self.push8(self.x) if self.x8 else self.push16(self.x)
 
-    def op_plx(self, mode):
+    def op_plx(self, mode: str) -> None:
         self.x = self.pull8() if self.x8 else self.pull16()
         self.set_nz(self.x, not self.x8)
 
-    def op_phy(self, mode):
+    def op_phy(self, mode: str) -> None:
         self.push8(self.y) if self.x8 else self.push16(self.y)
 
-    def op_ply(self, mode):
+    def op_ply(self, mode: str) -> None:
         self.y = self.pull8() if self.x8 else self.pull16()
         self.set_nz(self.y, not self.x8)
 
-    def op_php(self, mode):
+    def op_php(self, mode: str) -> None:
         self.push8(self.status())
 
-    def op_plp(self, mode):
+    def op_plp(self, mode: str) -> None:
         self.set_status(self.pull8())
 
-    def op_phb(self, mode):
+    def op_phb(self, mode: str) -> None:
         self.push8(self.db)
 
-    def op_plb(self, mode):
+    def op_plb(self, mode: str) -> None:
         self.db = self.pull8()
         self.set_nz(self.db, False)
 
-    def op_phd(self, mode):
+    def op_phd(self, mode: str) -> None:
         self.push16_flat(self.d)
 
-    def op_pld(self, mode):
+    def op_pld(self, mode: str) -> None:
         self.d = self.pull16_flat()
         self.set_nz(self.d, True)
 
-    def op_phk(self, mode):
+    def op_phk(self, mode: str) -> None:
         self.push8(self.pb)
 
-    def op_pea(self, mode):
+    def op_pea(self, mode: str) -> None:
         self.push16_flat(self.fetch16())
 
-    def op_pei(self, mode):
+    def op_pei(self, mode: str) -> None:
         self.push16_flat(self.read_pointer(self.direct(self.fetch8()), 2, wraps_in_page=True))
 
-    def op_per(self, mode):
+    def op_per(self, mode: str) -> None:
         offset = self.fetch16()
         self.push16_flat((self.pc + self._signed16(offset)) & 0xFFFF)
 
     @staticmethod
-    def _signed8(value):
+    def _signed8(value: int) -> int:
         return value - 0x100 if value & 0x80 else value
 
     @staticmethod
-    def _signed16(value):
+    def _signed16(value: int) -> int:
         return value - 0x10000 if value & 0x8000 else value
 
-    def _branch(self, taken):
+    def _branch(self, taken: bool) -> None:
         offset = self.fetch8()
         if taken:
             self.pc = (self.pc + self._signed8(offset)) & 0xFFFF
 
-    def op_bra(self, mode):
+    def op_bra(self, mode: str) -> None:
         self._branch(True)
 
-    def op_beq(self, mode):
+    def op_beq(self, mode: str) -> None:
         self._branch(self.z)
 
-    def op_bne(self, mode):
+    def op_bne(self, mode: str) -> None:
         self._branch(not self.z)
 
-    def op_bcs(self, mode):
+    def op_bcs(self, mode: str) -> None:
         self._branch(self.c)
 
-    def op_bcc(self, mode):
+    def op_bcc(self, mode: str) -> None:
         self._branch(not self.c)
 
-    def op_bmi(self, mode):
+    def op_bmi(self, mode: str) -> None:
         self._branch(self.n)
 
-    def op_bpl(self, mode):
+    def op_bpl(self, mode: str) -> None:
         self._branch(not self.n)
 
-    def op_bvs(self, mode):
+    def op_bvs(self, mode: str) -> None:
         self._branch(self.v)
 
-    def op_bvc(self, mode):
+    def op_bvc(self, mode: str) -> None:
         self._branch(not self.v)
 
-    def op_brl(self, mode):
+    def op_brl(self, mode: str) -> None:
         offset = self.fetch16()
         self.pc = (self.pc + self._signed16(offset)) & 0xFFFF
 
-    def op_jmp(self, mode):
+    def op_jmp(self, mode: str) -> None:
         if mode == "absolutePC":
             self.pc = self.fetch16()
             return
@@ -890,7 +905,7 @@ class Cpu:
             return
         raise UnsupportedError(f"jmp cannot use {mode}")
 
-    def op_jml(self, mode):
+    def op_jml(self, mode: str) -> None:
         if mode == "absoluteLong":
             target = self.fetch24()
         elif mode == "indirectLongPC":
@@ -900,7 +915,7 @@ class Cpu:
         self.pb = (target >> 16) & 0xFF
         self.pc = target & 0xFFFF
 
-    def op_jsr(self, mode):
+    def op_jsr(self, mode: str) -> None:
         if mode == "absolutePC":
             target = self.fetch16()
         elif mode == "indirectX":
@@ -911,27 +926,27 @@ class Cpu:
         self.push16((self.pc - 1) & 0xFFFF)
         self.pc = target
 
-    def op_jsl(self, mode):
+    def op_jsl(self, mode: str) -> None:
         target = self.fetch24()
         self.push_flat((self.pb << 16) | ((self.pc - 1) & 0xFFFF), 3)
         self.pb = (target >> 16) & 0xFF
         self.pc = target & 0xFFFF
 
-    def op_rts(self, mode):
+    def op_rts(self, mode: str) -> None:
         self.pc = (self.pull16() + 1) & 0xFFFF
 
-    def op_rtl(self, mode):
+    def op_rtl(self, mode: str) -> None:
         pulled = self.pull_flat(3)
         self.pc = ((pulled & 0xFFFF) + 1) & 0xFFFF
         self.pb = (pulled >> 16) & 0xFF
 
-    def op_rti(self, mode):
+    def op_rti(self, mode: str) -> None:
         self.set_status(self.pull8())
         self.pc = self.pull16()
         if not self.emulation:
             self.pb = self.pull8()
 
-    def _software_interrupt(self, native_vector, emulation_vector):
+    def _software_interrupt(self, native_vector: int, emulation_vector: int) -> None:
         """Take a software interrupt the way the current mode takes one.
 
         Both instructions are two bytes even though the second is ignored, so the
@@ -961,13 +976,13 @@ class Cpu:
         self.pb = 0x00
         self.pc = self.read16(vector)
 
-    def op_brk(self, mode):
+    def op_brk(self, mode: str) -> None:
         self._software_interrupt(BREAK_VECTOR, EMULATION_BREAK_VECTOR)
 
-    def op_cop(self, mode):
+    def op_cop(self, mode: str) -> None:
         self._software_interrupt(COP_VECTOR, EMULATION_COP_VECTOR)
 
-    def _block_move(self, direction):
+    def _block_move(self, direction: int) -> None:
         """Move a block, one byte every seven cycles, and stop if time runs out.
 
         A block move is the one instruction on this processor that is meant to be
@@ -1002,23 +1017,24 @@ class Cpu:
         if whole >= remaining:
             self.pc = (base + 3) & 0xFFFF
             return
+        assert budget is not None, "a move with no budget finishes, and returned above"
         spent = whole * CYCLES_PER_MOVE
         self.pc = (base + min(max(0, budget - spent), 3)) & 0xFFFF
 
-    def op_mvn(self, mode):
+    def op_mvn(self, mode: str) -> None:
         self._block_move(1)
 
-    def op_mvp(self, mode):
+    def op_mvp(self, mode: str) -> None:
         self._block_move(-1)
 
-    def op_nop(self, mode):
+    def op_nop(self, mode: str) -> None:
         return
 
-    def op_wdm(self, mode):
+    def op_wdm(self, mode: str) -> None:
         self.fetch8()
 
-    def op_stp(self, mode):
+    def op_stp(self, mode: str) -> None:
         self.stopped = True
 
-    def op_wai(self, mode):
+    def op_wai(self, mode: str) -> None:
         self.waiting = True

@@ -2,3 +2,5 @@ pnpm-lock.yaml
 package-lock.json
 node_modules/
 .coverage
+.mypy_cache/
+.ruff_cache/

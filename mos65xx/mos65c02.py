@@ -29,6 +29,10 @@ part that does not have it is a no-operation, and nothing reports that the bit w
 never cleared.
 """
 
+from __future__ import annotations
+
+from typing import Any, override
+
 from .mos6502 import Cpu as Nmos
 from .opcodes65c02 import CMOS
 from .opcodes6502 import MODE_SIZE
@@ -37,21 +41,25 @@ from .opcodes6502 import MODE_SIZE
 class Cpu(Nmos):
     """One CMOS 6502, of whichever revision its table describes."""
 
-    def __init__(self, memory, table=CMOS, **options):
+    @override
+    def __init__(self, memory: Any, table: Any = CMOS, **options: Any) -> None:
         self.waiting = False
         super().__init__(memory, table=table, **options)
         self.model = "65c02"
 
-    def reset(self, seed=None):
+    @override
+    def reset(self, seed: int | None = None) -> Nmos:
         self.waiting = False
         return super().reset(seed) if seed is not None else super().reset()
 
-    def effective(self, mode):
+    @override
+    def effective(self, mode: str) -> int:
         if mode == "indirectX":
             return self.read16((self.fetch16() + self.x) & 0xFFFF)
         return super().effective(mode)
 
-    def add_with_carry(self, value):
+    @override
+    def add_with_carry(self, value: int) -> None:
         if not (self.d and self.decimal):
             return super().add_with_carry(value)
 
@@ -69,7 +77,8 @@ class Cpu(Nmos):
         self.set_nz(self.a)
         return None
 
-    def subtract_with_carry(self, value):
+    @override
+    def subtract_with_carry(self, value: int) -> None:
         """Decimal subtraction as this part does it, which is not how the older one did.
 
         Both produce the same digits whenever both operands are valid decimal. They
@@ -99,7 +108,8 @@ class Cpu(Nmos):
         self.set_nz(self.a)
         return None
 
-    def op_jmp(self, mode):
+    @override
+    def op_jmp(self, mode: str) -> None:
         if mode == "indirect":
             self.pc = self.read16(self.fetch16())
             return
@@ -108,99 +118,104 @@ class Cpu(Nmos):
             return
         self.pc = self.fetch16()
 
-    def op_brk(self, mode):
+    @override
+    def op_brk(self, mode: str) -> None:
         super().op_brk(mode)
         self.d = False
 
-    def op_nop(self, mode):
+    @override
+    def op_nop(self, mode: str) -> None:
         for _ in range(MODE_SIZE[mode]):
             self.fetch8()
 
-    def op_bra(self, mode):
+    def op_bra(self, mode: str) -> None:
         self.branch(True)
 
-    def op_stz(self, mode):
+    def op_stz(self, mode: str) -> None:
         self.write8(self.effective(mode), 0x00)
 
-    def op_tsb(self, mode):
+    def op_tsb(self, mode: str) -> None:
         address = self.effective(mode)
         value = self.read8(address)
         self.z = (self.a & value) == 0
         self.write8(address, value | self.a)
 
-    def op_trb(self, mode):
+    def op_trb(self, mode: str) -> None:
         address = self.effective(mode)
         value = self.read8(address)
         self.z = (self.a & value) == 0
         self.write8(address, value & ~self.a & 0xFF)
 
-    def op_bit(self, mode):
+    @override
+    def op_bit(self, mode: str) -> None:
         if mode == "immediate":
             self.z = (self.a & self.fetch8()) == 0
             return
         super().op_bit(mode)
 
-    def op_inc(self, mode):
+    @override
+    def op_inc(self, mode: str) -> None:
         if mode == "accumulator":
             self.a = (self.a + 1) & 0xFF
             self.set_nz(self.a)
             return
         super().op_inc(mode)
 
-    def op_dec(self, mode):
+    @override
+    def op_dec(self, mode: str) -> None:
         if mode == "accumulator":
             self.a = (self.a - 1) & 0xFF
             self.set_nz(self.a)
             return
         super().op_dec(mode)
 
-    def op_phx(self, mode):
+    def op_phx(self, mode: str) -> None:
         self.push8(self.x)
 
-    def op_phy(self, mode):
+    def op_phy(self, mode: str) -> None:
         self.push8(self.y)
 
-    def op_plx(self, mode):
+    def op_plx(self, mode: str) -> None:
         self.x = self.pull8()
         self.set_nz(self.x)
 
-    def op_ply(self, mode):
+    def op_ply(self, mode: str) -> None:
         self.y = self.pull8()
         self.set_nz(self.y)
 
-    def op_stp(self, mode):
+    def op_stp(self, mode: str) -> None:
         self.stopped = True
 
-    def op_wai(self, mode):
+    def op_wai(self, mode: str) -> None:
         self.waiting = True
 
-    def modify_bit(self, bit, set_it):
+    def modify_bit(self, bit: int, set_it: bool) -> None:
         address = self.effective("zeroPage")
         value = self.read8(address)
         self.write8(address, value | (1 << bit) if set_it else value & ~(1 << bit) & 0xFF)
 
-    def branch_on_bit(self, bit, wanted):
+    def branch_on_bit(self, bit: int, wanted: bool) -> None:
         value = self.read8(self.effective("zeroPage"))
         self.branch(bool(value & (1 << bit)) == wanted)
 
 
-def _bit_handlers():
+def _bit_handlers() -> None:
     for bit in range(8):
 
-        def clear(self, mode, bit=bit):
+        def clear(self: Cpu, mode: str, bit: int = bit) -> None:
             self.modify_bit(bit, False)
 
-        def set_it(self, mode, bit=bit):
+        def set_bit(self: Cpu, mode: str, bit: int = bit) -> None:
             self.modify_bit(bit, True)
 
-        def branch_clear(self, mode, bit=bit):
+        def branch_clear(self: Cpu, mode: str, bit: int = bit) -> None:
             self.branch_on_bit(bit, False)
 
-        def branch_set(self, mode, bit=bit):
+        def branch_set(self: Cpu, mode: str, bit: int = bit) -> None:
             self.branch_on_bit(bit, True)
 
         setattr(Cpu, f"op_rmb{bit}", clear)
-        setattr(Cpu, f"op_smb{bit}", set_it)
+        setattr(Cpu, f"op_smb{bit}", set_bit)
         setattr(Cpu, f"op_bbr{bit}", branch_clear)
         setattr(Cpu, f"op_bbs{bit}", branch_set)
 
