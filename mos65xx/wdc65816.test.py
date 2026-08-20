@@ -829,5 +829,157 @@ class DefensivePathTest(unittest.TestCase):
         self.assertIs(cpu.run_until(lambda machine: machine.steps > 0), cpu)
 
 
+class HardwareInterruptTest(unittest.TestCase):
+    """The three pins, in both modes, where the mode decides the stack depth."""
+
+    def machine(self, emulation: bool, vector: int, target: int = 0x9000) -> Any:
+        memory = emu.Memory(0x1000000, fill=0)
+        cpu = emu.Cpu(memory, reset=False)
+        cpu.emulation = emulation
+        if not emulation:
+            cpu.m8 = cpu.x8 = False
+        cpu.pb, cpu.pc = 0x12, 0x8000
+        cpu.db = 0x7E
+        cpu.s = 0x01FF if emulation else 0x1FFF
+        cpu.irq_disable = False
+        memory.write8(vector, target & 0xFF)
+        memory.write8(vector + 1, target >> 8)
+        return cpu, memory
+
+    def test_a_native_interrupt_pushes_four_bytes(self) -> None:
+        cpu, _ = self.machine(False, emu.IRQ_VECTOR)
+
+        cpu.irq()
+
+        self.assertEqual(cpu.s, 0x1FFB)
+
+    def test_and_an_emulation_interrupt_pushes_three(self) -> None:
+        cpu, _ = self.machine(True, emu.EMULATION_IRQ_VECTOR)
+
+        cpu.irq()
+
+        self.assertEqual(cpu.s, 0x01FC)
+
+    def test_the_program_bank_goes_out_first_in_native_mode(self) -> None:
+        cpu, memory = self.machine(False, emu.IRQ_VECTOR)
+
+        cpu.irq()
+
+        self.assertEqual(memory.read8(0x001FFF), 0x12)
+
+    def test_the_return_address_is_the_instruction_that_would_have_run(self) -> None:
+        cpu, memory = self.machine(False, emu.IRQ_VECTOR)
+
+        cpu.irq()
+
+        self.assertEqual((memory.read8(0x001FFE), memory.read8(0x001FFD)), (0x80, 0x00))
+
+    def test_the_pushed_status_keeps_its_index_width_bit_in_native_mode(self) -> None:
+        cpu, memory = self.machine(False, emu.IRQ_VECTOR)
+        cpu.x8 = True
+
+        cpu.irq()
+
+        self.assertEqual(memory.read8(0x001FFC) & emu.BREAK_FLAG, emu.BREAK_FLAG)
+
+    def test_and_clears_that_bit_in_emulation_mode(self) -> None:
+        cpu, memory = self.machine(True, emu.EMULATION_IRQ_VECTOR)
+
+        cpu.irq()
+
+        self.assertEqual(memory.read8(0x0001FD) & emu.BREAK_FLAG, 0x00)
+
+    def test_which_is_the_one_thing_that_separates_it_from_a_break(self) -> None:
+        cpu, memory = self.machine(True, emu.EMULATION_BREAK_VECTOR)
+        memory.write8(0x128000, 0x00)
+
+        cpu.step()
+
+        self.assertEqual(memory.read8(0x0001FD) & emu.BREAK_FLAG, emu.BREAK_FLAG)
+
+    def test_the_program_bank_is_cleared_and_the_data_bank_is_not(self) -> None:
+        cpu, _ = self.machine(False, emu.IRQ_VECTOR)
+
+        cpu.irq()
+
+        self.assertEqual((cpu.pb, cpu.db), (0x00, 0x7E))
+
+    def test_the_handler_runs_in_binary_with_further_requests_disabled(self) -> None:
+        cpu, _ = self.machine(False, emu.IRQ_VECTOR)
+        cpu.decimal = True
+
+        cpu.irq()
+
+        self.assertEqual((cpu.decimal, cpu.irq_disable), (False, True))
+
+    def test_a_request_is_refused_while_the_disable_flag_is_set(self) -> None:
+        cpu, _ = self.machine(False, emu.IRQ_VECTOR)
+        cpu.irq_disable = True
+
+        self.assertFalse(cpu.irq())
+
+    def test_the_non_maskable_pin_is_taken_anyway(self) -> None:
+        cpu, _ = self.machine(False, emu.NMI_VECTOR, target=0x9100)
+        cpu.irq_disable = True
+
+        cpu.nmi()
+
+        self.assertEqual(cpu.pc, 0x9100)
+
+    def test_an_abort_is_taken_anyway_as_well(self) -> None:
+        cpu, _ = self.machine(False, emu.ABORT_VECTOR, target=0x9200)
+        cpu.irq_disable = True
+
+        cpu.abort()
+
+        self.assertEqual(cpu.pc, 0x9200)
+
+    def test_each_pin_has_its_own_vector_in_each_mode(self) -> None:
+        native = {kind: emu.NATIVE_VECTORS[kind] for kind in ("irq", "nmi", "abort")}
+        emulated = {kind: emu.EMULATION_VECTORS[kind] for kind in ("irq", "nmi", "abort")}
+
+        self.assertEqual(
+            (native, emulated),
+            (
+                {"irq": 0x00FFEE, "nmi": 0x00FFEA, "abort": 0x00FFE8},
+                {"irq": 0x00FFFE, "nmi": 0x00FFFA, "abort": 0x00FFF8},
+            ),
+        )
+
+    def test_a_refused_request_still_ends_a_wait(self) -> None:
+        cpu, _ = self.machine(False, emu.IRQ_VECTOR)
+        cpu.irq_disable = True
+        cpu.waiting = True
+
+        taken = cpu.irq()
+
+        self.assertEqual((taken, cpu.waiting), (False, False))
+
+    def test_a_stopped_part_answers_nothing_at_all(self) -> None:
+        cpu, _ = self.machine(False, emu.NMI_VECTOR)
+        cpu.stopped = True
+
+        self.assertEqual((cpu.nmi(), cpu.pc), (False, 0x8000))
+
+    def test_a_return_from_interrupt_restores_the_program_bank_too(self) -> None:
+        cpu, memory = self.machine(False, emu.IRQ_VECTOR)
+        cpu.irq()
+        memory.write8(0x009000, 0x40)
+
+        cpu.step()
+
+        self.assertEqual((cpu.pb, cpu.pc), (0x12, 0x8000))
+
+    def test_and_in_emulation_mode_leaves_the_bank_where_it_was(self) -> None:
+        cpu, memory = self.machine(True, emu.EMULATION_IRQ_VECTOR)
+        cpu.pb = 0x00
+        cpu.irq()
+        memory.write8(0x009000, 0x40)
+
+        cpu.step()
+
+        self.assertEqual((cpu.pb, cpu.pc), (0x00, 0x8000))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

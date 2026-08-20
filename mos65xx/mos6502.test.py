@@ -454,5 +454,132 @@ class ReachTest(unittest.TestCase):
         self.assertEqual(cpu.effective("zeroPageIndirect"), 0x1234)
 
 
+class HardwareInterruptTest(unittest.TestCase):
+    """The two pins, which no instruction reaches and nothing else models."""
+
+    def waiting_at(self, vector: int, target: int = 0x9000) -> Any:
+        cpu, memory = machine([0xEA], s=0xFD)
+        memory.write8(vector, target & 0xFF)
+        memory.write8(vector + 1, target >> 8)
+        return cpu, memory
+
+    def test_a_request_is_refused_while_the_disable_flag_is_set(self) -> None:
+        cpu, _ = self.waiting_at(mos6502.IRQ_VECTOR)
+        cpu.i = True
+
+        self.assertFalse(cpu.irq())
+
+    def test_and_the_program_counter_has_not_moved(self) -> None:
+        cpu, _ = self.waiting_at(mos6502.IRQ_VECTOR)
+        cpu.i = True
+
+        cpu.irq()
+
+        self.assertEqual(cpu.pc, 0x8000)
+
+    def test_a_request_is_taken_once_the_flag_is_clear(self) -> None:
+        cpu, _ = self.waiting_at(mos6502.IRQ_VECTOR)
+        cpu.i = False
+
+        self.assertTrue(cpu.irq())
+
+    def test_and_arrives_at_the_handler_the_vector_names(self) -> None:
+        cpu, _ = self.waiting_at(mos6502.IRQ_VECTOR)
+        cpu.i = False
+
+        cpu.irq()
+
+        self.assertEqual(cpu.pc, 0x9000)
+
+    def test_the_return_address_is_the_instruction_that_would_have_run(self) -> None:
+        cpu, memory = self.waiting_at(mos6502.IRQ_VECTOR)
+        cpu.i = False
+
+        cpu.irq()
+
+        self.assertEqual(memory.read8(0x01FD) << 8 | memory.read8(0x01FC), 0x8000)
+
+    def test_the_pushed_status_has_the_break_bit_clear(self) -> None:
+        cpu, memory = self.waiting_at(mos6502.IRQ_VECTOR)
+        cpu.i = False
+        cpu.b = True
+
+        cpu.irq()
+
+        self.assertEqual(memory.read8(0x01FB) & 0x10, 0x00)
+
+    def test_and_the_unused_bit_set_the_way_every_push_sets_it(self) -> None:
+        cpu, memory = self.waiting_at(mos6502.IRQ_VECTOR)
+        cpu.i = False
+
+        cpu.irq()
+
+        self.assertEqual(memory.read8(0x01FB) & 0x20, 0x20)
+
+    def test_the_break_bit_in_the_register_itself_is_left_alone(self) -> None:
+        cpu, _ = self.waiting_at(mos6502.IRQ_VECTOR)
+        cpu.i = False
+        cpu.b = True
+
+        cpu.irq()
+
+        self.assertTrue(cpu.b)
+
+    def test_the_handler_runs_with_further_requests_disabled(self) -> None:
+        cpu, _ = self.waiting_at(mos6502.IRQ_VECTOR)
+        cpu.i = False
+
+        cpu.irq()
+
+        self.assertTrue(cpu.i)
+
+    def test_decimal_mode_survives_the_interrupt_on_this_part(self) -> None:
+        cpu, _ = self.waiting_at(mos6502.IRQ_VECTOR)
+        cpu.i = False
+        cpu.d = True
+
+        cpu.irq()
+
+        self.assertTrue(cpu.d)
+
+    def test_a_break_reports_itself_as_one_and_an_interrupt_does_not(self) -> None:
+        cpu, memory = machine([0x00], s=0xFD)
+        memory.write8(mos6502.BREAK_VECTOR, 0x00)
+        memory.write8(mos6502.BREAK_VECTOR + 1, 0x90)
+
+        cpu.step()
+
+        self.assertEqual(memory.read8(0x01FB) & 0x10, 0x10)
+
+    def test_the_non_maskable_pin_ignores_the_disable_flag(self) -> None:
+        cpu, _ = self.waiting_at(mos6502.NMI_VECTOR, target=0x9100)
+        cpu.i = True
+
+        cpu.nmi()
+
+        self.assertEqual(cpu.pc, 0x9100)
+
+    def test_a_return_from_interrupt_goes_back_where_it_came_from(self) -> None:
+        cpu, memory = self.waiting_at(mos6502.IRQ_VECTOR)
+        cpu.i = False
+        cpu.irq()
+        memory.write8(0x9000, 0x40)
+
+        cpu.step()
+
+        self.assertEqual(cpu.pc, 0x8000)
+
+    def test_and_restores_the_flags_it_was_holding(self) -> None:
+        cpu, memory = self.waiting_at(mos6502.IRQ_VECTOR)
+        cpu.i = False
+        cpu.c = True
+        cpu.irq()
+        memory.write8(0x9000, 0x40)
+
+        cpu.step()
+
+        self.assertEqual((cpu.c, cpu.i), (True, False))
+
+
 if __name__ == "__main__":
     unittest.main()

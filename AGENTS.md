@@ -59,6 +59,24 @@ python3 conformance/fetch.py
 python3 conformance/singlestep.py
 ```
 
+## Where the hardware facts live
+
+[`conformance/hardware.json`](conformance/hardware.json) holds every fact read out
+of a manufacturer's document, each with the sentence it came from and the date the
+document was read. [`conformance/divergences.json`](conformance/divergences.json)
+holds the two places where a document and the recorded cycles disagree, with the
+case that shows it and what would settle it. Both are held to the code by tests
+beside them, so neither can drift.
+
+Add to those files rather than to a docstring when the fact is a hardware fact. A
+number in a docstring is a claim nobody checks.
+
+The datasheet is not always right. Its native vector table prints the emulation
+addresses, and its caveat about which direct-page pointer reads stay inside the
+page is contradicted by three of the four cases the suite can settle. Read the
+cycle table and the pin descriptions before the prose: both times the document
+contradicted itself, those two were the ones that matched the silicon.
+
 ## Things that will bite you
 
 **Import conformance modules package-qualified.** `from conformance import fetch`,

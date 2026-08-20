@@ -110,6 +110,22 @@ Pure Python, standard library only. The release tooling is the sole `node_module
 
 </td>
 </tr>
+<tr>
+<td width="50%" valign="top">
+
+### The pins, not just the opcodes
+
+`irq()`, `nmi()` and, on the 65816, `abort()` take the interrupt the way the pin does: the return address is the next instruction, the pushed status says which pin it was, and emulation mode pushes one byte fewer. A request refused by the disable flag still ends a wait.
+
+</td>
+<td width="50%" valign="top">
+
+### Read from the datasheets
+
+Every hardware fact this project relies on is in [`conformance/hardware.json`](conformance/hardware.json) with the sentence it was read from. Where a manufacturer's document and the recorded cycles disagree, [`conformance/divergences.json`](conformance/divergences.json) carries both and says what would settle it.
+
+</td>
+</tr>
 </table>
 
 ## Quick start
@@ -344,7 +360,9 @@ Only when nothing limits it. Set `cycle_budget` and `MVN` or `MVP` copies what f
 <summary><strong>Why does bit 4 of the pushed status differ between BRK and an interrupt?</strong></summary>
 <br>
 
-It does not, on this processor, and that is the interesting part. In native mode bit 4 is the index width and is pushed as it stands. In emulation mode the width bit does not exist and the bit reads as the break flag, set. Nothing has to force it: a processor in emulation mode always reports its index registers as narrow, so the bit is already set by the time the status is read. The suite confirms `COP` pushes it the same way `BRK` does.
+For `BRK` and `COP` it does not, and that is the interesting part. In native mode bit 4 is the index width and is pushed as it stands. In emulation mode the width bit does not exist and the bit reads as the break flag, set. Nothing has to force it: a processor in emulation mode always reports its index registers as narrow, so the bit is already set by the time the status is read. The suite confirms `COP` pushes it the same way `BRK` does.
+
+A pin is the other half of the answer. The cycle table's note against the cycle that pushes the status for `ABORT`, `IRQ`, `NMI` and `RES` reads "BRK bit 4 equals \"0\" in Emulation mode", so a hardware interrupt clears it, and in emulation mode that clear bit is the only thing a handler can look at to tell a pin from a break.
 
 </details>
 
@@ -366,6 +384,21 @@ The ones worth borrowing from are embedded in emulators and shaped by the machin
 pinned by commit, check registers, flags and every byte of memory an instruction
 touched, across every opcode including the undocumented ones no datasheet
 describes. That is as strong as instruction-level evidence for these parts gets.
+
+**Read, not inferred: what the manufacturers printed.** The W65C816S data sheet
+and the MCS6500 family hardware manual were read end to end, and every fact this
+project takes from them is in [`conformance/hardware.json`](conformance/hardware.json)
+with its sentence. That reading found a defect, a missing feature, a vector table
+that is wrong in the datasheet itself, and two places where the document and the
+recorded cycles disagree. The disagreements are in
+[`conformance/divergences.json`](conformance/divergences.json), measured, with
+what would settle them.
+
+**Not settled by anything here: the pins under load.** `irq()`, `nmi()` and
+`abort()` perform the documented sequence, and no published suite covers a
+hardware interrupt on these parts, so they rest on the datasheet rather than on a
+recording. The abort pin's rollback of the instruction it interrupts is not
+modelled at all, and the code says so where it lives.
 
 **Not settled: cycles.** These cores do not count them. The corpora carry
 per-cycle bus activity, address by address, and this project reads only the length

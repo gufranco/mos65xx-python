@@ -50,10 +50,30 @@ INDEX_WIDTH_OPS = frozenset({"ldx", "ldy", "stx", "sty", "cpx", "cpy"})
 
 BREAK_VECTOR = 0x00FFE6
 COP_VECTOR = 0x00FFE4
+IRQ_VECTOR = 0x00FFEE
+NMI_VECTOR = 0x00FFEA
+ABORT_VECTOR = 0x00FFE8
 EMULATION_BREAK_VECTOR = 0x00FFFE
 EMULATION_COP_VECTOR = 0x00FFF4
+EMULATION_IRQ_VECTOR = 0x00FFFE
+EMULATION_NMI_VECTOR = 0x00FFFA
+EMULATION_ABORT_VECTOR = 0x00FFF8
+"""The two blocks of vectors, one per mode.
+
+The native ones come from the pin descriptions rather than from the table that
+lists them, which prints the emulation addresses under the native heading. Both
+readings, and what settles the two the suite reaches, are in
+conformance/hardware.json.
+"""
 BREAK_FLAG = 0x10
 CYCLES_PER_MOVE = 7
+
+NATIVE_VECTORS = {"irq": IRQ_VECTOR, "nmi": NMI_VECTOR, "abort": ABORT_VECTOR}
+EMULATION_VECTORS = {
+    "irq": EMULATION_IRQ_VECTOR,
+    "nmi": EMULATION_NMI_VECTOR,
+    "abort": EMULATION_ABORT_VECTOR,
+}
 
 BANK_ZERO_MODES = frozenset({"direct", "directX", "directY", "stack"})
 """Modes whose address is in bank zero and wraps inside it."""
@@ -981,6 +1001,58 @@ class Cpu:
         self.decimal = False
         self.pb = 0x00
         self.pc = self.read16(vector)
+
+    def interrupt(self, kind: str) -> bool:
+        """Take a hardware interrupt, and say whether it was taken.
+
+        A hardware interrupt differs from BRK and COP in three ways, and all
+        three are in the cycle table. No opcode is consumed, so the return
+        address is the instruction that would have run next. The pushed status
+        carries a clear bit 4, which in emulation mode is the only thing that
+        tells a handler this was a pin rather than a break. And emulation mode
+        pushes one byte fewer, having no program bank to save, which is the cycle
+        the table subtracts.
+
+        A request arriving with interrupts disabled is refused rather than
+        remembered, because the pin is a level and the caller still holds it. It
+        still ends a wait: a program that sets the disable flag and waits is
+        asking to continue at the next instruction, with no handler entered.
+        """
+        if self.stopped:
+            return False
+        self.waiting = False
+        if kind == "irq" and self.irq_disable:
+            return False
+        vector = (EMULATION_VECTORS if self.emulation else NATIVE_VECTORS)[kind]
+        if not self.emulation:
+            self.push8(self.pb)
+        self.push16(self.pc)
+        self.push8(self.status() & ~BREAK_FLAG if self.emulation else self.status())
+        self.irq_disable = True
+        self.decimal = False
+        self.pb = 0x00
+        self.pc = self.read16(vector)
+        return True
+
+    def irq(self) -> bool:
+        return self.interrupt("irq")
+
+    def nmi(self) -> bool:
+        return self.interrupt("nmi")
+
+    def abort(self) -> bool:
+        """Take an abort, with one part of the pin's behaviour left out.
+
+        The pin inhibits every register change the aborted instruction would have
+        made and then vectors with that instruction's own address as the return
+        address, so the handler can repair whatever the bus could not reach and
+        run it again. Inhibiting the changes needs a core that can be stopped
+        part way through an instruction, which this is not: it finishes the
+        instruction and then takes the interrupt. So this is the interrupt
+        sequence without the rollback, and a caller that needs the rollback
+        cannot get it here.
+        """
+        return self.interrupt("abort")
 
     def op_brk(self, mode: str) -> None:
         self._software_interrupt(BREAK_VECTOR, EMULATION_BREAK_VECTOR)

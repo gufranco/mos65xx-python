@@ -124,6 +124,34 @@ class Cpu(Nmos):
         self.d = False
 
     @override
+    def interrupt(self, vector: int) -> None:
+        """Clear decimal on the way in, which the older part does not do.
+
+        On the NMOS part an interrupt taken in the middle of decimal arithmetic
+        ran its handler in decimal mode, and every handler had to clear the flag
+        itself or corrupt whatever it added. This part clears it, and that is why
+        a handler written for one is not safe on the other.
+        """
+        super().interrupt(vector)
+        self.d = False
+
+    @override
+    def irq(self) -> bool:
+        """A request releases a wait even when the disable flag refuses the jump.
+
+        That is the whole point of waiting: a program sets the disable flag, waits,
+        and continues at the next instruction the moment the line goes low, with
+        no handler entered and no latency spent on one.
+        """
+        self.waiting = False
+        return super().irq()
+
+    @override
+    def nmi(self) -> None:
+        self.waiting = False
+        super().nmi()
+
+    @override
     def op_nop(self, mode: str) -> None:
         for _ in range(MODE_SIZE[mode]):
             self.fetch8()

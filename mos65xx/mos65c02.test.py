@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from typing import Any
 
-from mos65xx import SparseMemory, mos65c02, opcodes65c02
+from mos65xx import SparseMemory, mos65c02, mos6502, opcodes65c02
 
 
 def machine(
@@ -351,6 +351,69 @@ class EveryOpcodeTest(unittest.TestCase):
             ]
 
             self.assertEqual(missing, [], name)
+
+
+class HardwareInterruptTest(unittest.TestCase):
+    """What this part does differently when a pin goes low."""
+
+    def vectored(self, vector: int, target: int = 0x9000) -> Any:
+        cpu, memory = machine([0xEA])
+        memory.write8(vector, target & 0xFF)
+        memory.write8(vector + 1, target >> 8)
+        return cpu, memory
+
+    def test_decimal_mode_is_cleared_on_the_way_in(self) -> None:
+        cpu, _ = self.vectored(0xFFFE)
+        cpu.i = False
+        cpu.d = True
+
+        cpu.irq()
+
+        self.assertFalse(cpu.d)
+
+    def test_which_the_older_part_does_not_do(self) -> None:
+        older, memory = machine([0xEA])
+        memory.write8(0xFFFE, 0x00)
+        memory.write8(0xFFFF, 0x90)
+        older.i = False
+        older.d = True
+
+        mos6502.Cpu.interrupt(older, 0xFFFE)
+
+        self.assertTrue(older.d)
+
+    def test_a_wait_ends_even_when_the_request_is_refused(self) -> None:
+        cpu, _ = self.vectored(0xFFFE)
+        cpu.i = True
+        cpu.waiting = True
+
+        taken = cpu.irq()
+
+        self.assertEqual((taken, cpu.waiting), (False, False))
+
+    def test_and_the_next_instruction_is_where_execution_carries_on(self) -> None:
+        cpu, _ = self.vectored(0xFFFE)
+        cpu.i = True
+        cpu.waiting = True
+
+        cpu.irq()
+
+        self.assertEqual(cpu.pc, 0x8000)
+
+    def test_a_wait_ends_on_the_non_maskable_pin_too(self) -> None:
+        cpu, _ = self.vectored(0xFFFA, target=0x9100)
+        cpu.waiting = True
+
+        cpu.nmi()
+
+        self.assertEqual((cpu.waiting, cpu.pc), (False, 0x9100))
+
+    def test_an_accepted_request_still_reaches_its_handler(self) -> None:
+        cpu, _ = self.vectored(0xFFFE)
+        cpu.i = False
+        cpu.waiting = True
+
+        self.assertTrue(cpu.irq())
 
 
 if __name__ == "__main__":

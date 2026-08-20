@@ -48,6 +48,8 @@ STEP_LIMIT = 2_000_000
 RESET_VECTOR = 0xFFFC
 BREAK_VECTOR = 0xFFFE
 NMI_VECTOR = 0xFFFA
+IRQ_VECTOR = 0xFFFE
+"""The same address the break instruction uses: one vector serves both."""
 
 STACK_PAGE = 0x0100
 
@@ -505,6 +507,44 @@ class Cpu:
         self.push8(self.status() | FLAG_B)
         self.i = True
         self.pc = self.read16(BREAK_VECTOR)
+
+    def interrupt(self, vector: int) -> None:
+        """Take an interrupt the way a pin does, rather than the way BRK does.
+
+        Three things separate this from a break. The return address is the next
+        instruction rather than the byte after a signature, because no opcode was
+        consumed. The pushed status has the break bit clear, which is the only
+        thing a handler can look at to tell which of the two happened. And the
+        register itself keeps whatever that bit held: it is stored like a flag and
+        written like neither, the same rule the break instruction follows.
+        """
+        self.push16(self.pc)
+        self.push8(self.status() & ~FLAG_B)
+        self.i = True
+        self.pc = self.read16(vector)
+
+    def irq(self) -> bool:
+        """Pull the interrupt request line, and say whether the part took it.
+
+        The line is level sensitive and the disable flag decides, so a request
+        that arrives with interrupts disabled is not remembered: it is simply not
+        taken, and a caller holding the line low will have it taken later when the
+        flag clears. False means the request is still outstanding.
+        """
+        if self.i:
+            return False
+        self.interrupt(IRQ_VECTOR)
+        return True
+
+    def nmi(self) -> None:
+        """Pull the non-maskable line, which no flag defends against.
+
+        The real pin is edge sensitive, so it is the transition that interrupts
+        and holding the line low afterwards does nothing. A caller models that by
+        calling this once per transition, which is why there is nothing to poll
+        and nothing to report.
+        """
+        self.interrupt(NMI_VECTOR)
 
     def op_bpl(self, mode: str) -> None:
         self.branch(not self.n)
