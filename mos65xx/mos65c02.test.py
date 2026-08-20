@@ -546,5 +546,34 @@ class CycleShapeTest(unittest.TestCase):
         )
 
 
+class ResetTest(unittest.TestCase):
+    """That a reset defines the one flag this part defines and no others."""
+
+    def machine(self, seed: int) -> Any:
+        memory = SparseMemory(seed=seed)
+        memory.write8(0xFFFC, 0x00)
+        memory.write8(0xFFFD, 0x80)
+        return mos65c02.Cpu(memory, seed=seed)
+
+    def test_decimal_mode_is_off_afterwards(self) -> None:
+        self.assertFalse(self.machine(3).d)
+
+    def test_whatever_the_seed_would_have_left_there(self) -> None:
+        self.assertFalse(any(self.machine(seed).d for seed in range(24)))
+
+    def test_the_older_part_leaves_it_holding_what_it_held(self) -> None:
+        memory = SparseMemory(seed=5)
+        memory.write8(0xFFFC, 0x00)
+        memory.write8(0xFFFD, 0x80)
+
+        self.assertTrue(any(mos6502.Cpu(memory, seed=seed).d for seed in range(24)))
+
+    def test_interrupts_are_disabled_afterwards(self) -> None:
+        self.assertTrue(self.machine(3).i)
+
+    def test_and_the_program_counter_comes_from_the_vector(self) -> None:
+        self.assertEqual(self.machine(3).pc, 0x8000)
+
+
 if __name__ == "__main__":
     unittest.main()

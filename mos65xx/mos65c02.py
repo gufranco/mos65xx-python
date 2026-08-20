@@ -62,8 +62,18 @@ class Cpu(Nmos):
 
     @override
     def reset(self, seed: int | None = None) -> Nmos:
+        """Reset this part, which defines one flag more than the older one does.
+
+        The manufacturer's own table of differences puts it plainly: the decimal
+        flag is indeterminate after a reset on the NMOS part and initialized to
+        binary mode on this one. So a program that forgets to clear it before its
+        first addition is correct here and wrong there, and the only way a model
+        can show that is to leave the older part's flag holding whatever it held.
+        """
         self.waiting = False
-        return super().reset(seed) if seed is not None else super().reset()
+        held = super().reset(seed) if seed is not None else super().reset()
+        self.d = False
+        return held
 
     @override
     def add_with_carry(self, value: int) -> None:

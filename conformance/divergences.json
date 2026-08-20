@@ -1,5 +1,5 @@
 {
-  "note": "Where a manufacturer's document and the per-opcode suite disagree, with what was measured and what this project does about it. Every entry was found by reading a data sheet in full and then going to the suite for the cases the document's claim would change. Some are settled by the recordings and say so; the ones that are not say what would settle them, rather than presenting a preference as a finding.",
+  "note": "Where a manufacturer's document and the per-opcode suite disagree, with what was measured and what this project does about it. Every entry was found by reading a data sheet in full and then going to the suite for the cases the document's claim would change. Some are settled by the recordings and say so; the ones that are not say what would settle them, rather than presenting a preference as a finding. Twice the document contradicts itself, and in both cases the passage that matches the silicon is the more specific one.",
   "howToReadThis": {
     "documentSays": "The manufacturer's sentence, verbatim.",
     "suiteSays": "What the recorded cycles show, with the case that shows it.",
@@ -103,82 +103,34 @@
       "whyItMatters": "A model built from the manual alone puts the wrong address on the bus on every taken branch, which is invisible in a state comparison and visible to any device that watches its own address lines."
     },
     {
-      "subject": "which address a CMOS 65C02 puts on the bus during its spare cycles",
+      "subject": "which address a CMOS 65C02 puts on the bus during its spare cycles, and how long three of its instructions take",
       "documentSays": {
-        "document": "W65C02S Data Sheet, Table 6-5 Instruction Timing Chart",
-        "quote": "3b. Absolute, X (R-M-W) a,x: cycle 4 AAH,AAL+X IO; cycle 5 AA+X Data; cycle 6 AA+X+1 IO; cycle 7 AA+X Data write. 5. Absolute Indirect (a) JMP (6C): cycle 4 PC+2 IO; cycle 5 0,AA New PCL; cycle 6 0,AA+1 New PCH. 2. Absolute Indexed Indirect (a,x) JMP (7C): cycle 4 PC+2 IO."
+        "document": "W65C02S Data Sheet, Table 7-1 Microprocessor Operational Enhancements",
+        "quote": "Indexed addressing across page boundary: NMOS 6502, extra read of invalid address; W65C02S, extra read of last instruction byte. Read/Modify/Write instruction at effective address: NMOS 6502, one read and two write cycles; W65C02S, two read and one write cycle. Jump indirect, operand = XXFF: NMOS 6502, page address does not increment; W65C02S, page address increments, one additional cycle. Flags after decimal operation: NMOS 6502, invalid N, V and Z flags; W65C02S, valid flags. One additional cycle.",
+        "note": "Every one of those is exactly what the recordings show, and the model follows all of them. The caveats table is the reliable part of this document.",
+        "andYetTable6_5": "The timing chart in the same document gives different addresses for three of those spare cycles: the half-formed address for an indexed access, the address after the target for a read-modify-write, and PC+2 for both indirect jumps. All three are contradicted by the caveats table above and by the recordings."
       },
       "suiteSays": {
-        "corpus": "SingleStepTests/65x02 wdc65c02 v1",
-        "measured": "Three of those addresses are not what the recording carries. The spare cycle of an indexed access re-reads the last instruction byte rather than the half-formed address. The read-modify-write's spare cycle re-reads the address it just read rather than the one after it. The indirect jump's spare cycle comes last and re-reads the pointer's high byte, and the indexed indirect jump's re-reads the operand's low byte at PC+1.",
+        "corpus": "SingleStepTests/65x02, all three CMOS suites",
+        "measured": "7,630,080 cases agree with the caveats table, cycle for cycle. Two printed figures do not survive, and both are counts rather than addresses.",
         "cases": [
           {
-            "mode": "STA a,x",
-            "opcode": "9D",
-            "at": "00657C",
-            "readsCycled": ["00657C", "00657D", "00657E", "00657E", "003E9C write"],
-            "verdict": "the spare cycle is a re-read of PC+2, where the document says the half-formed address"
+            "mode": "the undocumented three-byte opcode $5C",
+            "printed": "3 bytes, 8 cycles, in the invalid-OpCode table of Table 7-1",
+            "measured": "4 cycles, in all 10,000 cases of all three suites: the opcode, its two operand bytes, and one spare cycle re-reading the second operand",
+            "verdict": "the only invalid opcode whose printed cycle count the recordings contradict; the other six rows of that table match exactly"
           },
           {
-            "mode": "LDA (d),y crossing a page",
-            "opcode": "B1",
-            "at": "00DF59",
-            "readsCycled": ["00DF59", "00DF5A", "0000AE", "0000AF", "00DF5A", "00BE85"],
-            "verdict": "the spare cycle is a re-read of PC+1, the operand byte"
-          },
-          {
-            "mode": "INC a,x",
-            "opcode": "FE",
-            "at": "008348",
-            "readsCycled": [
-              "008348",
-              "008349",
-              "00834A",
-              "00834A",
-              "00F0F6",
-              "00F0F6",
-              "00F0F6 write"
-            ],
-            "verdict": "two spare cycles, one re-reading PC+2 and one re-reading the target, and one write rather than the two the NMOS part performs"
-          },
-          {
-            "mode": "JMP (a)",
-            "opcode": "6C",
-            "at": "002FC2",
-            "readsCycled": ["002FC2", "002FC3", "002FC4", "000BA3", "000BA4", "000BA4"],
-            "verdict": "six cycles, the last a re-read of the pointer's high byte, where the document puts the spare cycle fourth at PC+2"
-          },
-          {
-            "mode": "JMP (a,x)",
-            "opcode": "7C",
-            "at": "00347D",
-            "readsCycled": ["00347D", "00347E", "00347F", "00347E", "0053F1", "0053F2"],
-            "verdict": "the spare cycle re-reads PC+1, where the document says PC+2"
-          },
-          {
-            "mode": "JMP (a) with a pointer at $xxFF",
-            "opcode": "6C",
-            "at": "004BFF",
-            "readsCycled": ["004BFF", "004B00", "004C00"],
-            "verdict": "the spare cycle reads the wrapped address the older part would have used, and the true high byte comes last. All three CMOS suites agree, and the document puts the spare cycle fourth at PC+2 instead"
-          },
-          {
-            "mode": "ASL a,x against INC a,x",
-            "opcode": "1E against FE",
-            "measured": "ASL, LSR, ROL and ROR of an indexed absolute address take six cycles when the index stays inside a page and seven when it crosses. INC and DEC take seven either way. The document's timing chart gives all six instructions seven cycles",
-            "verdict": "two rules where the document has one"
-          },
-          {
-            "mode": "the opcodes nobody documented",
-            "opcode": "the $x3 and $xB columns",
-            "measured": "One cycle each, reading nothing beyond their own opcode, which is the only instruction on the part that does not read a second byte. $CB is the exception: on the two parts that left it a no-operation it takes two cycles, and the WDC part spends it on waiting for an interrupt",
-            "verdict": "measured per opcode, since no document describes them"
+            "mode": "read-modify-write of an indexed absolute address inside one page",
+            "printed": "Read/Modify/Write instructions absolute indexed in same page: NMOS 6502 seven cycles, W65C02S six cycles",
+            "measured": "Six for ASL, LSR, ROL and ROR, and seven for INC and DEC, in all three suites: 4,966 of 10,000 ASL cases take seven because the index crossed a page, and all 10,000 DEC cases take seven whether it crossed or not",
+            "verdict": "the printed row is right for four of the six instructions it covers and wrong for the other two"
           }
         ]
       },
-      "whatThisProjectDoes": "Follows the recording, per mode, and every one of the 7,630,080 non-placeholder cases in the three CMOS suites now agrees cycle for cycle. The spare cycle of an indexed access re-reads the last byte of the instruction. A read-modify-write reads its address twice and writes it once. The four shifts and rotates pay for indexing only when the index crosses a page, which the document's table does not distinguish from increment and decrement. And a plain indirect jump spends its spare cycle reading the address the NMOS part's page-wrap bug would have used, then reads the right one, which is a nicer account of how the bug was fixed than the document gives.",
-      "whatWouldSettleIt": "Nothing about the behaviour: it is settled per mode by the recordings, at full depth. What is unsettled is why the timing chart names other addresses, and only a run on real silicon would say whether it describes an earlier revision or is simply wrong.",
-      "whyItIsNotJustCopied": "Because it changes the memory the part touches, not only its timing, and a change like that is held to the state suites as well."
+      "whatThisProjectDoes": "Follows the caveats table where it speaks, which is everywhere the timing chart disagrees with it, and follows the recordings for the two counts above. Which means: the spare cycle of an indexed access re-reads the last byte of the instruction, a read-modify-write reads twice and writes once, an indirect jump spends its extra cycle on the address the older part's page-wrap bug would have used, decimal arithmetic costs a cycle, $5C takes four cycles rather than eight, and increment and decrement of an indexed absolute address always pay for indexing while the shifts and rotates pay only across a page.",
+      "whatWouldSettleIt": "For the two counts, a logic analyser on a real part running $5C and running DEC $2000,X with an index that stays inside the page. Nothing else here needs settling: the document's own caveats table and the recordings agree.",
+      "whyTheTimingChartIsNotFollowed": "Because the same document contradicts it twice over, in Table 7-1 and in the recordings, and because a chart that gives a spare cycle the wrong address is the kind of error that survives review: nothing in a state comparison can see it."
     },
     {
       "subject": "the address of the extra cycle a CMOS 65C02 spends on decimal arithmetic",

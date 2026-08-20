@@ -187,8 +187,8 @@
     },
     "cmosCycleShapes": {
       "document": "wdc816",
-      "section": "3.14, and Table 6-5 of the W65C02S data sheet",
-      "quote": "0 0 Internal Operation Address and Data Bus available. The Address Bus may be invalid.",
+      "section": "Table 7-1 Microprocessor Operational Enhancements of the W65C02S data sheet, with Table 6-5 for the cycle counts",
+      "quote": "Indexed addressing across page boundary: NMOS 6502, extra read of invalid address; W65C02S, extra read of last instruction byte.",
       "whatIsImplemented": {
         "indexedSpareCycle": "re-reads the last byte of the instruction rather than the half-formed address",
         "readModifyWrite": "reads its address twice and writes it once, where the NMOS part reads once and writes twice",
@@ -201,7 +201,8 @@
         "bitBranch": "spends both of its extra cycles on the byte after the instruction rather than on a half-formed address"
       },
       "measured": "Every one of the 7,630,080 non-placeholder cases across the three CMOS suites agrees, cycle for cycle. The placeholder cases are the ones counted apart in divergences.json.",
-      "notStated": "No document describes the opcodes the CMOS design left unused, so their shapes are taken from the recordings and are marked as such. Three of the addresses the W65C02S timing chart gives for spare cycles are contradicted by those recordings, and that is recorded rather than reconciled."
+      "notStated": "The invalid-OpCode table in Table 7-1 gives a length and a cycle count for every undocumented opcode, and six of its seven rows match the recordings exactly. The seventh, for $5C, prints eight cycles where every recording shows four, and the row for read-modify-write of an indexed absolute address inside a page is right for four of the six instructions it covers. Both are in divergences.json. The timing chart's addresses for three spare cycles are contradicted by this same table and are not followed.",
+      "andAlso": "Read/Modify/Write instruction at effective address: NMOS 6502, one read and two write cycles; W65C02S, two read and one write cycle. Jump indirect, operand = XXFF: page address increments, one additional cycle. Flags after decimal operation: valid flags. One additional cycle. Decimal flag: initialized to binary mode (D=0) after reset and interrupts."
     },
     "sixteenBitCycleShapes": {
       "document": "wdc816",
@@ -223,6 +224,18 @@
       },
       "measured": "Every one of the 5,080,000 cases in the pinned 65816 suite that does not stop the part agrees, cycle for cycle, including the pins. The 40,000 that stop it are counted apart.",
       "notStated": "What a stopped part drives is not in the document, and the recordings show cycles with no address at all for as long as the recording runs. Those are excluded rather than modelled."
+    },
+    "cmosInterruptClearsDecimal": {
+      "document": "wdc816",
+      "section": "Table 7-1 of the W65C02S data sheet",
+      "quote": "Decimal flag: NMOS 6502, indeterminate after reset; W65C02S, initialized to binary mode (D=0) after reset and interrupts.",
+      "note": "Two facts in one row. The NMOS part's decimal flag is undefined after a reset, which is why nothing here clears it, and the CMOS parts clear it on an interrupt as well as a reset, which is why their interrupt path does."
+    },
+    "cmosInterruptDuringBreak": {
+      "document": "wdc816",
+      "section": "Table 7-1 of the W65C02S data sheet",
+      "quote": "Interrupt after fetch of BRK instruction: NMOS 6502, interrupt vector is loaded, BRK vector is ignored; W65C02S, BRK is executed, and then interrupt is executed.",
+      "notModelled": "Neither behaviour. A pin taken in the middle of an instruction needs a core that can stop part way through one, and this one runs an instruction to completion before it will take an interrupt. Recorded because it is a real difference between the parts and this project does not have it."
     }
   }
 }
