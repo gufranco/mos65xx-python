@@ -141,6 +141,18 @@ class AppendixBusTest(unittest.TestCase):
 
         self.assertIn("a count alone is not a bus trace", recorded["whatWouldSettleIt"])
 
+    def test_the_narrow_form_of_five_rows_follows_from_the_rows_above_them(self) -> None:
+        recorded = about("modify cycle and the push drive when the register is eight bits")
+
+        self.assertIn(
+            "cannot sit on the byte after one that was never read", recorded["whatWouldSettleIt"]
+        )
+
+    def test_the_qualifier_question_is_answerable_only_on_a_pin(self) -> None:
+        recorded = about("new program counter of an indexed indirect jump")
+
+        self.assertIn("on hardware and on nothing less", recorded["whatWouldSettleIt"])
+
 
 class DataBankOnInterruptTest(unittest.TestCase):
     """The first divergence, driven: does a software interrupt clear the bank."""

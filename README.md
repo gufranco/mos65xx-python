@@ -351,6 +351,43 @@ stack relative read lands at `0002FE` rather than wrapping, which the recorded
 cycles confirm and this project reproduces. The earliest revision is the one
 that describes the part.
 
+### The sixteen bit part's bus, cycle by cycle
+
+The 65816 had no rung one cycle check at all until now: its timing rested
+entirely on a recording. Table 6-7 of its data sheet closes that. Across seven
+pages it prints all eight output lines for every cycle of every addressing mode,
+vector pull and memory lock included, and all forty-seven groups and three
+hundred and twenty-eight rows are in
+[`conformance/bus-operation.json`](conformance/bus-operation.json).
+
+[`conformance/bus_operation.test.py`](conformance/bus_operation.test.py) drives
+forty-four of the forty-seven and resolves the table's own address expressions
+against each run. The three it does not drive are the two that never finish an
+instruction, stop-the-clock and wait-for-interrupt, and the hardware interrupt
+group, which a pin drives rather than an opcode.
+
+The runs use eight bit registers, a direct register with no low byte and no
+index crossing a page. That is the one configuration in which every note the
+table carries is inactive, which matters because the Note column is a merged
+cell whose row alignment cannot be recovered from the extracted text. Switching
+any note on would mean guessing which row it belongs to.
+
+Two hundred and fifty-seven of the two hundred and sixty-six rows reached match
+exactly. The nine that do not fall into two classes, both recorded:
+
+- Five rows carry an address that is only right when the register is sixteen
+  bits. Each sits directly below a row that exists only in that wider form, and
+  each names the byte that wider form would have left behind. The four
+  read-modify-write modify cycles come out a byte high and the push a byte low,
+  because the stack grows the other way. The table has no eight bit form of
+  those rows.
+- Four rows disagree about a pin rather than an address. The table marks the two
+  bytes of a new program counter, fetched through an indexed pointer, as a valid
+  program address. The part marks them a valid data address, and so does the
+  table itself two groups later for the same operation through a pointer in bank
+  zero. Only a logic analyser on the real pins can settle that one, and
+  [`conformance/divergences.json`](conformance/divergences.json) says so.
+
 ## Conformance
 
 ```bash
@@ -421,6 +458,7 @@ conformance/
   instruction-set.json    every documented opcode, its length, timing and flags
   cmos-reserved.json      the 44 opcodes the CMOS parts left as no-operations
   part-differences.json   the one table that sets all four parts side by side
+  bus-operation.json      all 8 output lines, every cycle, every 65816 mode
   divergences.json    where a document and the recorded cycles part, and why
 ```
 

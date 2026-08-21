@@ -1,0 +1,3979 @@
+{
+  "note": "Table 6-7 of the W65C816S data sheet, which prints all eight output lines for every cycle of every addressing mode: vector pull, memory lock, the two address qualifiers, the address bus, what is on the data bus and the read write line. Nothing else here states the sixteen bit part's bus behaviour at rung one, so this is what its timing is held to when no recording is on the machine.",
+  "document": "manufacturer/w65c816s.pdf",
+  "section": "Table 6-7 Instruction Operation",
+  "printedPages": "42 to 48",
+  "pdfPages": "42 to 48",
+  "readOn": "2026-08-21",
+  "readHow": "All seven pages read as printed. The extracted text is well aligned here, unlike the opcode matrix two pages earlier, so it was parsed and then checked row by row against the pages rather than trusted on its own.",
+  "notes": {
+    "1": "Add 1 byte (for immediate only) for M=0 or X=0 (i.e. 16-bit data), add 1 cycle for M=0 or X=0. REP, SEP are always 3 cycle instructions and VPA is low during the third cycle. The address bus is PC+1 during the third cycle.",
+    "2": "Add 1 cycle for direct register low (DL) not equal 0.",
+    "3": "Special case for aborting instruction. This is the last cycle which may be aborted or the Status, PBR or DBR registers will be updated.",
+    "4": "Add 1 cycle for indexing across page boundaries, or write, or X=0. When X=1 or in the emulation mode, this cycle contains invalid addresses.",
+    "5": "Add 1 cycle if branch is taken.",
+    "6": "Add 1 cycle if branch is taken across page boundaries in 6502 emulation mode (E=1).",
+    "7": "Subtract 1 cycle for 6502 emulation mode (E=1).",
+    "8": "Add 1 cycle for REP, SEP.",
+    "9": "Wait at cycle 2 for 2 cycles after NMIB or IRQB active input.",
+    "10": "RWB remains high during Reset.",
+    "11": "BRK bit 4 equals 0 in Emulation mode.",
+    "12": "PHP and PLP.",
+    "13": "Some OpCodes shown are compatible only with the W65C816S.",
+    "14": "VDA and VPA are not valid outputs on the W65C02S but are valid on the W65C816S.",
+    "15": "The PBR is only applicable to the W65C816S.",
+    "16": "COP Latches.",
+    "17": "In the emulation mode, during a R-M-W instruction the RWB is low during both write and modify cycles."
+  },
+  "printingSlips": {
+    "note": "Cells where the page prints something the rest of the table spells differently. None changes what the row means, and all are kept under asPrinted so a reader holding the page can see why the record does not match it character for character.",
+    "kinds": {
+      "PBR-PC+1": "A hyphen where every other row of the table uses a comma, on group 2a.",
+      "PBR,NEWPC": "No space, where the neighbouring rows print New PC, on group 1c.",
+      "Date High": "A typo for Data High, on group 6b.",
+      "OP Code": "A space, where every other row prints OpCode, on group 9b.",
+      "0.S-3": "A full stop where the bank separator should be, on group 22j.",
+      "0,D+D0+1": "A digit zero where the direct offset uses a letter O, on group 15."
+    }
+  },
+  "groups": [
+    {
+      "id": "1a",
+      "title": "Absolute a",
+      "about": [
+        "ADC, AND, BIT, CMP, CPX, CPY, EOR,",
+        "LDA, LDX LDY ORA, SBC, STA, STX,",
+        "STY, STZ,",
+        "18 OpCodes, 3 bytes, 4 & 5 cycles"
+      ],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "AAL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "AAH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBR,AA",
+          "data": "Data Low",
+          "rwb": "1/0"
+        },
+        {
+          "cycle": "4a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBR,AA+1",
+          "data": "Data High",
+          "rwb": "1/0",
+          "notes": ["1"]
+        }
+      ]
+    },
+    {
+      "id": "1b",
+      "title": "Absolute a",
+      "about": ["JMP (4C)", "1 OpCode, 3 bytes, 3 cycles"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "New PCL",
+          "rwb": "1",
+          "asPrinted": {
+            "address": "PBR,P C+1",
+            "data": "New PCL"
+          }
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "New PCH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,New PC",
+          "data": "OpCode",
+          "rwb": "1",
+          "isNextOpcodeFetch": true
+        }
+      ]
+    },
+    {
+      "id": "1c",
+      "title": "Absolute a",
+      "about": ["JSR", "1 OpCode, 3 bytes, 6 cycles", "(different order from N6502)"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "New PCL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "New PCH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+2",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S",
+          "data": "PCH",
+          "rwb": "0"
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S-1",
+          "data": "PCL",
+          "rwb": "0"
+        },
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,New PC",
+          "data": "Next OpCode",
+          "rwb": "1",
+          "asPrinted": {
+            "address": "PBR,NEWPC",
+            "data": "Next OpCode"
+          },
+          "isNextOpcodeFetch": true
+        }
+      ]
+    },
+    {
+      "id": "1d",
+      "title": "Absolute (R-M-W) a",
+      "about": ["ASL, DEC, INC, LSR, ROL, ROR, TRB,", "TSB", "6 OpCodes, 3 bytes, 6 & 8 cycles"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "AAL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "AAH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 0,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBR,AA",
+          "data": "Data Low",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4a",
+          "vpb": 1,
+          "mlb": 0,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBR,AA+1",
+          "data": "Data High",
+          "rwb": "1",
+          "notes": ["1"]
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 0,
+          "vda": 0,
+          "vpa": 0,
+          "address": "DBR,AA+1",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["3", "17"]
+        },
+        {
+          "cycle": "6a",
+          "vpb": 1,
+          "mlb": 0,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBR,AA+1",
+          "data": "Data High",
+          "rwb": "0",
+          "notes": ["1"]
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 0,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBR,AA",
+          "data": "Data Low",
+          "rwb": "0"
+        }
+      ]
+    },
+    {
+      "id": "2a",
+      "title": "Absolute Indexed Indirect (a,x)",
+      "about": ["JMP", "1 OpCode, 3 bytes, 6 cycles"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "AAL",
+          "rwb": "1",
+          "asPrinted": {
+            "address": "PBR-PC+1",
+            "data": "AAL"
+          }
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "AAH",
+          "rwb": "1",
+          "asPrinted": {
+            "address": "PBR-PC+2",
+            "data": "AAH"
+          }
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+2",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,AA+X",
+          "data": "New PCL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,AA+X+1",
+          "data": "New PCH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,New PC",
+          "data": "OpCode",
+          "rwb": "1",
+          "asPrinted": {
+            "address": "PBR,NEW PC",
+            "data": "OpCode"
+          },
+          "isNextOpcodeFetch": true
+        }
+      ]
+    },
+    {
+      "id": "2b",
+      "title": "Absolute Indexed Indirect (a,x)",
+      "about": ["JSR", "1 OpCode, 3 bytes, 8 cycles"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "AAL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S",
+          "data": "PCH",
+          "rwb": "0"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S-1",
+          "data": "PCL",
+          "rwb": "0"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "AAH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+2",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "7",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,AA+X",
+          "data": "New PCL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "8",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,AA+X+1",
+          "data": "New PCH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,New PC",
+          "data": "Next OpCode",
+          "rwb": "1",
+          "asPrinted": {
+            "address": "PBR,NEW PC",
+            "data": "Next OpCode"
+          },
+          "isNextOpcodeFetch": true
+        }
+      ]
+    },
+    {
+      "id": "3a",
+      "title": "Absolute Indirect (a)",
+      "about": ["JML", "1 OpCode, 3 bytes, 6 cycles"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "AAL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "AAH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,AA",
+          "data": "New PCL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,AA+1",
+          "data": "New PCH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,AA+2",
+          "data": "New PBR",
+          "rwb": "1"
+        },
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "New PBR,PC",
+          "data": "OpCode",
+          "rwb": "1",
+          "asPrinted": {
+            "address": "NEW PBR,PC",
+            "data": "OpCode"
+          },
+          "isNextOpcodeFetch": true
+        }
+      ]
+    },
+    {
+      "id": "3b",
+      "title": "Absolute Indirect (a)",
+      "about": [
+        "JMP",
+        "1 OpCode, 3 bytes, 5 cycles",
+        "(See Table 6.8 for abbreviations.)",
+        "Table 6-7 (continued)",
+        "Address Mode                    Note     Cycle   VPB    MLB    VDA      VPA      Address Bus (15)     Data Bus        RWB",
+        "(14)     (14)"
+      ],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "AAL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "AAH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,AA",
+          "data": "New PCL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,AA+1",
+          "data": "New PCH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,New PC",
+          "data": "OpCode",
+          "rwb": "1",
+          "asPrinted": {
+            "address": "PBR,NEW PC",
+            "data": "OpCode"
+          },
+          "isNextOpcodeFetch": true
+        }
+      ]
+    },
+    {
+      "id": "4a",
+      "title": "Absolute Long al",
+      "about": ["ADC, AND, CMP, EOR, LDA, ORA, SBC,", "STA, 8 OpCodes, 4 bytes,", "5 & 6 cycles"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "AAL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "AAH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+3",
+          "data": "AAB",
+          "rwb": "1"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "AAB,AA",
+          "data": "Data Low",
+          "rwb": "1/0"
+        },
+        {
+          "cycle": "5a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "AAB,AA+1",
+          "data": "Data High",
+          "rwb": "1/0",
+          "notes": ["1"]
+        }
+      ]
+    },
+    {
+      "id": "4b",
+      "title": "Absolute Long (JUMP) al",
+      "about": ["JMP", "1 OpCode, 4 bytes, 4 cycles"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "New PCL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "New PCH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+3",
+          "data": "New PBR",
+          "rwb": "1",
+          "asPrinted": {
+            "address": "PBR,PC+3",
+            "data": "New BR"
+          }
+        },
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "New PBR,PC",
+          "data": "OpCode",
+          "rwb": "1",
+          "isNextOpcodeFetch": true
+        }
+      ]
+    },
+    {
+      "id": "4c",
+      "title": "Absolute Long (JUMP to Subroutine",
+      "about": ["Long) al", "JSL", "1 OpCode, 4 bytes, 7 cycles"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "New PCL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "New PCH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S",
+          "data": "PBR",
+          "rwb": "0"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "0,S",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+3",
+          "data": "New PBR",
+          "rwb": "1"
+        },
+        {
+          "cycle": "7",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S-1",
+          "data": "PCH",
+          "rwb": "0"
+        },
+        {
+          "cycle": "8",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S-2",
+          "data": "PCL",
+          "rwb": "0"
+        },
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "New PBR,PC",
+          "data": "Next OpCode",
+          "rwb": "1",
+          "isNextOpcodeFetch": true
+        }
+      ]
+    },
+    {
+      "id": "5",
+      "title": "Absolute Long,X al,x",
+      "about": ["ADC, AND, CMP, EOR, LDA, ORA, SBC,", "STA", "8 OpCodes, 4 bytes, 5 and 6 cycles"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "AAL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "AAH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+3",
+          "data": "AAB",
+          "rwb": "1"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "AAB,AA+X",
+          "data": "Data Low",
+          "rwb": "1/0"
+        },
+        {
+          "cycle": "5a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "AAB,AA+X+1",
+          "data": "Data High",
+          "rwb": "1/0",
+          "notes": ["1"]
+        }
+      ]
+    },
+    {
+      "id": "6a",
+      "title": "Absolute, X a, x",
+      "about": [
+        "ADC, AND, BIT, CMP, EOR, LDA, LDY,",
+        "ORA, SBC, STA, STA, STZ",
+        "12 OpCodes, 3 bytes, 4,5 and 6 cycles"
+      ],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "AAL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "AAH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "DBR,AAH,AAL+XL",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["4"]
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBR,AA+X",
+          "data": "Data Low",
+          "rwb": "1/0"
+        },
+        {
+          "cycle": "4a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBR,AA+X+1",
+          "data": "Data High",
+          "rwb": "1/0",
+          "notes": ["1"]
+        }
+      ]
+    },
+    {
+      "id": "6b",
+      "title": "Absolute, X(R-M-W) a,x",
+      "about": ["ASL, DEC INC LSR ROL, ROR", "6 OpCodes, 3 bytes, 7 and 9 cycles"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "AAL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "AAH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "DBR,AAH,AAL+XL",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 0,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBR,AA+X",
+          "data": "Data Low",
+          "rwb": "1"
+        },
+        {
+          "cycle": "5a",
+          "vpb": 1,
+          "mlb": 0,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBR,AA+X+1",
+          "data": "Data High",
+          "rwb": "1",
+          "notes": ["1"],
+          "asPrinted": {
+            "address": "DBR,AA+X+1",
+            "data": "Date High"
+          }
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 0,
+          "vda": 0,
+          "vpa": 0,
+          "address": "DBR,AA+X+1",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["3", "17"]
+        },
+        {
+          "cycle": "7a",
+          "vpb": 1,
+          "mlb": 0,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBR,AA+X+1",
+          "data": "Data High",
+          "rwb": "0",
+          "notes": ["1"]
+        },
+        {
+          "cycle": "7",
+          "vpb": 1,
+          "mlb": 0,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBR,AA+X",
+          "data": "Data Low",
+          "rwb": "0"
+        }
+      ]
+    },
+    {
+      "id": "7",
+      "title": "Absolute, Y a,y",
+      "about": [
+        "ADC, AND, CMP, EOR, LDA, LDX, ORA,",
+        "SBC, STA",
+        "9 OpCodes, 3 bytes, 4,5 and 6 cycles"
+      ],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "AAL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "AAH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "DBR,AAH,AAL+YL",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["4"]
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBR,AA+Y",
+          "data": "Data Low",
+          "rwb": "1/0"
+        },
+        {
+          "cycle": "4a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBR,AA+Y+1",
+          "data": "Data High",
+          "rwb": "1/0",
+          "notes": ["1"]
+        }
+      ]
+    },
+    {
+      "id": "8",
+      "title": "Accumulator A",
+      "about": [
+        "ASL, DEC, INC, LSR, ROL, ROR",
+        "6 OpCodes, 1 byte, 2 cycles",
+        "(see Table 6-8 for abbreviations)",
+        "Table 6-7 (continued)",
+        "Address Mode                    Note   Cycle   VPB   MLB    VDA      VPA     Address Bus (15)     Data Bus     RWB",
+        "(14)     (14)"
+      ],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1"
+        }
+      ]
+    },
+    {
+      "id": "9a",
+      "title": "Block Move Negative",
+      "about": [
+        "(backward) xyc",
+        "MVN",
+        "1 Op Code                            N-2",
+        "3 bytes                             Byte",
+        "7 cycles                            C=2",
+        "x=Source Address",
+        "y=Destination",
+        "c=# of bytes to move-1",
+        "x,y Increment",
+        "FFFFFF",
+        "Source End",
+        "Dest. End",
+        "Source Start",
+        "Dest. Start      N Byte",
+        "000000                                C=0"
+      ],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "DBA",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "SBA",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "SBA,X",
+          "data": "SRC Data",
+          "rwb": "1"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBA,Y",
+          "data": "Dest Data",
+          "rwb": "0"
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "DBA,Y",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "7",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "DBA,Y",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1",
+          "isNextOpcodeFetch": true
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "DBA",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "SBA",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "SBA,X+1",
+          "data": "SRC Data",
+          "rwb": "1"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBA,Y+1",
+          "data": "Dest Data",
+          "rwb": "0"
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "DBA,Y+1",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "7",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "DBA,Y+1",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1",
+          "isNextOpcodeFetch": true
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "DBA",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "SBA",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "SBA,X+2",
+          "data": "SRC Data",
+          "rwb": "1"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBA,Y+2",
+          "data": "Dest Data",
+          "rwb": "0"
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "DBA,Y+2",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "7",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "DBA,Y+2",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC+3",
+          "data": "Next OpCode",
+          "rwb": "1",
+          "isNextOpcodeFetch": true
+        }
+      ]
+    },
+    {
+      "id": "9b",
+      "title": "Block Move Positive",
+      "about": [
+        "(forward) xyc",
+        "(MVP)",
+        "1 Op Code                            N-2",
+        "3 bytes                             Byte",
+        "7 cycles                            C=2",
+        "x=Source Address",
+        "y=Destination",
+        "c=# of bytes to move-1",
+        "x,y Decrement",
+        "MVP is used when the destination       N-1",
+        "start address is higher (more         Byte",
+        "positive ) than the source           C=1",
+        "start address.",
+        "FFFFFF",
+        "N Byte",
+        "Destination.",
+        "Last",
+        "Start",
+        "C=0",
+        "Source Start",
+        "Destination.",
+        "000000",
+        "End",
+        "(see Table 6-7 for abbreviations)",
+        "Table 6-7 (continued)",
+        "Address Mode                   Note      Cycle    VPB   MLB     VDA      VPA      Address Bus (15)    Data Bus         RWB",
+        "(14)     (14)"
+      ],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "DBA",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "SBA",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "SBA,X",
+          "data": "SRC Data",
+          "rwb": "1"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBA,Y",
+          "data": "Dest Data",
+          "rwb": "0"
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "DBA,Y",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "7",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "DBA,Y",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1",
+          "isNextOpcodeFetch": true
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "DBA",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "SBA",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "SBA,X-1",
+          "data": "SRC Data",
+          "rwb": "1"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBA,Y-1",
+          "data": "Dest Data",
+          "rwb": "0"
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "DBA,Y-1",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "7",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "DBA,Y-1",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1",
+          "asPrinted": {
+            "address": "PBR,PC",
+            "data": "OP Code"
+          },
+          "isNextOpcodeFetch": true
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "DBA",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "SBA",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "SBA,X-2",
+          "data": "SRC Data",
+          "rwb": "1"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBA,Y-2",
+          "data": "Dest Data",
+          "rwb": "0"
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "DBA,Y-2",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "7",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "DBA,Y-2",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC+3",
+          "data": "Next OpCode",
+          "rwb": "1",
+          "isNextOpcodeFetch": true
+        }
+      ]
+    },
+    {
+      "id": "10a",
+      "title": "Direct d",
+      "about": [
+        "ADC AND BIT, CMP, CPX, CPY ,EOR,",
+        "LDA, LDX, LDY, ORA, SBC, STA, STX,",
+        "STY, STZ",
+        "16 OpCodes, 2 bytes, 3, 4 & 5 cycles"
+      ],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "DO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["2"]
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO",
+          "data": "Data Low",
+          "rwb": "1/0"
+        },
+        {
+          "cycle": "3a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO+1",
+          "data": "Data High",
+          "rwb": "1/0",
+          "notes": ["1"]
+        }
+      ]
+    },
+    {
+      "id": "10b",
+      "title": "Direct (R-M-W)d",
+      "about": [
+        "ASL, DEC, INC, LSR, ROL, ROR, TRB,",
+        "TSB,",
+        "8 OpCodes, 2 bytes, 5,6,7 and 8 cycles"
+      ],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1",
+          "asPrinted": {
+            "address": "PBR, PC",
+            "data": "OpCode"
+          }
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "DO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["2"]
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 0,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO",
+          "data": "Data Low",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3a",
+          "vpb": 1,
+          "mlb": 0,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO+1",
+          "data": "Data High",
+          "rwb": "1",
+          "notes": ["1"]
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 0,
+          "vda": 0,
+          "vpa": 0,
+          "address": "0,D+DO+1",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["3", "17"]
+        },
+        {
+          "cycle": "5a",
+          "vpb": 1,
+          "mlb": 0,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO+1",
+          "data": "Data High",
+          "rwb": "0",
+          "notes": ["1"]
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 0,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO",
+          "data": "Data Low",
+          "rwb": "0"
+        }
+      ]
+    },
+    {
+      "id": "11",
+      "title": "Direct Indexed Indirect (d,x)",
+      "about": [
+        "ADC, AND, CMP, EOR, LDA, ORA, SBC,",
+        "STA,",
+        "8 OpCodes, 2 bytes, 6,7 and 8 cycles"
+      ],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "DO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["2"]
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO+X",
+          "data": "AAL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO+X+1",
+          "data": "AAH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBR,AA",
+          "data": "Data Low",
+          "rwb": "1/0"
+        },
+        {
+          "cycle": "6a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBR,AA+1",
+          "data": "Data High",
+          "rwb": "1/0",
+          "notes": ["1"]
+        }
+      ]
+    },
+    {
+      "id": "12",
+      "title": "Direct Indirect (d)",
+      "about": [
+        "ADC, AND, CMP, EOR, LDA, ORA, SBC.",
+        "STA,",
+        "8 OpCodes 2 bytes, 5,6 and 7 cycles"
+      ],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "DO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["2"]
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO",
+          "data": "AAL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO+1",
+          "data": "AAH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBR,AA",
+          "data": "Data Low",
+          "rwb": "1/0"
+        },
+        {
+          "cycle": "5a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBR,AA+1",
+          "data": "Data High",
+          "rwb": "1/0",
+          "notes": ["1"]
+        }
+      ]
+    },
+    {
+      "id": "13",
+      "title": "Direct Indirect Indexed (d),y",
+      "about": [
+        "ADC, AND, CMP, EOR, LDA, ORA, SBC,",
+        "STA",
+        "8 OpCodes, 2 bytes, 5,6,7 and 8 cycles"
+      ],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "DO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["2"]
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO",
+          "data": "AAL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO+1",
+          "data": "AAH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "DBR,AAH,AAL+YL",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["4"],
+          "asPrinted": {
+            "address": "DBR,AAH.AAL+YL",
+            "data": "IO"
+          }
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBR,AA+Y",
+          "data": "Data Low",
+          "rwb": "1/0"
+        },
+        {
+          "cycle": "5a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBR,AA+Y+1",
+          "data": "Data High",
+          "rwb": "1/0",
+          "notes": ["1"]
+        }
+      ]
+    },
+    {
+      "id": "14",
+      "title": "Direct Indirect Indexed Long [d],y",
+      "about": [
+        "ADC, AND, CMP, EOR, LDA, ORA, SBC,",
+        "STA",
+        "8 OpCodes, 2 bytes, 6,7 and 8 cycles"
+      ],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "DO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["2"]
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO",
+          "data": "AAL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO+1",
+          "data": "AAH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO+2",
+          "data": "AAB",
+          "rwb": "1"
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "AAB,AA+Y",
+          "data": "Data Low",
+          "rwb": "1/0",
+          "asPrinted": {
+            "address": "AAB,AA+Y",
+            "data": "Dat a Low"
+          }
+        },
+        {
+          "cycle": "6a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "AAB,AA+Y+1",
+          "data": "Data High",
+          "rwb": "1/0",
+          "notes": ["1"]
+        }
+      ]
+    },
+    {
+      "id": "15",
+      "title": "Direct Indirect Long [d]",
+      "about": [
+        "ADC, AND, CMP, EOR, LDA, ORA, SBC,",
+        "STA",
+        "8 OpCodes, 2 bytes, 6,7 and 8 cycles",
+        "(see Table 6-8 for abbreviations)",
+        "Table 6-7 (continued)",
+        "Address Mode                  Note      Cycle   VPB     MLB    VDA      VPA       Address Bus    Data Bus   RWB",
+        "(14)     (14)        (15)"
+      ],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "DO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["2"]
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO",
+          "data": "AAL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO+1",
+          "data": "AAH",
+          "rwb": "1",
+          "asPrinted": {
+            "address": "0,D+D0+1",
+            "data": "AAH"
+          }
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO+2",
+          "data": "AAB",
+          "rwb": "1"
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "AAB,AA",
+          "data": "Data Low",
+          "rwb": "1/0"
+        },
+        {
+          "cycle": "6a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "AAB,AA+1",
+          "data": "Data High",
+          "rwb": "1/0",
+          "notes": ["1"]
+        }
+      ]
+    },
+    {
+      "id": "16a",
+      "title": "Direct, X d,x",
+      "about": [
+        "ADC, AND, BIT, CMP, EOR, LDA",
+        "LDY, ORA, SBC, STA, STY, STZ,",
+        "12 OpCodes,2 bytes, 4,5,and 6 cycles"
+      ],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "DO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["2"]
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO+X",
+          "data": "Data Low",
+          "rwb": "1/0"
+        },
+        {
+          "cycle": "4a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO+X+1",
+          "data": "Data High",
+          "rwb": "1/0",
+          "notes": ["1"]
+        }
+      ]
+    },
+    {
+      "id": "16b",
+      "title": "Direct, X (R-M-W) d,x",
+      "about": ["ASL, DEC, INC, LSR, ROL, ROR,", "6 OpCodes, 2 bytes, 6,7,8 and 9 cycles"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "DO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["2"]
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 0,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO+X",
+          "data": "Data Low",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4a",
+          "vpb": 1,
+          "mlb": 0,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO+X+1",
+          "data": "Data High",
+          "rwb": "1",
+          "notes": ["1"]
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 0,
+          "vda": 0,
+          "vpa": 0,
+          "address": "0,D+DO+X+1",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["3", "17"]
+        },
+        {
+          "cycle": "6a",
+          "vpb": 1,
+          "mlb": 0,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO+X+1",
+          "data": "Data High",
+          "rwb": "0",
+          "notes": ["1"]
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 0,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO+X",
+          "data": "Data Low",
+          "rwb": "0"
+        }
+      ]
+    },
+    {
+      "id": "17",
+      "title": "Direct, Y d,y",
+      "about": ["LDX, STX", "2 OpCodes, 2 bytes, 4,5 and 6 cycles"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "DO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["2"]
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO+Y",
+          "data": "Data Low",
+          "rwb": "1/0"
+        },
+        {
+          "cycle": "4a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO+Y+1",
+          "data": "Data High",
+          "rwb": "1/0",
+          "notes": ["1"]
+        }
+      ]
+    },
+    {
+      "id": "18",
+      "title": "Immediate #",
+      "about": [
+        "ADC, AND, BIT, CMP, CPX, CPY,",
+        "EOR, LDA, LDX, LDY, ORA, REP,",
+        "SEC, SEP",
+        "14 OpCodes, 2 and 3 bytes, 2 and 3",
+        "cycles"
+      ],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "IDL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "IDH",
+          "rwb": "1",
+          "notes": ["1", "6"]
+        }
+      ]
+    },
+    {
+      "id": "19a",
+      "title": "Implied i",
+      "about": [
+        "CLC, CLD, CLI, CLV, DEX, DEY,",
+        "INX, INY, NOP, SEC, SED, SEI,",
+        "TAX, TAY, TCD, TCS, TDC, TSC,",
+        "TSX, TXA, TXS, TXY, TYA, TYX,",
+        "XCE",
+        "25 OpCodes, 1 byte, 2 cycles"
+      ],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1"
+        }
+      ]
+    },
+    {
+      "id": "19b",
+      "title": "Implied i",
+      "about": ["XBA", "1 OpCode, 1 byte, 3 cycles"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1"
+        }
+      ]
+    },
+    {
+      "id": "19c",
+      "title": "Stop the Clock",
+      "about": [
+        "STP",
+        "1 OpCode",
+        "1 byte                   RESB=1",
+        "3 cycles                   RESB=0",
+        "RESB=0",
+        "RESB=1",
+        "(See 22a. Stack Hardware Interrupt)",
+        "RDY=1"
+      ],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "1c",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "RES (BRK)",
+          "rwb": "1"
+        },
+        {
+          "cycle": "1b",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "RES (BRK)",
+          "rwb": "1"
+        },
+        {
+          "cycle": "1a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "RES (BRK)",
+          "rwb": "1"
+        },
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "BEGIN",
+          "rwb": "1",
+          "isNextOpcodeFetch": true
+        }
+      ]
+    },
+    {
+      "id": "19d",
+      "title": "Wait for Interrupt                  (9)RDY=1",
+      "about": [
+        "WAI                                         RDY=0",
+        "RDY=1",
+        "1 OpCode,1 byte",
+        "3 cycles                IRQB, NMIB",
+        "(see Table 6-8 for abbreviations",
+        "Table 6-7 (continued)",
+        "Address Mode                 Note   Cycle   VPB     MLB     VDA      VPA     Address Bus (15)       Data Bus        RWB",
+        "(14)     (14)"
+      ],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "IRQ(BRK)",
+          "rwb": "1",
+          "isNextOpcodeFetch": true
+        }
+      ]
+    },
+    {
+      "id": "20",
+      "title": "Relative r",
+      "about": [
+        "BCC, BCS, BEQ, BMI, BNE, BPL, BRA,",
+        "BVC,BVS",
+        "9 OpCodes, 2 bytes, 2,3 and 4 cycles"
+      ],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "Offset",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["5"]
+        },
+        {
+          "cycle": "2b",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["6"]
+        },
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC+Offset",
+          "data": "OpCode",
+          "rwb": "1",
+          "isNextOpcodeFetch": true
+        }
+      ]
+    },
+    {
+      "id": "21",
+      "title": "Relative Long rl",
+      "about": ["BRL", "1 OpCode, 3 bytes, 4 cycles"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "Offset Low",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "Offset High",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+2",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC+Offset",
+          "data": "OpCode",
+          "rwb": "1",
+          "isNextOpcodeFetch": true
+        }
+      ]
+    },
+    {
+      "id": "22a",
+      "title": "Stack s",
+      "about": ["ABORT, IRQ, NMI, RES", "4 hardware interrupts", "0 bytes, 7 and 8 cycles"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["3"]
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["7"]
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S",
+          "data": "PBR",
+          "rwb": "0",
+          "notes": ["10"]
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S-1",
+          "data": "PCH",
+          "rwb": "0",
+          "notes": ["10"]
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S-2",
+          "data": "PCL",
+          "rwb": "0",
+          "notes": ["10"]
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S-3",
+          "data": "P",
+          "rwb": "0",
+          "notes": ["11"],
+          "asPrinted": {
+            "address": "0.S-3",
+            "data": "P"
+          }
+        },
+        {
+          "cycle": "7",
+          "vpb": 0,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,VA",
+          "data": "AAVL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "8",
+          "vpb": 0,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,VA+1",
+          "data": "AAVH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "0,AAV",
+          "data": "Next OpCode",
+          "rwb": "1",
+          "isNextOpcodeFetch": true
+        }
+      ]
+    },
+    {
+      "id": "22b",
+      "title": "Stack s",
+      "about": [
+        "PLA, PLB, PLD, PLP, PLX, PLY",
+        "Different than N6502",
+        "6 Op Codes,1 byte, 4 and 5 cycles"
+      ],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S+1",
+          "data": "REG Low",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S+2",
+          "data": "REG High",
+          "rwb": "1",
+          "notes": ["1"]
+        }
+      ]
+    },
+    {
+      "id": "22c",
+      "title": "Stack s",
+      "about": ["PHA, PHB PHP, PHD, PHK, PHX, PHY", "7 Op Codes, 1 byte, 3 and 4 cycles"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["1"]
+        },
+        {
+          "cycle": "3a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S",
+          "data": "REG High",
+          "rwb": "1",
+          "notes": ["12"]
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S-1",
+          "data": "REG Low",
+          "rwb": "1"
+        }
+      ]
+    },
+    {
+      "id": "22d",
+      "title": "Stack s",
+      "about": ["PEA", "1 Op Code, 3 bytes, 5 cycles"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "AAL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "AAH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S",
+          "data": "AAH",
+          "rwb": "0"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S-1",
+          "data": "AAL",
+          "rwb": "0"
+        }
+      ]
+    },
+    {
+      "id": "22e",
+      "title": "Stack s",
+      "about": ["PEI", "1 Op Code, 2 bytes, 6 and 7 cycles"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "DO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["2"]
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO",
+          "data": "AAL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,D+DO+1",
+          "data": "AAH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S",
+          "data": "AAH",
+          "rwb": "0"
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S-1",
+          "data": "AAL",
+          "rwb": "0"
+        }
+      ]
+    },
+    {
+      "id": "22f",
+      "title": "Stack s",
+      "about": [
+        "PER",
+        "1 Op Code, 3 bytes, 6 cycles",
+        "(see Table 6-8 for abbreviations)",
+        "Table 6-7 (continued)",
+        "Address Mode                    Note   Cycle     VPB    MLB      VDA      VPA       Address Bus     Data Bus         RWB",
+        "(14)     (14)         (15)"
+      ],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "Offset Low",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+2",
+          "data": "Offset High",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+2",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S",
+          "data": "PCH+Offset+Carry",
+          "rwb": "0"
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S-1",
+          "data": "PCL+Offset",
+          "rwb": "0"
+        }
+      ]
+    },
+    {
+      "id": "22g",
+      "title": "Stack s",
+      "about": ["RTI", "1 Op Code, 1 byte, 6 and 7 cycles", "(different order fromN6502)"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1",
+          "notes": ["3"]
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S+1",
+          "data": "P",
+          "rwb": "1"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S+2",
+          "data": "New PCL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S+3",
+          "data": "New PCH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "7",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S+4",
+          "data": "PBR",
+          "rwb": "1",
+          "notes": ["7"]
+        },
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,New PC",
+          "data": "Next OpCode",
+          "rwb": "1",
+          "isNextOpcodeFetch": true
+        }
+      ]
+    },
+    {
+      "id": "22h",
+      "title": "Stack s",
+      "about": ["RTS", "1 OpCode, 1 byte, 6 cycles"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S+1",
+          "data": "PCL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S+2",
+          "data": "PCH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "0,S+2",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1",
+          "isNextOpcodeFetch": true
+        }
+      ]
+    },
+    {
+      "id": "22i",
+      "title": "Stack s",
+      "about": ["RTL", "1 Op Code, 1 byte, 6 cycles"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S+1",
+          "data": "New PCL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S+2",
+          "data": "New PCH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S+3",
+          "data": "New PBR",
+          "rwb": "1"
+        },
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "New PBR,PC",
+          "data": "Next OpCode",
+          "rwb": "1",
+          "asPrinted": {
+            "address": "NEW PBR,PC",
+            "data": "Next OpCode"
+          },
+          "isNextOpcodeFetch": true
+        }
+      ]
+    },
+    {
+      "id": "22j",
+      "title": "Stack s",
+      "about": ["BRK,COP", "2 OpCodes, 2 bytes", "7 and 8 cycles"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "Signature",
+          "rwb": "1",
+          "notes": ["3"]
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S",
+          "data": "PBR",
+          "rwb": "0",
+          "notes": ["7"]
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S-1",
+          "data": "PCH",
+          "rwb": "0",
+          "notes": ["10"]
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S-2",
+          "data": "PCL",
+          "rwb": "0",
+          "notes": ["10"]
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S-3",
+          "data": "P",
+          "rwb": "0",
+          "notes": ["10"],
+          "asPrinted": {
+            "address": "0,S-3 (16)",
+            "data": "P"
+          }
+        },
+        {
+          "cycle": "7",
+          "vpb": 0,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,VA",
+          "data": "AAVL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "8",
+          "vpb": 0,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,VA+1",
+          "data": "AAVH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "0,AAV",
+          "data": "Next OpCode",
+          "rwb": "1",
+          "isNextOpcodeFetch": true
+        }
+      ]
+    },
+    {
+      "id": "23",
+      "title": "Stack Relative d,s",
+      "about": ["ADC, AND, CMP, EOR,", "LDA, ORA, SBC, STA", "8 Op Codes, 2 bytes, 4 and 5 cycles"],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "SO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S+SO",
+          "data": "Data Low",
+          "rwb": "1/0"
+        },
+        {
+          "cycle": "4a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S+SO+1",
+          "data": "Data High",
+          "rwb": "1/0",
+          "notes": ["1"]
+        }
+      ]
+    },
+    {
+      "id": "24",
+      "title": "Stack Relative Indirect Indexed (d,s),y",
+      "about": [
+        "ADC, AND, CMP, EOR, LDA, ORA, SBC,",
+        "STA",
+        "8 Op Codes, 2 bytes, 7 and 8 cycles",
+        "(see Table 6-8 for abbreviations)"
+      ],
+      "bus": [
+        {
+          "cycle": "1",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 1,
+          "address": "PBR,PC",
+          "data": "OpCode",
+          "rwb": "1"
+        },
+        {
+          "cycle": "2",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 1,
+          "address": "PBR,PC+1",
+          "data": "SO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "3",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "PBR,PC+1",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "4",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S+SO",
+          "data": "AAL",
+          "rwb": "1"
+        },
+        {
+          "cycle": "5",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "0,S+SO+1",
+          "data": "AAH",
+          "rwb": "1"
+        },
+        {
+          "cycle": "6",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 0,
+          "vpa": 0,
+          "address": "0,S+SO+1",
+          "data": "IO",
+          "rwb": "1"
+        },
+        {
+          "cycle": "7",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBR,AA+Y",
+          "data": "Data Low",
+          "rwb": "1/0"
+        },
+        {
+          "cycle": "7a",
+          "vpb": 1,
+          "mlb": 1,
+          "vda": 1,
+          "vpa": 0,
+          "address": "DBR,AA+Y+1",
+          "data": "Data High",
+          "rwb": "1/0",
+          "notes": ["1"]
+        }
+      ]
+    }
+  ],
+  "disagreements": {
+    "note": "Nine of the two hundred and sixty-six rows a run reaches do not match what the part does. They fall into two classes, and neither is a defect in this model: the recorded cycles agree with the model on all nine.",
+    "widthDependentAddress": {
+      "rows": ["1d cycle 5", "6b cycle 6", "10b cycle 4", "16b cycle 5", "22c cycle 3"],
+      "what": "Each of these is the row directly after a lettered row that only exists when the register is sixteen bits, and each carries the address that only that longer form produces. With an eight bit register the part is one byte lower.",
+      "why": "The four read-modify-write groups put their modify cycle on the last byte read, which is AA+1 in the wide form and AA in the narrow one, and the table prints only AA+1. The push does the same: it writes at S in the narrow form and at S then S-1 in the wide one, and the table prints only S-1. The four modify cycles come out a byte higher and the push a byte lower, because the stack grows downward and everything else grows up.",
+      "consequence": "The table has no eight bit form of these rows, so a reader building a narrow register model from it puts the modify cycle and the push one byte too low."
+    },
+    "qualifierOnAnIndexedIndirectJump": {
+      "rows": ["2a cycle 5", "2a cycle 6", "2b cycle 7", "2b cycle 8"],
+      "what": "The two bytes of the new program counter. The table marks them a valid program address; the part marks them a valid data address.",
+      "why": "The table is not consistent with itself here. Group 3b is the same operation through a pointer in bank zero and its equivalent cycles are marked a data address. The two groups differ only in which bank holds the pointer.",
+      "settledBy": "Nothing here. It is recorded in divergences.json with what a real part would answer."
+    }
+  }
+}

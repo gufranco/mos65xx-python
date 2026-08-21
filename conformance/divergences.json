@@ -234,6 +234,39 @@
       "whatThisProjectDoes": "Takes four, because that is the only shape any source states. The data sheet gives a count and no addresses, so following it would mean inventing four bus cycles nobody has written down, and inventing them is worse than recording that they are unknown. The other forty-three reserved opcodes match the same table exactly, which is why this one is treated as a single open question rather than as a reason to distrust the row.",
       "whatWouldSettleIt": "A logic analyser on a real W65C02S executing 5C, which would give both the count and the four addresses the data sheet does not print. Nothing short of that can be implemented, because a count alone is not a bus trace.",
       "whyItMatters": "Four cycles of difference on an opcode no program deliberately executes matters only where a program runs off into unwritten memory, which is a crash either way. It is recorded because it is the one place in the reserved-opcode row where the part and the page disagree, and because a reader who trusts the row deserves to know which entry to check."
+    },
+    {
+      "subject": "which address the modify cycle and the push drive when the register is eight bits",
+      "documentSays": {
+        "document": "W65C816S Data Sheet, Table 6-7, groups 1d, 6b, 10b, 16b and 22c",
+        "quote": "1d. Absolute (R-M-W) a, cycle 5: DBR,AA+1, IO. 22c. Stack s, cycle 3: 0,S-1, REG Low."
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests/ProcessorTests 65816 v1",
+        "measured": "With an eight bit register the modify cycle of a read-modify-write is at AA and the push is at S. The addresses the table prints appear only when the register is sixteen bits, which is the case where the lettered row directly above them is also present."
+      },
+      "whatThisProjectDoes": "Drives the last byte actually accessed, which is AA and S in the narrow form and AA+1 and S-1 in the wide one. The table has only the wide form of these five rows.",
+      "whatWouldSettleIt": "Nothing outstanding. The narrow form follows from the rows above it: a cycle cannot sit on the byte after one that was never read.",
+      "whyItMatters": "Five rows of a table that is otherwise complete have no eight bit form, so a reader building a narrow register model from the page alone puts the modify cycle and the push one byte off. Four come out a byte high and the push a byte low, because the stack grows the other way."
+    },
+    {
+      "subject": "whether the new program counter of an indexed indirect jump is a program address",
+      "documentSays": {
+        "document": "W65C816S Data Sheet, Table 6-7, groups 2a and 2b",
+        "quote": "2a. Absolute Indexed Indirect (a,x), cycle 5: VDA 0, VPA 1, PBR,AA+X, New PCL."
+      },
+      "andAlsoSays": {
+        "document": "W65C816S Data Sheet, Table 6-7, group 3b",
+        "quote": "3b. Absolute Indirect (a), cycle 4: VDA 1, VPA 0, 0,AA, New PCL.",
+        "why": "The same operation, reading a new program counter through a pointer, marked the other way two groups later. The two differ only in which bank holds the pointer: the program bank for the indexed form, bank zero for the plain one."
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests/ProcessorTests 65816 v1",
+        "measured": "Every recorded case of both opcodes marks those cycles a valid data address and not a valid program address, which is the same way the recordings mark the plain indirect jump."
+      },
+      "whatThisProjectDoes": "Marks them a data address, following the recordings and the table's own treatment of the plain indirect jump. The table's other reading is defensible, since the pointer of the indexed form really does live in the program bank, but nothing else in the table draws that distinction and nothing recorded supports it.",
+      "whatWouldSettleIt": "A logic analyser on the VPA and VDA pins of a real W65C816S executing JMP (a,x). Those pins exist precisely so a system can tell the two apart, so the answer is directly observable on hardware and on nothing less.",
+      "whyItMatters": "A system that qualifies its memory map with these pins, which is what they are for, would route those two fetches to program memory rather than to data memory. On a machine where the two are different devices that is the difference between a jump that works and one that does not."
     }
   ]
 }
