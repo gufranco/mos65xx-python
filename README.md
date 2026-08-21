@@ -309,6 +309,28 @@ are the ones the recordings show, and the disagreement is in
 [`conformance/divergences.json`](conformance/divergences.json) with the one
 measurement that would close it.
 
+### Where the parts differ, from the one page that compares them
+
+Most of what separates these parts has to be inferred from two documents that
+never mention each other. Table 8-1 of the W65C816S data sheet is the exception:
+it sets the NMOS part, both CMOS eight bit parts and the sixteen bit part in four
+columns and says what each one does. Five of its rows are things this project can
+drive, and all twenty cells are checked in
+[`conformance/part-differences.json`](conformance/part-differences.json) and
+[`conformance/part_differences.test.py`](conformance/part_differences.test.py).
+
+`JMP (a)` with its vector at the top of a page gets three different answers. The
+oldest part takes the high byte from the bottom of the same page, which is the
+defect, and spends five cycles. The CMOS eight bit parts take it from the next
+page and charge a sixth cycle for the fix. The sixteen bit part takes it from the
+next page and still spends five.
+
+Four of the five rows separate the parts, and every one of them separates them
+the same way: the two CMOS eight bit parts on one side, the NMOS part and the
+sixteen bit part together on the other. That holds for the shift of an indexed
+absolute, for the indirect jump, for the extra cycle decimal arithmetic costs,
+and for which address the discarded cycle of an indexed access lands on.
+
 ## Conformance
 
 ```bash
@@ -378,6 +400,7 @@ conformance/
   addressing-cycles.json  every cycle of every NMOS addressing mode, as printed
   instruction-set.json    every documented opcode, its length, timing and flags
   cmos-reserved.json      the 44 opcodes the CMOS parts left as no-operations
+  part-differences.json   the one table that sets all four parts side by side
   divergences.json    where a document and the recorded cycles part, and why
 ```
 
