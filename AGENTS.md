@@ -92,6 +92,26 @@ Two rules for touching any of this. A dummy access is a cycle, so it goes throug
 a change to where a spare cycle reads changes what the part touches, so it is held
 to the state suites as well as the cycle one.
 
+## This repository is the family reference
+
+Eight sibling projects are held to the standard this one sets: nec-upd7725,
+snes-driver, snes-dsp, snes-mapper, snes-rom-image, snes-rtc, star-ocean-nochip-fix
+and zilog-z80. When one of them needs a pattern, the pattern is here:
+
+| Thing | Where it lives here |
+|:--|:--|
+| Facts read from a manufacturer's document | [`conformance/hardware.json`](conformance/hardware.json), each with its sentence |
+| Where a document and a recording disagree | [`conformance/divergences.json`](conformance/divergences.json), both readings, and what would settle it |
+| Comparing state against a per-opcode corpus | [`conformance/singlestep.py`](conformance/singlestep.py) |
+| Comparing the bus, cycle by cycle and pin by pin | [`conformance/cycles.py`](conformance/cycles.py) |
+| Pinning and fetching a corpus nobody vendors | [`conformance/fetch.py`](conformance/fetch.py) and [`conformance/suites.json`](conformance/suites.json) |
+| Requirements with checkable scenarios | [`specs/current/`](specs/current/) |
+| Strict typing, every optional error class | the `[tool.mypy]` block in `pyproject.toml` |
+
+The one thing to copy first is the pair of JSON files. A number in a docstring is
+a claim nobody checks; a number in `hardware.json` with the sentence it came from
+is one anybody can check, and the test beside it holds the code to it.
+
 ## Where the hardware facts live
 
 [`conformance/hardware.json`](conformance/hardware.json) holds every fact read out
