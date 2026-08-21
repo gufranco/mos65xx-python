@@ -1,3 +1,3 @@
 """The released version, rewritten by the release job and by nothing else."""
 
-VERSION = "1.9.0"
+VERSION = "1.10.0"
