@@ -27,7 +27,7 @@ from typing import Any
 
 from . import mos65c02, mos6502, opcodes65c02, opcodes6502
 from .memory import Memory, SparseMemory, scramble
-from .models import MODELS, UnknownModelError, describe
+from .models import MODELS, NoSuchPin, UnknownModelError, describe
 from .opcodes65816 import (
     FLAG_DEPENDENT,
     MODE_SIZE,
@@ -86,6 +86,7 @@ __all__ = [
     "Cpu",
     "Cpu65816",
     "Memory",
+    "NoSuchPin",
     "SparseMemory",
     "StepLimit",
     "Stopped",

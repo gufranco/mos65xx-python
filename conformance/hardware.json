@@ -60,6 +60,15 @@
       "readVia": "docs/manufacturer/w65c816s-2024.pdf, 55 pages",
       "covers": "The current revision. Its caveats table carries the same values as the 2004 one, renumbered from Table 8-1 to Table 7-1, which is what makes those claims safe to cite without pinning a revision.",
       "pinnedIn": "docs/documents.json, manufacturer/w65c816s-2024.pdf"
+    },
+    "mos6500_datasheet": {
+      "publisher": "Commodore Semiconductor Group, formerly MOS Technology, Inc.",
+      "title": "6500 Microprocessors data sheet",
+      "revision": "November 1985, with the March 1980 printing beside it",
+      "readOn": "2026-08-21",
+      "readVia": "docs/manufacturer/mos-6500-mpu-nov-1985.pdf, 12 pages",
+      "covers": "Which parts the NMOS family has. A page per package giving its addressable range and the interrupt lines it brings out, which between them are the whole of what a program can tell apart.",
+      "pinnedIn": "docs/documents.json, manufacturer/mos-6500-mpu-nov-1985.pdf"
     }
   },
   "facts": {
@@ -285,6 +294,17 @@
       "section": "Table 7-1 Caveats, which the 2004 revision numbers Table 8-1",
       "quote": "A.ABS,X,ASL,LSR,ROL with no Page Crossing: 7 cycles, 6 cycles, 6 cycles, 7 cycles.",
       "note": "Every cell of the comparison table is the same in the 2004 and 2024 revisions, twenty years apart. Only the section number moved. A claim taken from that table therefore does not depend on which revision a reader happens to hold, which is worth knowing because three revisions of this data sheet are pinned here."
+    },
+    "nmosFamilyPackages": {
+      "document": "mos6500_datasheet",
+      "section": "Features of 6502 through Features of 6515",
+      "quote": "Features of 6504: 8K Addressable Bytes of Memory (A0-A12). On-the-chip Clock. IRQ Interrupt. 8 Bit Bidirectional Data Bus.",
+      "note": "Ten packages, one die. The list of features under each is exhaustive, so a line absent from it is a line the package does not bring out: the 6504 has no non-maskable pin and the 6507 has neither interrupt pin. Six of the ten have an on-chip oscillator and four take their clock on pins, which is the only difference between 6502 and 6512, between 6503 and 6513, and so on, and it is not something a program can see.",
+      "whatIsImplemented": {
+        "addressLines": "12 on the 6503, 6505, 6506, 6513 and 6515; 13 on the 6504, 6507 and 6514; 16 on the 6502 and 6512",
+        "interruptPins": "Both on the 6502, 6503, 6512 and 6513. The request line alone on the 6504, 6505, 6506, 6514 and 6515. Neither on the 6507.",
+        "whatHappensWhenOneIsMissing": "Pulling it raises, because a line the package does not bring out is not a line a system can assert"
+      }
     }
   }
 }

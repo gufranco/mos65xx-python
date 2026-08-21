@@ -16,7 +16,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from mos65xx import Memory, mos6502, wdc65816  # noqa: E402
+from mos65xx import Memory, models, mos6502, wdc65816  # noqa: E402
 
 HARDWARE = Path(__file__).resolve().parent / "hardware.json"
 
@@ -269,6 +269,39 @@ class HonestyTest(unittest.TestCase):
         recorded = fact("stackRangeInEmulationAsFirstPrinted")
 
         self.assertIn("lands above 0001FF rather than wrapping", recorded["note"])
+
+    def packages(self) -> list[str]:
+        """The ten the data sheet lists, read from what it is recorded as covering."""
+        manifest = json.loads((ROOT / "docs" / "documents.json").read_text())
+        found = [
+            entry["covers"]
+            for entry in manifest["documents"]
+            if "mos-6500-mpu-nov" in entry["file"]
+        ]
+
+        return [str(name) for name in found[0]]
+
+    def test_the_data_sheet_lists_ten_packages(self) -> None:
+        self.assertEqual(len(self.packages()), 10)
+
+    def test_the_family_table_matches_the_parts_this_package_builds(self) -> None:
+        recorded = fact("nmosFamilyPackages")["whatIsImplemented"]["interruptPins"]
+        both = [
+            name for name in self.packages() if {"irq", "nmi"} <= set(models.describe(name).pins)
+        ]
+
+        self.assertEqual(
+            (both, "6502, 6503, 6512 and 6513" in recorded),
+            (["6502", "6503", "6512", "6513"], True),
+        )
+
+    def test_and_the_one_with_neither_line_is_the_one_the_table_names(self) -> None:
+        recorded = fact("nmosFamilyPackages")["whatIsImplemented"]["interruptPins"]
+        neither = [
+            name for name in self.packages() if not {"irq", "nmi"} & set(models.describe(name).pins)
+        ]
+
+        self.assertEqual((neither, "Neither on the 6507" in recorded), (["6507"], True))
 
     def test_the_comparison_table_is_the_same_in_both_revisions_that_carry_it(self) -> None:
         recorded = fact("caveatsTableIsStableAcrossRevisions")

@@ -183,20 +183,37 @@ describe("w65c802").address_bits
 cpu = Cpu(SparseMemory(), model="65802")
 ```
 
-| Model | Address bits | Decimal | Notes |
-|:------|:------------:|:-------:|:------|
-| `6502` | 16 | yes | MOS 6502. Aliases: `mos6502`, `nmos6502`, `6510`, `8500` |
-| `6507` | 13 | yes | The same die in a smaller package. Aliases: `mos6507` |
-| `2a03` | 16 | **no** | Ricoh 2A03 and 2A07. Aliases: `ricoh2a03`, `2a07`, `nes6502`, `famicom` |
-| `65c02` | 16 | yes | The base CMOS design. Aliases: `synertek65c02`, `cmos6502` |
-| `r65c02` | 16 | yes | Rockwell R65C02, adding thirty two single-bit instructions. Aliases: `rockwell65c02` |
-| `w65c02` | 16 | yes | WDC W65C02S, adding stop and wait. Aliases: `wdc65c02`, `w65c02s` |
-| `65802` | 16 | yes | WDC W65C802, the sixteen bit core in a 6502 pin out. Aliases: `w65c802`, `65c802` |
-| `65816` | 24 | yes | WDC W65C816S. Aliases: `w65c816`, `w65c816s`, `65c816`, `65816s` |
+| Model | Address bits | Pins | Decimal | Notes |
+|:------|:------------:|:-----|:-------:|:------|
+| `6502` | 16 | IRQ, NMI, RDY | yes | MOS 6502. Aliases: `mos6502`, `nmos6502`, `6510`, `8500` |
+| `6503` | 12 | IRQ, NMI | yes | Four kilobytes, on-chip clock. Aliases: `mos6503` |
+| `6504` | 13 | IRQ | yes | Eight kilobytes, no non-maskable pin. Aliases: `mos6504` |
+| `6505` | 12 | IRQ, RDY | yes | Four kilobytes, ready line, no non-maskable pin. Aliases: `mos6505` |
+| `6506` | 12 | IRQ | yes | Four kilobytes, second clock output instead of ready. Aliases: `mos6506` |
+| `6507` | 13 | RDY | yes | The same die in a smaller package, no interrupt pins at all. Aliases: `mos6507` |
+| `6512` | 16 | IRQ, NMI, RDY | yes | The 6502 with the clock oscillator left off the die. Aliases: `mos6512` |
+| `6513` | 12 | IRQ, NMI | yes | The 6503 on an external clock. Aliases: `mos6513` |
+| `6514` | 13 | IRQ | yes | The 6504 on an external clock. Aliases: `mos6514` |
+| `6515` | 12 | IRQ, RDY | yes | The 6505 on an external clock. Aliases: `mos6515` |
+| `2a03` | 16 | IRQ, NMI, RDY | **no** | Ricoh 2A03 and 2A07. Aliases: `ricoh2a03`, `2a07`, `nes6502`, `famicom` |
+| `65c02` | 16 | IRQ, NMI, RDY | yes | The base CMOS design. Aliases: `synertek65c02`, `cmos6502` |
+| `r65c02` | 16 | IRQ, NMI, RDY | yes | Rockwell R65C02, adding thirty two single-bit instructions. Aliases: `rockwell65c02` |
+| `w65c02` | 16 | IRQ, NMI, RDY | yes | WDC W65C02S, adding stop and wait. Aliases: `wdc65c02`, `w65c02s` |
+| `65802` | 16 | IRQ, NMI, RDY | yes | WDC W65C802, the sixteen bit core in a 6502 pin out. Aliases: `w65c802`, `65c802` |
+| `65816` | 24 | IRQ, NMI, RDY | yes | WDC W65C816S. Aliases: `w65c816`, `w65c816s`, `65c816`, `65816s` |
 
 Three of those differences are the kind that produce a bug rather than a compile error.
 
 The address bus is not cosmetic. The 65802 has sixteen address lines, so bank bits never leave the chip and a read of `$7E0012` lands on `$0012`. The 6507 has thirteen, so everything above eight kilobytes is a mirror of something below it.
+
+Neither are the pins. The ten NMOS packages share one die and one instruction set, and what separates most of them is how far an address reaches and which interrupt lines the package brought out. A line that is not on the package is not a line a system can assert, so pulling one here raises rather than quietly taking the interrupt:
+
+```python
+cpu = Cpu(SparseMemory(), model="6507")
+cpu.irq()
+
+# NoSuchPin: the 6507 has no irq pin; it brings out rdy
+```
 
 Decimal mode is a property of the part. The Ricoh variant in the Famicom has the decimal adder left unwired, so the flag can be set and changes nothing. Code that sets it and expects decimal arithmetic is wrong, and the part will not say so.
 
@@ -205,7 +222,7 @@ And the undocumented instructions are not optional. A hundred and fifty one of t
 Revisions are separate models, including the ones that only fixed a bug, because a machine has whichever revision it was built with. The three CMOS parts differ in exactly two opcode columns and two opcodes: a bit-clear instruction on a part that does not have it is a no-operation, and nothing reports that the bit was never cleared.
 
 > [!NOTE]
-> A model is only listed once a conformance suite backs it. A model with no suite behind it would make its fidelity a claim rather than a measurement.
+> A model is only listed once something measures it. Six are held to a suite of their own. The other ten name the part they narrow and are held to that part's suite plus a check that the narrowing, fewer address lines or fewer pins, is the only difference. Either way the fidelity is a measurement rather than a claim.
 
 ## What "nothing starts clean" means
 
