@@ -4,3 +4,5 @@ node_modules/
 .coverage
 .mypy_cache/
 .ruff_cache/
+.venv/
+venv/

@@ -9,3 +9,6 @@ build/
 .DS_Store
 .mypy_cache/
 docs/
+.venv/
+venv/
+uv.lock

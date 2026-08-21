@@ -123,7 +123,7 @@ Pure Python, standard library only. The release tooling is the sole `node_module
 
 ### Read from the datasheets
 
-Every hardware fact this project relies on is in [`conformance/hardware.json`](conformance/hardware.json) with the sentence it was read from. Where a manufacturer's document and the recorded cycles disagree, [`conformance/divergences.json`](conformance/divergences.json) carries both and says what would settle it.
+Every hardware fact this project relies on is in [`conformance/hardware.json`](conformance/hardware.json) with the sentence it was read from, every cycle of every NMOS addressing mode is in [`conformance/addressing-cycles.json`](conformance/addressing-cycles.json) as Appendix A prints it, and all 151 documented opcodes are in [`conformance/instruction-set.json`](conformance/instruction-set.json) as Appendix B prints them. Where a manufacturer's document and the recorded cycles disagree, [`conformance/divergences.json`](conformance/divergences.json) carries both and says what would settle it.
 
 </td>
 </tr>
@@ -232,6 +232,59 @@ cpu.a, cpu.x, cpu.y
 
 `SparseMemory` holds only what has been written and hashes the address for everything else, so a test that touches a dozen bytes does not pay for sixteen megabytes to stay unclean. Both take a `seed`, so a differential run against another implementation stays comparable.
 
+### The appendix, cycle by cycle
+
+Appendix A of the MCS6500 Hardware Manual prints the address bus, the data bus
+and the read write line for every cycle of every addressing mode. It is the only
+manufacturer statement of NMOS bus behaviour this project has found, so all
+twenty-seven of its tables are in
+[`conformance/addressing-cycles.json`](conformance/addressing-cycles.json) with
+the manual's own address expressions rather than a paraphrase.
+[`conformance/addressing_cycles.test.py`](conformance/addressing_cycles.test.py)
+drives each shape and resolves those expressions against the run, so a row that
+stops matching names the page it came from. That check needs no suite on the
+machine.
+
+Three of the tables say something the part does not do, and each is recorded
+rather than quietly followed:
+
+- The discarded read of an indexed access. Four tables give its high byte as
+  `BAH + C`; the indirect Y store two pages later gives it as `BAH`, with no
+  carry. Only the second matches the part, and only the second explains why the
+  other four carry a footnote saying that read has to be ignored. This is the
+  cycle that makes an indexed store to a hardware register touch a second
+  register one page below the one it names.
+- The branch table. Its two address rows sit one row lower than they run: the
+  part drives the plain program counter on the third cycle, the partially
+  corrected target on the fourth, and never reaches the corrected target inside
+  the branch at all.
+- The stack addresses of a pull, written as plain sums. They hold everywhere
+  except across the edge of page one, which is exactly where a deep sequence of
+  pushes leaves the pointer.
+
+### The instruction set, as the manufacturer stated it
+
+Appendix B of the MCS6500 Programming Manual gives each of the fifty-six
+documented instructions its own page: the flags it touches, and for every
+addressing mode the opcode, the byte count and the cycle count. That is a
+hundred and fifty-one opcodes, which is the whole documented set, and all of
+them are in
+[`conformance/instruction-set.json`](conformance/instruction-set.json).
+
+[`conformance/instruction_set.test.py`](conformance/instruction_set.test.py)
+holds three separate things to it. The opcode table this project decodes with
+has to name the same mnemonic, mode and length for every one. Each instruction
+has to take the cycles the page prints, with the extra cycle appearing exactly
+where the page marks a page crossing. And each of the two hundred and
+fifty-seven flag rules that are absolute, this one is always reset, this one is
+never touched, has to hold across twenty-four states.
+
+Two rows are misprinted, and the record says so rather than following them.
+`AND (Oper), Y` and `ORA (Oper), Y` are printed without the asterisk that marks
+the page-crossing cycle, while the six other Group One instructions carry it and
+while these same two carry it on their absolute indexed rows one line above. The
+part takes the cycle on all eight.
+
 ## Conformance
 
 ```bash
@@ -295,7 +348,12 @@ mos65xx/
 conformance/
   fetch.py            partial, sparse, pinned checkout of the suites
   singlestep.py       runs the suite and reports what disagreed
+  cycles.py           holds every bus cycle to the suite rather than the end state
   suites.json         which suites, which commit
+  hardware.json       what the datasheets print, fact by fact, with the sentence
+  addressing-cycles.json  every cycle of every NMOS addressing mode, as printed
+  instruction-set.json    every documented opcode, its length, timing and flags
+  divergences.json    where a document and the recorded cycles part, and why
 ```
 
 Each module has its tests beside it as `<module>.test.py`, so a module and the cases that pin its behaviour are read together.
