@@ -1,0 +1,81 @@
+name: Link watch
+
+# The readme cites every document a claim rests on and links to where it can be
+# fetched. A link is the one part of that record which decays without anyone
+# touching the repository: a vendor reorganises a site, an archive moves a file,
+# and the citation quietly becomes a dead end that nothing in the build follows.
+#
+# So this asks every address in the readme, weekly, whether it still answers. It
+# changes nothing. When an address is genuinely gone it opens an issue naming it,
+# and when a host merely went quiet it says so in the log and stays silent,
+# because a watcher that cannot tell a dead link from a bad afternoon teaches a
+# reader to ignore it.
+#
+# The judgement about which refusals mean which lives in conformance/links.py
+# where the test suite covers it, rather than inline here where nothing would.
+
+on:
+  schedule:
+    # Early Monday, UTC, an hour after the suite watcher so the two do not
+    # compete for a runner or for a reader's attention.
+    - cron: "43 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: link-watch
+  cancel-in-progress: false
+
+jobs:
+  ask:
+    name: Ask every address whether it still answers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Ask
+        id: ask
+        run: |
+          set +e
+          python conformance/links.py | tee /tmp/links.json
+          echo "broken=$?" >> "${GITHUB_OUTPUT}"
+        shell: bash
+
+      - name: Say what went quiet without raising it
+        run: |
+          quiet=$(python -c "import json;print(chr(10).join(json.load(open('/tmp/links.json'))['unreachable']))")
+          if [ -n "${quiet}" ]; then
+            echo "These did not answer, which is not the same as being gone:"
+            echo "${quiet}"
+          else
+            echo "every address answered"
+          fi
+        shell: bash
+
+      - name: Report the addresses that have gone
+        if: steps.ask.outputs.broken != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          title="A cited link no longer resolves"
+          if [ -n "$(gh issue list --search "${title} in:title" --state open --json number --jq '.[].number')" ]; then
+            echo "already reported"
+            exit 0
+          fi
+          gh issue create --title "${title}" --body-file - <<BODY
+          One or more addresses cited in the readme returned a status saying the thing is not there. Each is listed below with what the server answered.
+
+          A link that has gone does not invalidate the reading it supports: the page number and the digest in the readme still identify the file. What it means is that the next reader cannot fetch it from where this repository says to, so the reference needs a new home rather than the record needing a change.
+
+          \`\`\`json
+          $(cat /tmp/links.json)
+          \`\`\`
+          BODY
+        shell: bash
