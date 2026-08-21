@@ -164,7 +164,8 @@
       "andAlsoSays": {
         "document": "MCS6500 Hardware Manual, Appendix A, table A.3.6",
         "quote": "T4 ADL: BAL + Y / ADH: BAH. Data (Discarded).",
-        "why": "The same cycle of the same kind of access, written without the carry two pages later. The appendix gives the discarded read two different addresses."
+        "why": "The same cycle of the same kind of access, written without the carry two pages later. The appendix gives the discarded read two different addresses.",
+        "inASecondPrinting": "Synertek reprinted the same appendix under its own name, and both forms appear there unchanged, on the same page numbers. Two publishers printed the same inconsistency, so it is the document rather than a slip in one copy."
       },
       "suiteSays": {
         "corpus": "SingleStepTests 65x02 6502 v1",

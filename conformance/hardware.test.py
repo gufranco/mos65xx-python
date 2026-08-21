@@ -281,6 +281,17 @@ class HonestyTest(unittest.TestCase):
 
         return [str(name) for name in found[0]]
 
+    def test_the_second_source_names_all_but_one_of_them(self) -> None:
+        manifest = json.loads((ROOT / "docs" / "documents.json").read_text())
+        synertek = [
+            entry["covers"] for entry in manifest["documents"] if "synertek-sy6500" in entry["file"]
+        ]
+
+        self.assertEqual(set(self.packages()) - set(synertek[0]), {"6507"})
+
+    def test_and_the_record_says_which_one_and_why_that_is_unsurprising(self) -> None:
+        self.assertIn("made for a single customer", fact("nmosFamilyPackages")["secondSource"])
+
     def test_the_data_sheet_lists_ten_packages(self) -> None:
         self.assertEqual(len(self.packages()), 10)
 

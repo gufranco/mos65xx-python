@@ -101,6 +101,14 @@ class AppendixBusTest(unittest.TestCase):
 
         self.assertEqual(found[3:], [(0x1210, "read"), (0x1310, "write")])
 
+    def test_two_publishers_printed_the_same_inconsistency(self) -> None:
+        recorded = about("discarded read of an indexed access")
+
+        self.assertIn(
+            "Two publishers printed the same inconsistency",
+            recorded["andAlsoSays"]["inASecondPrinting"],
+        )
+
     def test_the_entry_about_it_names_the_table_that_gets_it_right(self) -> None:
         recorded = about("discarded read of an indexed access")
 
