@@ -232,6 +232,14 @@ class MainTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("2 agreed, 0 did not", output)
 
+    def test_a_file_holding_no_cases_is_named_rather_than_absorbed(self) -> None:
+        self.write("ea.n.json", [a_test()])
+        (Path(self.root) / "db.json").write_text("")
+
+        code, output = self.run_main([str(self.root)])
+
+        self.assertEqual((code, "1 files hold no cases: db" in output), (0, True))
+
     def test_a_failing_suite_names_the_file_and_the_first_disagreement(self) -> None:
         self.write("ea.n.json", [self.broken_test()])
 

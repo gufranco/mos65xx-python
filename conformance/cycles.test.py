@@ -293,6 +293,16 @@ class SuiteTest(unittest.TestCase):
 
         self.assertEqual((code, "1 agreed" in output.getvalue()), (0, True))
 
+    def test_a_file_holding_no_cases_is_named_rather_than_absorbed(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            self.written(Path(where), "a5.json", [LOADING])
+            (Path(where) / "db.json").write_text("")
+            output = io.StringIO()
+            with redirect_stdout(output):
+                code = cycles.main([where, "--model", "6502"])
+
+        self.assertEqual((code, "1 files hold no cases: db" in output.getvalue()), (0, True))
+
     def test_a_suite_that_disagrees_exits_one_and_shows_both_sequences(self) -> None:
         moved = a_case(
             {0x8000: LDA_ZERO_PAGE, 0x8001: 0x40, 0x0040: 0x7B},

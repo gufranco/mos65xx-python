@@ -9,6 +9,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 models = importlib.import_module("mos65xx.models")
+memory = importlib.import_module("mos65xx.memory")
 mos65xx = importlib.import_module("mos65xx")
 
 
@@ -109,6 +110,78 @@ class FamilyTest(unittest.TestCase):
 
     def test_the_smaller_package_reaches_less(self) -> None:
         self.assertLess(models.describe("6507").address_mask, models.describe("6502").address_mask)
+
+
+class NarrowingTest(unittest.TestCase):
+    """The two parts with no suite, held to the sibling each of them narrows."""
+
+    def parts(self) -> list[tuple[str, str]]:
+        return [
+            (model.name, model.narrows)
+            for model in models.MODELS.values()
+            if model.narrows is not None
+        ]
+
+    def program(self, name: str, code: list[int], at: int = 0x0200) -> list[tuple[int, int, str]]:
+        space = memory.Memory()
+        for offset, byte in enumerate(code):
+            space.write8(at + offset, byte)
+        cpu = models.describe(name).build(space)
+        cpu.pc = at
+        cpu.trace = []
+        for _ in range(4):
+            cpu.step()
+        return list(cpu.trace)
+
+    def test_every_part_without_a_suite_names_the_one_it_narrows(self) -> None:
+        self.assertEqual(dict(self.parts()), {"6507": "6502", "65802": "65816"})
+
+    def test_and_the_part_it_narrows_is_one_this_family_covers(self) -> None:
+        missing = [wider for _, wider in self.parts() if wider not in models.MODELS]
+
+        self.assertEqual(missing, [])
+
+    def test_a_narrowed_part_is_built_from_the_same_core(self) -> None:
+        same = [
+            (name, wider)
+            for name, wider in self.parts()
+            if models.describe(name).core is not models.describe(wider).core
+        ]
+
+        self.assertEqual(same, [])
+
+    def test_and_reaches_no_further_than_the_part_it_narrows(self) -> None:
+        wider = [
+            (name, w)
+            for name, w in self.parts()
+            if models.describe(name).address_bits > models.describe(w).address_bits
+        ]
+
+        self.assertEqual(wider, [])
+
+    def test_the_smaller_package_puts_the_same_cycles_on_the_bus(self) -> None:
+        for name, wider in self.parts():
+            code = [0xEA, 0xEA, 0xEA, 0xEA]
+
+            self.assertEqual(
+                [(kind, value) for _, value, kind in self.program(name, code)],
+                [(kind, value) for _, value, kind in self.program(wider, code)],
+                name,
+            )
+
+    def test_and_differs_only_in_how_far_an_address_reaches(self) -> None:
+        """Three lines left inside the 6507's package, and a whole bank byte in the 65802."""
+        held = {
+            name: models.describe(wider).address_bits - models.describe(name).address_bits
+            for name, wider in self.parts()
+        }
+
+        self.assertEqual(held, {"6507": 3, "65802": 8})
+
+    def test_the_one_that_reaches_less_wraps_where_its_pins_stop(self) -> None:
+        part = models.describe("6507")
+
+        self.assertEqual(part.address_mask, (1 << part.address_bits) - 1)
 
 
 if __name__ == "__main__":

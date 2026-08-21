@@ -11,6 +11,14 @@ a hardware bug is wrong for the machine that shipped it.
 Adding a model means adding an entry here and holding it to a conformance suite.
 A model with no suite behind it does not belong in this table, because then its
 fidelity would be a claim rather than a measurement.
+
+Two of these have no suite of their own, and each says which part it narrows.
+Neither is a different processor: the 6507 is a 6502 with three address lines
+left inside the package, and the 65802 is a 65816 in a forty pin part whose bank
+registers reach nothing outside the first bank. What holds them is the suite of
+the part they narrow plus a check that the narrowing is the only difference, so
+the claim is still measured; it is measured against a sibling rather than against
+a recording of its own.
 """
 
 from __future__ import annotations
@@ -36,6 +44,7 @@ class Model:
         core: Callable[..., Any],
         aliases: Iterable[str] = (),
         revision: str | None = None,
+        narrows: str | None = None,
     ) -> None:
         self.name = name
         self.summary = summary
@@ -45,6 +54,7 @@ class Model:
         self.core = core
         self.aliases = tuple(aliases)
         self.revision = revision
+        self.narrows = narrows
 
     @property
     def address_mask(self) -> int:
@@ -114,6 +124,7 @@ _CATALOGUE = (
         data_bits=8,
         decimal=True,
         core=_build_6502,
+        narrows="6502",
         aliases=("mos6507",),
     ),
     Model(
@@ -194,6 +205,7 @@ _CATALOGUE = (
         data_bits=16,
         decimal=True,
         core=_build_65816,
+        narrows="65816",
         aliases=("w65c802", "65c802"),
     ),
 )
