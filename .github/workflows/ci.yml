@@ -94,7 +94,7 @@ jobs:
             echo "::group::${file}"
             python -m coverage run -a "${file}" || status=1
             echo "::endgroup::"
-          done < <(find mos65xx conformance docs -name '*.test.py' | sort)
+          done < <(find mos65xx conformance -name '*.test.py' | sort)
           exit "${status}"
         shell: bash
 

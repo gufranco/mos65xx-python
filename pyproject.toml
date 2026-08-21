@@ -66,7 +66,6 @@ ignore = [
 # statement left behind, and routing it through a logger would put a level and
 # a timestamp in front of a report meant to be read by a person.
 "conformance/*.py" = ["T201"]
-"docs/*.py" = ["T201"]
 
 [tool.mypy]
 # Every flag mypy has, plus the ones strict does not turn on. This is a processor
@@ -87,10 +86,10 @@ enable_error_code = [
   "truthy-iterable",
   "unused-awaitable",
 ]
-files = ["mos65xx", "conformance", "docs"]
+files = ["mos65xx", "conformance"]
 
 [tool.coverage.run]
-source = ["mos65xx", "conformance", "docs"]
+source = ["mos65xx", "conformance"]
 branch = true
 
 [tool.coverage.report]

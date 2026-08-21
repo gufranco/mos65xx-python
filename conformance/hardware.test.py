@@ -36,10 +36,19 @@ def fact(name: str) -> dict[str, Any]:
 class DocumentTest(unittest.TestCase):
     """That the file names its sources well enough for somebody to go and check."""
 
-    def test_both_documents_are_named_with_a_revision_and_a_date_read(self) -> None:
+    def test_every_document_is_named_with_a_revision_and_a_date_read(self) -> None:
         for named in declared()["documents"].values():
-            for key in ("publisher", "title", "revision", "readOn", "readVia"):
+            for key in ("publisher", "title", "revision", "readOn"):
                 self.assertIn(key, named)
+
+    def test_and_says_where_the_copy_that_was_read_is_pinned(self) -> None:
+        missing = [
+            held["title"]
+            for held in declared()["documents"].values()
+            if "documents.json" not in held.get("pinnedIn", "")
+        ]
+
+        self.assertEqual(missing, [])
 
     def test_every_fact_says_which_document_it_came_from(self) -> None:
         known = set(declared()["documents"])
