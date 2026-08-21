@@ -14,16 +14,34 @@
       "title": "W65C816S 8/16-bit Microprocessor Data Sheet",
       "revision": "Updated June 14, 2004",
       "readOn": "2026-08-20",
-      "readVia": "datasheets.chipdb.org/Western Design/w65c816s.pdf, 76 pages, read in full",
-      "covers": "The 65816 core, in both native and emulation mode, including the cycle-by-cycle bus activity of every addressing mode in Table 6-7."
+      "readVia": "docs/manufacturer/w65c816s.pdf, 62 pages, read in full. The record used to say 76 and to name a bare URL; the file at that URL is 62 pages, which is why every document is now pinned by digest.",
+      "covers": "The 65816 core, in both native and emulation mode, including the cycle-by-cycle bus activity of every addressing mode in Table 6-7.",
+      "pinnedIn": "docs/documents.json, manufacturer/w65c816s.pdf"
     },
     "mos6500": {
       "publisher": "MOS Technology, Inc.",
       "title": "MCS6500 Microcomputer Family Hardware Manual",
       "revision": "January 1976",
       "readOn": "2026-08-20",
-      "readVia": "archive.org/download/mcs-6500-family-hardware-manual-1976-01, 182 pages",
-      "covers": "The NMOS parts. Appendix A gives the address bus, data bus and R/W line for every cycle of every addressing mode, which is the only manufacturer statement of NMOS cycle behaviour this project has found."
+      "readVia": "docs/manufacturer/mcs6500-hardware-manual-1976.pdf, 182 pages",
+      "covers": "The NMOS parts. Appendix A gives the address bus, data bus and R/W line for every cycle of every addressing mode, which is the only manufacturer statement of NMOS cycle behaviour this project has found.",
+      "pinnedIn": "docs/documents.json, manufacturer/mcs6500-hardware-manual-1976.pdf"
+    },
+    "wdc02": {
+      "publisher": "The Western Design Center, Inc.",
+      "title": "W65C02S 8-bit Microprocessor Data Sheet",
+      "revision": "April 8, 2022",
+      "readOn": "2026-08-21",
+      "pinnedIn": "docs/documents.json, manufacturer/w65c02s.pdf",
+      "covers": "The CMOS part, including the operational enhancements table this project cites for what changed from the NMOS part and the note about the extra decimal cycle."
+    },
+    "rockwell": {
+      "publisher": "Rockwell International",
+      "title": "R65C00 Microprocessors: R65C02, R65C102 and R65C112",
+      "revision": "Rev. 6, June 1987",
+      "readOn": "2026-08-21",
+      "pinnedIn": "docs/documents.json, manufacturer/rockwell-r65c00-microprocessors.pdf",
+      "covers": "Rockwell's own CMOS part, which the suite records separately because it is not the same as Synertek's or WDC's."
     }
   },
   "facts": {

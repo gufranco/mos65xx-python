@@ -37,7 +37,10 @@
             "opcode": "E1",
             "test": "e1 e 8669",
             "pointerAt": "00F4FF",
-            "readsCycled": ["00F4FF", "00F500"],
+            "readsCycled": [
+              "00F4FF",
+              "00F500"
+            ],
             "verdict": "left the page, which the document says it should not"
           },
           {
@@ -45,7 +48,11 @@
             "opcode": "27",
             "test": "27 e 3341",
             "pointerAt": "002FFE",
-            "readsCycled": ["002FFE", "002FFF", "003000"],
+            "readsCycled": [
+              "002FFE",
+              "002FFF",
+              "003000"
+            ],
             "verdict": "left the page, which the document says it should"
           },
           {
@@ -53,7 +60,11 @@
             "opcode": "57",
             "test": "57 e 6432",
             "pointerAt": "0089FF",
-            "readsCycled": ["0089FF", "008900", "008901"],
+            "readsCycled": [
+              "0089FF",
+              "008900",
+              "008901"
+            ],
             "verdict": "wrapped inside the page, which the document says it should not"
           },
           {
@@ -61,7 +72,10 @@
             "opcode": "D4",
             "test": "the case at D=000C00 with an operand of FF",
             "pointerAt": "000CFF",
-            "readsCycled": ["000CFF", "000C00"],
+            "readsCycled": [
+              "000CFF",
+              "000C00"
+            ],
             "verdict": "wrapped inside the page, which the document says it should not"
           }
         ],
@@ -86,14 +100,23 @@
             "opcode": "10",
             "test": "10 b3 8d",
             "at": "0090CA",
-            "readsCycled": ["0090CA", "0090CB", "0090CC"],
+            "readsCycled": [
+              "0090CA",
+              "0090CB",
+              "0090CC"
+            ],
             "verdict": "third cycle at PC+2, and the branch went to 00907F"
           },
           {
             "opcode": "10",
             "test": "10 3c 3a",
             "at": "0077E1",
-            "readsCycled": ["0077E1", "0077E2", "0077E3", "00771F"],
+            "readsCycled": [
+              "0077E1",
+              "0077E2",
+              "0077E3",
+              "00771F"
+            ],
             "verdict": "third at PC+2, fourth at the low-byte-only sum, and the branch went to 00781F"
           }
         ]
@@ -146,14 +169,18 @@
           {
             "opcode": "69",
             "at": "00EC03",
-            "readsCycled": ["00EC03", "00EC04", "00007F"],
+            "readsCycled": [
+              "00EC03",
+              "00EC04",
+              "00007F"
+            ],
             "verdict": "a constant, and therefore not an address the part computed"
           }
         ]
       },
-      "whatThisProjectDoes": "Nothing yet. When the CMOS cycles are implemented, this one cannot be matched by computing an address, because there is no address to compute: the document says an internal cycle's address may be invalid, and the recording carries a placeholder rather than a measurement.",
+      "whatThisProjectDoes": "Spends the extra cycle, and points it at the operand address rather than at the constant the recording carries. A decimal add on a 65c02 or a w65c02 takes three cycles here where the same add takes two on a 6502, which is the part the document settles. The address it drives is the one the part last had on the bus, because the document says an internal cycle's address may be invalid and the recording carries a placeholder rather than a measurement. conformance/cycles.py leaves that one cycle out of the comparison, narrowly and by opcode, and prints how many it left out.",
       "whatWouldSettleIt": "A logic analyser on a real W65C02S during a decimal add. Until then the extra cycle is real and its address is not evidence, and a model that reproduced 00007F would be reproducing the recorder rather than the part.",
-      "whyItIsRecordedNow": "So that whoever implements the CMOS cycles does not spend a day trying to derive 00007F from the state, and does not quietly hard-code it either."
+      "whyItIsRecordedNow": "So that nobody tries to derive 00007F from the state, and so that the one cycle the runner does not compare is a stated exception rather than a silence."
     }
   ]
 }

@@ -66,6 +66,7 @@ ignore = [
 # statement left behind, and routing it through a logger would put a level and
 # a timestamp in front of a report meant to be read by a person.
 "conformance/*.py" = ["T201"]
+"docs/*.py" = ["T201"]
 
 [tool.mypy]
 # Every flag mypy has, plus the ones strict does not turn on. This is a processor
@@ -86,10 +87,10 @@ enable_error_code = [
   "truthy-iterable",
   "unused-awaitable",
 ]
-files = ["mos65xx", "conformance"]
+files = ["mos65xx", "conformance", "docs"]
 
 [tool.coverage.run]
-source = ["mos65xx", "conformance"]
+source = ["mos65xx", "conformance", "docs"]
 branch = true
 
 [tool.coverage.report]
@@ -100,4 +101,13 @@ exclude_also = [
   # there is nothing behind it left to exercise. Importing the module to cover
   # the guard would run the tool rather than test it.
   'if __name__ == "__main__":',
+  # A type checking block never runs, by definition. Python 3.14 drops it before
+  # coverage can see it and earlier versions do not, so leaving it in would make
+  # the gate mean one thing on the newest runtime and another on the oldest
+  # supported one.
+  'if TYPE_CHECKING:',
+  # A protocol method has no body to run, whether the ellipsis sits on its own
+  # line or after the signature. The same version split applies.
+  '^\s*\.\.\.$',
+  ': \.\.\.$',
 ]

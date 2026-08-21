@@ -38,6 +38,7 @@ cpu.pb, cpu.pc = 0x00, 0x8000
 cpu.step()
 
 cpu.a & 0xFF
+
 # 0x42
 ```
 
@@ -147,7 +148,9 @@ cd mos65xx-python
 
 ```bash
 python3 mos65xx/wdc65816.test.py
+
 # Ran 86 tests in 22.9s
+
 # OK
 ```
 
@@ -174,6 +177,7 @@ The model is chosen at construction. `Cpu(memory)` gives a 65816.
 from mos65xx import Cpu, SparseMemory, describe
 
 describe("w65c802").address_bits
+
 # 16
 
 cpu = Cpu(SparseMemory(), model="65802")
@@ -209,16 +213,20 @@ Revisions are separate models, including the ones that only fixed a bug, because
 from mos65xx import Cpu, Memory, SparseMemory
 
 SparseMemory().read8(0x123456)
+
 # some byte derived from the address; the same byte every time; not zero
 
 Memory(size=0x1000).data == bytearray(0x1000)
+
 # False
 
 Memory(size=0x1000, fill=0).data == bytearray(0x1000)
+
 # True, because a caller asked for it in writing
 
 cpu = Cpu(Memory(size=0x1000000, fill=0))
 cpu.a, cpu.x, cpu.y
+
 # whatever a reset leaves behind, reproducible from the seed, not zero
 ```
 
@@ -230,19 +238,27 @@ cpu.a, cpu.x, cpu.y
 python3 conformance/fetch.py ~/.cache/conformance-suites
 
 python3 conformance/singlestep.py ~/.cache/conformance-suites/65816/65816/v1
+
 #   512 files, as a 65816
+
 #   5120000 agreed, 0 did not
 
 python3 conformance/singlestep.py ~/.cache/conformance-suites/6502/6502/v1 --model 6502
+
 #   256 files, as a 6502
+
 #   2560000 agreed, 0 did not
 
 python3 conformance/singlestep.py ~/.cache/conformance-suites/nes6502/nes6502/v1 --model 2a03
+
 #   256 files, as a 2a03
+
 #   2560000 agreed, 0 did not
 
 python3 conformance/singlestep.py ~/.cache/conformance-suites/wdc65c02/wdc65c02/v1 --model w65c02
+
 #   256 files, as a w65c02
+
 #   2540000 agreed, 0 did not
 ```
 
@@ -456,5 +472,3 @@ cases per CMOS suite.
 | Formatting and lint | [ruff](https://docs.astral.sh/ruff/), configured in [`pyproject.toml`](pyproject.toml) |
 | Types | [mypy](https://mypy.readthedocs.io/) at strict, configured in [`pyproject.toml`](pyproject.toml) |
 | Tests | Beside the module, named `<module>.test.py` |
-| Agent instructions | [`AGENTS.md`](AGENTS.md) |
-| Current behaviour | [`specs/current/`](specs/current/), requirements with checkable scenarios |
