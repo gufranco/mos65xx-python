@@ -580,6 +580,42 @@ The ones worth borrowing from are embedded in emulators and shaped by the machin
 
 [MIT](LICENSE)
 
+## References
+
+This project ships no documents. Every claim it makes about the hardware is
+traced to something published by the people who made the parts, and that is
+listed here so a reader can fetch the same file and check the same page.
+
+Each row carries the page count and the first sixteen characters of the file's
+SHA-256. Vendor links move, and a link that has rotted into a different revision
+is easy to follow without noticing: the digest is what tells you whether the file
+you fetched is the file these records were read from. The full digests are
+checked locally by the manifest that manages them.
+
+Every one of these is copyrighted by its publisher and is not redistributable, so
+none of them is in this repository. WDC's notice is explicit about it, reserving
+"the right of reproduction in whole or in part in any form". Individual sentences
+are quoted in [`conformance/hardware.json`](conformance/hardware.json) with the
+page they came from, which is fair use and is what makes the records checkable.
+
+| Document | Date | Pages | SHA-256 |
+|:---------|:-----|------:|:--------|
+| [MOS Technology, Inc., *MCS6500 Microcomputer Family Hardware Manual*](https://archive.org/download/mcs-6500-family-hardware-manual-1976-01/MCS6500_family_hardware_manual_1976-01.pdf) | 1976-01 | 182 | `81ea570c9d68deff…` |
+| [MOS Technology, Inc., *MCS6500 Microcomputer Family Programming Manual*](https://archive.org/download/6500-50A_MCS6500_Programming_Manual_1976_Jan/6500-50A_MCS6500_Programming_Manual_1976_Jan.pdf) | 1976-01 | 262 | `a2d54dd8b6557c7f…` |
+| [MOS Technology, Inc., *MOS 6500 Microprocessors*](https://6502.org/documents/datasheets/mos/mos_6500_mpu_nov_1985.pdf) | 1985-11 | 12 | `ccd72376d1e5db1f…` |
+| [MOS Technology, Inc., *MOS 6500 Microprocessors*](https://6502.org/documents/datasheets/mos/mos_6500_mpu_mar_1980.pdf) | 1980-03 | 12 | `a564c4de593ea178…` |
+| [Synertek, Inc., *SY6500 Microprocessors*](https://6502.org/documents/datasheets/synertek/synertek_sy6500_microprocessors.pdf) | undated | 6 | `f20b50961df60bb0…` |
+| [Synertek, Inc., *SY6500 Hardware Manual*](https://6502.org/documents/datasheets/synertek/synertek_hardware_manual.pdf) | undated | 178 | `9cd0991dcbb4a46b…` |
+| [Rockwell International, *R65C00 Microprocessors: R65C02, R65C102 and R65C112*](https://6502.org/documents/datasheets/rockwell/rockwell_r65c00_microprocessors.pdf) | 1987-06 | 16 | `63deee76c8d0d4fa…` |
+| [The Western Design Center, Inc., *W65C02S 8-bit Microprocessor Data Sheet*](https://westerndesigncenter.com/wdc/documentation/w65c02s.pdf) | 2022-04-08 | 32 | `a6af3ca9da45c8a0…` |
+| [The Western Design Center, Inc., *W65C816S 8/16-bit Microprocessor Data Sheet*](https://datasheets.chipdb.org/Western%20Design/w65c816s.pdf) | 2004-06-14 | 62 | `60f21a3da0331273…` |
+| [The Western Design Center, Inc., *W65C816S 8/16-bit Microprocessor Data Sheet*](https://6502.org/documents/datasheets/wdc/wdc_w65c816s_jul_1994.pdf) | 1994-07 | 72 | `823c2f286a97102f…` |
+| [The Western Design Center, Inc., *W65C816S Datasheet*](https://westerndesigncenter.com/wdc/documentation/w65c816s.pdf) | 2024-03-13 | 55 | `b9177e1b045d2c8a…` |
+
+The two coprocessor parts this family covers have no document of their own. What
+stands in for one is recorded under `partsWithNoDocument` in the manifest, and
+the reasoning is in [`conformance/divergences.json`](conformance/divergences.json).
+
 ## What is settled, and what is not
 
 **Settled: what every instruction does to state.** The SingleStepTests corpora,

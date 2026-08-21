@@ -42,13 +42,22 @@ class DocumentTest(unittest.TestCase):
                 self.assertIn(key, named)
 
     def test_and_says_where_the_copy_that_was_read_is_pinned(self) -> None:
+        """Every document names somewhere a reader can check they have the same file.
+
+        That used to be a manifest under docs, which the repository does not
+        carry, so the answer pointed at nothing for anyone who cloned it. It is
+        the readme now, which is tracked and lists the digest of each file.
+        """
         missing = [
             held["title"]
             for held in declared()["documents"].values()
-            if "documents.json" not in held.get("pinnedIn", "")
+            if "README.md" not in held.get("pinnedIn", "")
         ]
 
         self.assertEqual(missing, [])
+
+    def test_and_that_place_is_one_the_repository_actually_carries(self) -> None:
+        self.assertTrue((ROOT / "README.md").is_file())
 
     def test_every_fact_says_which_document_it_came_from(self) -> None:
         known = set(declared()["documents"])

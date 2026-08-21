@@ -14,25 +14,25 @@
       "title": "W65C816S 8/16-bit Microprocessor Data Sheet",
       "revision": "Updated June 14, 2004",
       "readOn": "2026-08-20",
-      "readVia": "docs/manufacturer/w65c816s.pdf, 62 pages, read in full. The record used to say 76 and to name a bare URL; the file at that URL is 62 pages, which is why every document is now pinned by digest.",
+      "readVia": "w65c816s.pdf, 62 pages, read in full. The record used to say 76 and to name a bare URL; the file at that URL is 62 pages, which is why every document is now pinned by digest.",
       "covers": "The 65816 core, in both native and emulation mode, including the cycle-by-cycle bus activity of every addressing mode in Table 6-7.",
-      "pinnedIn": "docs/documents.json, manufacturer/w65c816s.pdf"
+      "pinnedIn": "the References section of README.md, and locally by digest as manufacturer/w65c816s.pdf"
     },
     "mos6500": {
       "publisher": "MOS Technology, Inc.",
       "title": "MCS6500 Microcomputer Family Hardware Manual",
       "revision": "January 1976",
       "readOn": "2026-08-20",
-      "readVia": "docs/manufacturer/mcs6500-hardware-manual-1976.pdf, 182 pages",
+      "readVia": "mcs6500-hardware-manual-1976.pdf, 182 pages",
       "covers": "The NMOS parts. Appendix A gives the address bus, data bus and R/W line for every cycle of every addressing mode, which is the only manufacturer statement of NMOS cycle behaviour this project has found.",
-      "pinnedIn": "docs/documents.json, manufacturer/mcs6500-hardware-manual-1976.pdf"
+      "pinnedIn": "the References section of README.md, and locally by digest as manufacturer/mcs6500-hardware-manual-1976.pdf"
     },
     "wdc02": {
       "publisher": "The Western Design Center, Inc.",
       "title": "W65C02S 8-bit Microprocessor Data Sheet",
       "revision": "April 8, 2022",
       "readOn": "2026-08-21",
-      "pinnedIn": "docs/documents.json, manufacturer/w65c02s.pdf",
+      "pinnedIn": "the References section of README.md, and locally by digest as manufacturer/w65c02s.pdf",
       "covers": "The CMOS part, including the operational enhancements table this project cites for what changed from the NMOS part and the note about the extra decimal cycle."
     },
     "rockwell": {
@@ -40,7 +40,7 @@
       "title": "R65C00 Microprocessors: R65C02, R65C102 and R65C112",
       "revision": "Rev. 6, June 1987",
       "readOn": "2026-08-21",
-      "pinnedIn": "docs/documents.json, manufacturer/rockwell-r65c00-microprocessors.pdf",
+      "pinnedIn": "the References section of README.md, and locally by digest as manufacturer/rockwell-r65c00-microprocessors.pdf",
       "covers": "Rockwell's own CMOS part, which the suite records separately because it is not the same as Synertek's or WDC's."
     },
     "wdc816_1994": {
@@ -48,27 +48,27 @@
       "title": "W65C816S 8/16-bit Microprocessor Data Sheet",
       "revision": "July 1994",
       "readOn": "2026-08-21",
-      "readVia": "docs/manufacturer/wdc-w65c816s-jul-1994.pdf, 72 pages",
+      "readVia": "wdc-w65c816s-jul-1994.pdf, 72 pages",
       "covers": "The same part, eleven years earlier. Its prose sections match the 2004 revision word for word except in one sentence, where it names two addressing modes the later revision dropped. Its own caveats table is a scan with no text layer.",
-      "pinnedIn": "docs/documents.json, manufacturer/wdc-w65c816s-jul-1994.pdf"
+      "pinnedIn": "the References section of README.md, and locally by digest as manufacturer/wdc-w65c816s-jul-1994.pdf"
     },
     "wdc816_2024": {
       "publisher": "The Western Design Center, Inc.",
       "title": "W65C816S 8/16-bit Microprocessor Data Sheet",
       "revision": "March 13, 2024",
       "readOn": "2026-08-21",
-      "readVia": "docs/manufacturer/w65c816s-2024.pdf, 55 pages",
+      "readVia": "w65c816s-2024.pdf, 55 pages",
       "covers": "The current revision. Its caveats table carries the same values as the 2004 one, renumbered from Table 8-1 to Table 7-1, which is what makes those claims safe to cite without pinning a revision.",
-      "pinnedIn": "docs/documents.json, manufacturer/w65c816s-2024.pdf"
+      "pinnedIn": "the References section of README.md, and locally by digest as manufacturer/w65c816s-2024.pdf"
     },
     "mos6500_datasheet": {
       "publisher": "Commodore Semiconductor Group, formerly MOS Technology, Inc.",
       "title": "6500 Microprocessors data sheet",
       "revision": "November 1985, with the March 1980 printing beside it",
       "readOn": "2026-08-21",
-      "readVia": "docs/manufacturer/mos-6500-mpu-nov-1985.pdf, 12 pages",
+      "readVia": "mos-6500-mpu-nov-1985.pdf, 12 pages",
       "covers": "Which parts the NMOS family has. A page per package giving its addressable range and the interrupt lines it brings out, which between them are the whole of what a program can tell apart.",
-      "pinnedIn": "docs/documents.json, manufacturer/mos-6500-mpu-nov-1985.pdf"
+      "pinnedIn": "the References section of README.md, and locally by digest as manufacturer/mos-6500-mpu-nov-1985.pdf"
     }
   },
   "facts": {
