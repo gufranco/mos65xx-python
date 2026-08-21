@@ -261,14 +261,19 @@ def main(argv: Sequence[str]) -> int:
     print(f"  {len(files)} files from {directory}, as a {model}")
     agreed = differed = skipped = 0
     broken = []
+    empty = []
     for path in files:
         file_agreed, file_differed, file_skipped, examples = run_file(path, limit, model)
         agreed += file_agreed
         differed += file_differed
         skipped += file_skipped
+        if not (file_agreed or file_differed or file_skipped):
+            empty.append(path.stem)
         if file_differed:
             broken.append((path.name, file_differed, examples))
 
+    if empty:
+        print(f"  {len(empty)} files hold no cases: {' '.join(empty)}")
     print(
         f"  {agreed} agreed cycle for cycle, {differed} did not, "
         f"{skipped} left out as halts or placeholders"

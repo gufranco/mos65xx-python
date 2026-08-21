@@ -123,7 +123,7 @@ Pure Python, standard library only. The release tooling is the sole `node_module
 
 ### Read from the datasheets
 
-Every hardware fact this project relies on is in [`conformance/hardware.json`](conformance/hardware.json) with the sentence it was read from. Where a manufacturer's document and the recorded cycles disagree, [`conformance/divergences.json`](conformance/divergences.json) carries both and says what would settle it.
+Every hardware fact this project relies on is in [`conformance/hardware.json`](conformance/hardware.json) with the sentence it was read from, every cycle of every NMOS addressing mode is in [`conformance/addressing-cycles.json`](conformance/addressing-cycles.json) as Appendix A prints it, and all 151 documented opcodes are in [`conformance/instruction-set.json`](conformance/instruction-set.json) as Appendix B prints them. Where a manufacturer's document and the recorded cycles disagree, [`conformance/divergences.json`](conformance/divergences.json) carries both and says what would settle it.
 
 </td>
 </tr>
@@ -183,20 +183,37 @@ describe("w65c802").address_bits
 cpu = Cpu(SparseMemory(), model="65802")
 ```
 
-| Model | Address bits | Decimal | Notes |
-|:------|:------------:|:-------:|:------|
-| `6502` | 16 | yes | MOS 6502. Aliases: `mos6502`, `nmos6502`, `6510`, `8500` |
-| `6507` | 13 | yes | The same die in a smaller package. Aliases: `mos6507` |
-| `2a03` | 16 | **no** | Ricoh 2A03 and 2A07. Aliases: `ricoh2a03`, `2a07`, `nes6502`, `famicom` |
-| `65c02` | 16 | yes | The base CMOS design. Aliases: `synertek65c02`, `cmos6502` |
-| `r65c02` | 16 | yes | Rockwell R65C02, adding thirty two single-bit instructions. Aliases: `rockwell65c02` |
-| `w65c02` | 16 | yes | WDC W65C02S, adding stop and wait. Aliases: `wdc65c02`, `w65c02s` |
-| `65802` | 16 | yes | WDC W65C802, the sixteen bit core in a 6502 pin out. Aliases: `w65c802`, `65c802` |
-| `65816` | 24 | yes | WDC W65C816S. Aliases: `w65c816`, `w65c816s`, `65c816`, `65816s` |
+| Model | Address bits | Pins | Decimal | Notes |
+|:------|:------------:|:-----|:-------:|:------|
+| `6502` | 16 | IRQ, NMI, RDY | yes | MOS 6502. Aliases: `mos6502`, `nmos6502`, `6510`, `8500` |
+| `6503` | 12 | IRQ, NMI | yes | Four kilobytes, on-chip clock. Aliases: `mos6503` |
+| `6504` | 13 | IRQ | yes | Eight kilobytes, no non-maskable pin. Aliases: `mos6504` |
+| `6505` | 12 | IRQ, RDY | yes | Four kilobytes, ready line, no non-maskable pin. Aliases: `mos6505` |
+| `6506` | 12 | IRQ | yes | Four kilobytes, second clock output instead of ready. Aliases: `mos6506` |
+| `6507` | 13 | RDY | yes | The same die in a smaller package, no interrupt pins at all. Aliases: `mos6507` |
+| `6512` | 16 | IRQ, NMI, RDY | yes | The 6502 with the clock oscillator left off the die. Aliases: `mos6512` |
+| `6513` | 12 | IRQ, NMI | yes | The 6503 on an external clock. Aliases: `mos6513` |
+| `6514` | 13 | IRQ | yes | The 6504 on an external clock. Aliases: `mos6514` |
+| `6515` | 12 | IRQ, RDY | yes | The 6505 on an external clock. Aliases: `mos6515` |
+| `2a03` | 16 | IRQ, NMI, RDY | **no** | Ricoh 2A03 and 2A07. Aliases: `ricoh2a03`, `2a07`, `nes6502`, `famicom` |
+| `65c02` | 16 | IRQ, NMI, RDY | yes | The base CMOS design. Aliases: `synertek65c02`, `cmos6502` |
+| `r65c02` | 16 | IRQ, NMI, RDY | yes | Rockwell R65C02, adding thirty two single-bit instructions. Aliases: `rockwell65c02` |
+| `w65c02` | 16 | IRQ, NMI, RDY | yes | WDC W65C02S, adding stop and wait. Aliases: `wdc65c02`, `w65c02s` |
+| `65802` | 16 | IRQ, NMI, RDY | yes | WDC W65C802, the sixteen bit core in a 6502 pin out. Aliases: `w65c802`, `65c802` |
+| `65816` | 24 | IRQ, NMI, RDY | yes | WDC W65C816S. Aliases: `w65c816`, `w65c816s`, `65c816`, `65816s` |
 
 Three of those differences are the kind that produce a bug rather than a compile error.
 
 The address bus is not cosmetic. The 65802 has sixteen address lines, so bank bits never leave the chip and a read of `$7E0012` lands on `$0012`. The 6507 has thirteen, so everything above eight kilobytes is a mirror of something below it.
+
+Neither are the pins. The ten NMOS packages share one die and one instruction set, and what separates most of them is how far an address reaches and which interrupt lines the package brought out. A line that is not on the package is not a line a system can assert, so pulling one here raises rather than quietly taking the interrupt:
+
+```python
+cpu = Cpu(SparseMemory(), model="6507")
+cpu.irq()
+
+# NoSuchPin: the 6507 has no irq pin; it brings out rdy
+```
 
 Decimal mode is a property of the part. The Ricoh variant in the Famicom has the decimal adder left unwired, so the flag can be set and changes nothing. Code that sets it and expects decimal arithmetic is wrong, and the part will not say so.
 
@@ -205,7 +222,7 @@ And the undocumented instructions are not optional. A hundred and fifty one of t
 Revisions are separate models, including the ones that only fixed a bug, because a machine has whichever revision it was built with. The three CMOS parts differ in exactly two opcode columns and two opcodes: a bit-clear instruction on a part that does not have it is a no-operation, and nothing reports that the bit was never cleared.
 
 > [!NOTE]
-> A model is only listed once a conformance suite backs it. A model with no suite behind it would make its fidelity a claim rather than a measurement.
+> A model is only listed once something measures it. Six are held to a suite of their own. The other ten name the part they narrow and are held to that part's suite plus a check that the narrowing, fewer address lines or fewer pins, is the only difference. Either way the fidelity is a measurement rather than a claim.
 
 ## What "nothing starts clean" means
 
@@ -231,6 +248,162 @@ cpu.a, cpu.x, cpu.y
 ```
 
 `SparseMemory` holds only what has been written and hashes the address for everything else, so a test that touches a dozen bytes does not pay for sixteen megabytes to stay unclean. Both take a `seed`, so a differential run against another implementation stays comparable.
+
+### The appendix, cycle by cycle
+
+Appendix A of the MCS6500 Hardware Manual prints the address bus, the data bus
+and the read write line for every cycle of every addressing mode. It is the only
+manufacturer statement of NMOS bus behaviour this project has found, so all
+twenty-seven of its tables are in
+[`conformance/addressing-cycles.json`](conformance/addressing-cycles.json) with
+the manual's own address expressions rather than a paraphrase.
+[`conformance/addressing_cycles.test.py`](conformance/addressing_cycles.test.py)
+drives each shape and resolves those expressions against the run, so a row that
+stops matching names the page it came from. That check needs no suite on the
+machine.
+
+Three of the tables say something the part does not do, and each is recorded
+rather than quietly followed:
+
+- The discarded read of an indexed access. Four tables give its high byte as
+  `BAH + C`; the indirect Y store two pages later gives it as `BAH`, with no
+  carry. Only the second matches the part, and only the second explains why the
+  other four carry a footnote saying that read has to be ignored. This is the
+  cycle that makes an indexed store to a hardware register touch a second
+  register one page below the one it names.
+- The branch table. Its two address rows sit one row lower than they run: the
+  part drives the plain program counter on the third cycle, the partially
+  corrected target on the fourth, and never reaches the corrected target inside
+  the branch at all.
+- The stack addresses of a pull, written as plain sums. They hold everywhere
+  except across the edge of page one, which is exactly where a deep sequence of
+  pushes leaves the pointer.
+
+### The instruction set, as the manufacturer stated it
+
+Appendix B of the MCS6500 Programming Manual gives each of the fifty-six
+documented instructions its own page: the flags it touches, and for every
+addressing mode the opcode, the byte count and the cycle count. That is a
+hundred and fifty-one opcodes, which is the whole documented set, and all of
+them are in
+[`conformance/instruction-set.json`](conformance/instruction-set.json).
+
+[`conformance/instruction_set.test.py`](conformance/instruction_set.test.py)
+holds three separate things to it. The opcode table this project decodes with
+has to name the same mnemonic, mode and length for every one. Each instruction
+has to take the cycles the page prints, with the extra cycle appearing exactly
+where the page marks a page crossing. And each of the two hundred and
+fifty-seven flag rules that are absolute, this one is always reset, this one is
+never touched, has to hold across twenty-four states.
+
+Two rows are misprinted, and the record says so rather than following them.
+`AND (Oper), Y` and `ORA (Oper), Y` are printed without the asterisk that marks
+the page-crossing cycle, while the six other Group One instructions carry it and
+while these same two carry it on their absolute indexed rows one line above. The
+part takes the cycle on all eight.
+
+### The opcodes the CMOS parts reserved
+
+The NMOS parts leave forty-four opcodes undefined, and some of them stop the
+part until it is reset, so nothing can be asserted about them. The CMOS parts
+turned every one into a no-operation of a stated length, and the W65C02S data
+sheet prints that length and timing for each. That is in
+[`conformance/cmos-reserved.json`](conformance/cmos-reserved.json) and checked
+by
+[`conformance/cmos_reserved.test.py`](conformance/cmos_reserved.test.py).
+
+The cell that carries the list has its own columns break part way down, so the
+reading is settled by arithmetic rather than by layout: the six groups come to
+forty-four opcodes, the same data sheet says the part has two hundred and
+twelve, and the opcode matrix on an earlier page leaves exactly forty-four
+blank. Three counts in one document agreeing is what fixes it.
+
+Forty-three of the forty-four hold. The exception is `5C`, where the data sheet
+says eight cycles and thirty thousand recorded cases across three parts all say
+four. The data sheet gives a count and no addresses, so following it would mean
+inventing four bus cycles nobody has written down. The four this project takes
+are the ones the recordings show, and the disagreement is in
+[`conformance/divergences.json`](conformance/divergences.json) with the one
+measurement that would close it.
+
+### Where the parts differ, from the one page that compares them
+
+Most of what separates these parts has to be inferred from two documents that
+never mention each other. Table 8-1 of the W65C816S data sheet is the exception:
+it sets the NMOS part, both CMOS eight bit parts and the sixteen bit part in four
+columns and says what each one does. Five of its rows are things this project can
+drive, and all twenty cells are checked in
+[`conformance/part-differences.json`](conformance/part-differences.json) and
+[`conformance/part_differences.test.py`](conformance/part_differences.test.py).
+
+`JMP (a)` with its vector at the top of a page gets three different answers. The
+oldest part takes the high byte from the bottom of the same page, which is the
+defect, and spends five cycles. The CMOS eight bit parts take it from the next
+page and charge a sixth cycle for the fix. The sixteen bit part takes it from the
+next page and still spends five.
+
+Four of the five rows separate the parts, and every one of them separates them
+the same way: the two CMOS eight bit parts on one side, the NMOS part and the
+sixteen bit part together on the other. That holds for the shift of an indexed
+absolute, for the indirect jump, for the extra cycle decimal arithmetic costs,
+and for which address the discarded cycle of an indexed access lands on.
+
+### Three revisions of one data sheet, and what changed between them
+
+Three revisions of the W65C816S data sheet are pinned here, from 1994, 2004 and
+2024. Reading all three answers a question a single revision cannot: which
+claims are stable and which are an artefact of the copy someone happened to
+download.
+
+The comparison table is stable. Every cell of it is identical in 2004 and 2024,
+twenty years apart, with only the section number moving from 8-1 to 7-1. A claim
+taken from that table does not need a revision pinned beside it.
+
+One sentence is not stable, and it lost information rather than gaining it. The
+1994 revision lists the addressing modes that run past the emulation stack range
+as `JSL; JSR(a,x); PEA, PEI, PER, PHD, PLD, RTL; d, s; (d,s), y`. The 2004 and
+2024 revisions stop after `RTL`. The two that were dropped are the stack
+relative modes, and they belong in the list: with the stack pointer at `01FF`, a
+stack relative read lands at `0002FE` rather than wrapping, which the recorded
+cycles confirm and this project reproduces. The earliest revision is the one
+that describes the part.
+
+### The sixteen bit part's bus, cycle by cycle
+
+The 65816 had no rung one cycle check at all until now: its timing rested
+entirely on a recording. Table 6-7 of its data sheet closes that. Across seven
+pages it prints all eight output lines for every cycle of every addressing mode,
+vector pull and memory lock included, and all forty-seven groups and three
+hundred and twenty-eight rows are in
+[`conformance/bus-operation.json`](conformance/bus-operation.json).
+
+[`conformance/bus_operation.test.py`](conformance/bus_operation.test.py) drives
+forty-four of the forty-seven and resolves the table's own address expressions
+against each run. The three it does not drive are the two that never finish an
+instruction, stop-the-clock and wait-for-interrupt, and the hardware interrupt
+group, which a pin drives rather than an opcode.
+
+The runs use eight bit registers, a direct register with no low byte and no
+index crossing a page. That is the one configuration in which every note the
+table carries is inactive, which matters because the Note column is a merged
+cell whose row alignment cannot be recovered from the extracted text. Switching
+any note on would mean guessing which row it belongs to.
+
+Two hundred and fifty-seven of the two hundred and sixty-six rows reached match
+exactly. The nine that do not fall into two classes, both recorded:
+
+- Five rows carry an address that is only right when the register is sixteen
+  bits. Each sits directly below a row that exists only in that wider form, and
+  each names the byte that wider form would have left behind. The four
+  read-modify-write modify cycles come out a byte high and the push a byte low,
+  because the stack grows the other way. The table has no eight bit form of
+  those rows.
+- Four rows disagree about a pin rather than an address. The table marks the two
+  bytes of a new program counter, fetched through an indexed pointer, as a valid
+  program address. The part marks them a valid data address, and so does the
+  table itself two groups later for the same operation through a pointer in bank
+  zero. Only a logic analyser on the real pins can settle that one, and
+  [`conformance/divergences.json`](conformance/divergences.json) says so.
 
 ## Conformance
 
@@ -295,7 +468,15 @@ mos65xx/
 conformance/
   fetch.py            partial, sparse, pinned checkout of the suites
   singlestep.py       runs the suite and reports what disagreed
+  cycles.py           holds every bus cycle to the suite rather than the end state
   suites.json         which suites, which commit
+  hardware.json       what the datasheets print, fact by fact, with the sentence
+  addressing-cycles.json  every cycle of every NMOS addressing mode, as printed
+  instruction-set.json    every documented opcode, its length, timing and flags
+  cmos-reserved.json      the 44 opcodes the CMOS parts left as no-operations
+  part-differences.json   the one table that sets all four parts side by side
+  bus-operation.json      all 8 output lines, every cycle, every 65816 mode
+  divergences.json    where a document and the recorded cycles part, and why
 ```
 
 Each module has its tests beside it as `<module>.test.py`, so a module and the cases that pin its behaviour are read together.
@@ -398,6 +579,42 @@ The ones worth borrowing from are embedded in emulators and shaped by the machin
 ## License
 
 [MIT](LICENSE)
+
+## References
+
+This project ships no documents. Every claim it makes about the hardware is
+traced to something published by the people who made the parts, and that is
+listed here so a reader can fetch the same file and check the same page.
+
+Each row carries the page count and the first sixteen characters of the file's
+SHA-256. Vendor links move, and a link that has rotted into a different revision
+is easy to follow without noticing: the digest is what tells you whether the file
+you fetched is the file these records were read from. The full digests are
+checked locally by the manifest that manages them.
+
+Every one of these is copyrighted by its publisher and is not redistributable, so
+none of them is in this repository. WDC's notice is explicit about it, reserving
+"the right of reproduction in whole or in part in any form". Individual sentences
+are quoted in [`conformance/hardware.json`](conformance/hardware.json) with the
+page they came from, which is fair use and is what makes the records checkable.
+
+| Document | Date | Pages | SHA-256 |
+|:---------|:-----|------:|:--------|
+| [MOS Technology, Inc., *MCS6500 Microcomputer Family Hardware Manual*](https://archive.org/download/mcs-6500-family-hardware-manual-1976-01/MCS6500_family_hardware_manual_1976-01.pdf) | 1976-01 | 182 | `81ea570c9d68deff…` |
+| [MOS Technology, Inc., *MCS6500 Microcomputer Family Programming Manual*](https://archive.org/download/6500-50A_MCS6500_Programming_Manual_1976_Jan/6500-50A_MCS6500_Programming_Manual_1976_Jan.pdf) | 1976-01 | 262 | `a2d54dd8b6557c7f…` |
+| [MOS Technology, Inc., *MOS 6500 Microprocessors*](https://6502.org/documents/datasheets/mos/mos_6500_mpu_nov_1985.pdf) | 1985-11 | 12 | `ccd72376d1e5db1f…` |
+| [MOS Technology, Inc., *MOS 6500 Microprocessors*](https://6502.org/documents/datasheets/mos/mos_6500_mpu_mar_1980.pdf) | 1980-03 | 12 | `a564c4de593ea178…` |
+| [Synertek, Inc., *SY6500 Microprocessors*](https://6502.org/documents/datasheets/synertek/synertek_sy6500_microprocessors.pdf) | undated | 6 | `f20b50961df60bb0…` |
+| [Synertek, Inc., *SY6500 Hardware Manual*](https://6502.org/documents/datasheets/synertek/synertek_hardware_manual.pdf) | undated | 178 | `9cd0991dcbb4a46b…` |
+| [Rockwell International, *R65C00 Microprocessors: R65C02, R65C102 and R65C112*](https://6502.org/documents/datasheets/rockwell/rockwell_r65c00_microprocessors.pdf) | 1987-06 | 16 | `63deee76c8d0d4fa…` |
+| [The Western Design Center, Inc., *W65C02S 8-bit Microprocessor Data Sheet*](https://westerndesigncenter.com/wdc/documentation/w65c02s.pdf) | 2022-04-08 | 32 | `a6af3ca9da45c8a0…` |
+| [The Western Design Center, Inc., *W65C816S 8/16-bit Microprocessor Data Sheet*](https://datasheets.chipdb.org/Western%20Design/w65c816s.pdf) | 2004-06-14 | 62 | `60f21a3da0331273…` |
+| [The Western Design Center, Inc., *W65C816S 8/16-bit Microprocessor Data Sheet*](https://6502.org/documents/datasheets/wdc/wdc_w65c816s_jul_1994.pdf) | 1994-07 | 72 | `823c2f286a97102f…` |
+| [The Western Design Center, Inc., *W65C816S Datasheet*](https://westerndesigncenter.com/wdc/documentation/w65c816s.pdf) | 2024-03-13 | 55 | `b9177e1b045d2c8a…` |
+
+The two coprocessor parts this family covers have no document of their own. What
+stands in for one is recorded under `partsWithNoDocument` in the manifest, and
+the reasoning is in [`conformance/divergences.json`](conformance/divergences.json).
 
 ## What is settled, and what is not
 

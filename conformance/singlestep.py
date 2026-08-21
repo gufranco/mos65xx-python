@@ -154,6 +154,10 @@ def run_file(
     A file with nothing in it is a file with no cases rather than a failure. The
     suites carry one per opcode, and the two whose whole behaviour is to stop the
     part are empty because there is nothing to record.
+
+    The caller counts those and names them, because a run that compares two
+    hundred and fifty four files out of two hundred and fifty six and reports only
+    the two hundred and fifty six reads as a run that checked them all.
     """
     held = Path(path).read_text().strip()
     if not held:
@@ -211,14 +215,19 @@ def main(argv: Sequence[str]) -> int:
     print(f"  {len(files)} files from {directory}, as a {model}")
     passed = failed = 0
     broken = []
+    empty = []
     for path in files:
         file_passed, file_failed, examples = run_file(path, limit, model)
         passed += file_passed
         failed += file_failed
+        if not file_passed and not file_failed:
+            empty.append(path.stem)
         if file_failed:
             broken.append((path.name, file_failed, examples))
 
     print(f"  {passed} agreed, {failed} did not")
+    if empty:
+        print(f"  {len(empty)} files hold no cases: {' '.join(empty)}")
     for name, count, examples in broken[:EXAMPLE_LIMIT]:
         detail = ", ".join(f"{field} want {want} got {got}" for field, want, got in examples[0][1])
         print(f"    {name}: {count} wrong, first {examples[0][0]}: {detail}")

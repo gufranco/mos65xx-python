@@ -41,6 +41,7 @@ from collections.abc import Callable
 from typing import Any
 
 from .memory import UNSET_SEED, scramble
+from .models import NoSuchPin
 from .opcodes6502 import MODE_SIZE, NMOS
 
 STEP_LIMIT = 2_000_000
@@ -102,6 +103,7 @@ class Cpu:
         self.stopped = False
         self.model = "6502"
         self.address_mask = 0xFFFF
+        self.package_pins: tuple[str, ...] = ("irq", "nmi", "rdy")
 
         self.trace: list[tuple[int, int, str]] | None = None
 
@@ -666,6 +668,13 @@ class Cpu:
         self.i = True
         self.pc = self.read16(vector)
 
+    def require(self, pin: str) -> None:
+        """Refuse a line this part does not bring out of its package."""
+        if pin not in self.package_pins:
+            raise NoSuchPin(
+                f"the {self.model} has no {pin} pin; it brings out {', '.join(self.package_pins)}"
+            )
+
     def irq(self) -> bool:
         """Pull the interrupt request line, and say whether the part took it.
 
@@ -674,6 +683,7 @@ class Cpu:
         taken, and a caller holding the line low will have it taken later when the
         flag clears. False means the request is still outstanding.
         """
+        self.require("irq")
         if self.i:
             return False
         self.interrupt(IRQ_VECTOR)
@@ -687,6 +697,7 @@ class Cpu:
         calling this once per transition, which is why there is nothing to poll
         and nothing to report.
         """
+        self.require("nmi")
         self.interrupt(NMI_VECTOR)
 
     def op_bpl(self, mode: str) -> None:

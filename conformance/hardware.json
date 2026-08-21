@@ -14,25 +14,25 @@
       "title": "W65C816S 8/16-bit Microprocessor Data Sheet",
       "revision": "Updated June 14, 2004",
       "readOn": "2026-08-20",
-      "readVia": "docs/manufacturer/w65c816s.pdf, 62 pages, read in full. The record used to say 76 and to name a bare URL; the file at that URL is 62 pages, which is why every document is now pinned by digest.",
+      "readVia": "w65c816s.pdf, 62 pages, read in full. The record used to say 76 and to name a bare URL; the file at that URL is 62 pages, which is why every document is now pinned by digest.",
       "covers": "The 65816 core, in both native and emulation mode, including the cycle-by-cycle bus activity of every addressing mode in Table 6-7.",
-      "pinnedIn": "docs/documents.json, manufacturer/w65c816s.pdf"
+      "pinnedIn": "the References section of README.md, and locally by digest as manufacturer/w65c816s.pdf"
     },
     "mos6500": {
       "publisher": "MOS Technology, Inc.",
       "title": "MCS6500 Microcomputer Family Hardware Manual",
       "revision": "January 1976",
       "readOn": "2026-08-20",
-      "readVia": "docs/manufacturer/mcs6500-hardware-manual-1976.pdf, 182 pages",
+      "readVia": "mcs6500-hardware-manual-1976.pdf, 182 pages",
       "covers": "The NMOS parts. Appendix A gives the address bus, data bus and R/W line for every cycle of every addressing mode, which is the only manufacturer statement of NMOS cycle behaviour this project has found.",
-      "pinnedIn": "docs/documents.json, manufacturer/mcs6500-hardware-manual-1976.pdf"
+      "pinnedIn": "the References section of README.md, and locally by digest as manufacturer/mcs6500-hardware-manual-1976.pdf"
     },
     "wdc02": {
       "publisher": "The Western Design Center, Inc.",
       "title": "W65C02S 8-bit Microprocessor Data Sheet",
       "revision": "April 8, 2022",
       "readOn": "2026-08-21",
-      "pinnedIn": "docs/documents.json, manufacturer/w65c02s.pdf",
+      "pinnedIn": "the References section of README.md, and locally by digest as manufacturer/w65c02s.pdf",
       "covers": "The CMOS part, including the operational enhancements table this project cites for what changed from the NMOS part and the note about the extra decimal cycle."
     },
     "rockwell": {
@@ -40,8 +40,35 @@
       "title": "R65C00 Microprocessors: R65C02, R65C102 and R65C112",
       "revision": "Rev. 6, June 1987",
       "readOn": "2026-08-21",
-      "pinnedIn": "docs/documents.json, manufacturer/rockwell-r65c00-microprocessors.pdf",
+      "pinnedIn": "the References section of README.md, and locally by digest as manufacturer/rockwell-r65c00-microprocessors.pdf",
       "covers": "Rockwell's own CMOS part, which the suite records separately because it is not the same as Synertek's or WDC's."
+    },
+    "wdc816_1994": {
+      "publisher": "The Western Design Center, Inc.",
+      "title": "W65C816S 8/16-bit Microprocessor Data Sheet",
+      "revision": "July 1994",
+      "readOn": "2026-08-21",
+      "readVia": "wdc-w65c816s-jul-1994.pdf, 72 pages",
+      "covers": "The same part, eleven years earlier. Its prose sections match the 2004 revision word for word except in one sentence, where it names two addressing modes the later revision dropped. Its own caveats table is a scan with no text layer.",
+      "pinnedIn": "the References section of README.md, and locally by digest as manufacturer/wdc-w65c816s-jul-1994.pdf"
+    },
+    "wdc816_2024": {
+      "publisher": "The Western Design Center, Inc.",
+      "title": "W65C816S 8/16-bit Microprocessor Data Sheet",
+      "revision": "March 13, 2024",
+      "readOn": "2026-08-21",
+      "readVia": "w65c816s-2024.pdf, 55 pages",
+      "covers": "The current revision. Its caveats table carries the same values as the 2004 one, renumbered from Table 8-1 to Table 7-1, which is what makes those claims safe to cite without pinning a revision.",
+      "pinnedIn": "the References section of README.md, and locally by digest as manufacturer/w65c816s-2024.pdf"
+    },
+    "mos6500_datasheet": {
+      "publisher": "Commodore Semiconductor Group, formerly MOS Technology, Inc.",
+      "title": "6500 Microprocessors data sheet",
+      "revision": "November 1985, with the March 1980 printing beside it",
+      "readOn": "2026-08-21",
+      "readVia": "mos-6500-mpu-nov-1985.pdf, 12 pages",
+      "covers": "Which parts the NMOS family has. A page per package giving its addressable range and the interrupt lines it brings out, which between them are the whole of what a program can tell apart.",
+      "pinnedIn": "the References section of README.md, and locally by digest as manufacturer/mos-6500-mpu-nov-1985.pdf"
     }
   },
   "facts": {
@@ -254,6 +281,43 @@
       "section": "Table 7-1 of the W65C02S data sheet",
       "quote": "Interrupt after fetch of BRK instruction: NMOS 6502, interrupt vector is loaded, BRK vector is ignored; W65C02S, BRK is executed, and then interrupt is executed.",
       "notModelled": "Neither behaviour. A pin taken in the middle of an instruction needs a core that can stop part way through one, and this one runs an instruction to completion before it will take an interrupt. Recorded because it is a real difference between the parts and this project does not have it."
+    },
+    "stackRangeInEmulationAsFirstPrinted": {
+      "document": "wdc816_1994",
+      "section": "8.1",
+      "quote": "In the Emulation mode, the Stack address range is 000100 to 0001FF. The following opcodes and addressing modes will increment or decrement beyond this range when accessing two or three bytes: JSL; JSR(a,x); PEA, PEI, PER, PHD, PLD, RTL; d, s; (d,s), y",
+      "note": "Two entries longer than the same sentence in the 2004 and 2024 revisions, which stop after RTL. The two that were dropped are the stack relative addressing modes, and they belong there: with the stack pointer near the top of page one, a stack relative read lands above 0001FF rather than wrapping. The sentence promises the same thing in all three revisions and only the earliest one lists everything it applies to, so the earliest is the one this project follows.",
+      "whyTheLaterListIsTheIncompleteOne": "The note on the shorter list reasons that it names exactly what the part added. That reasoning argues for the longer list: stack relative addressing is also something the part added, and it is only absent from the sentence, never from the part."
+    },
+    "caveatsTableIsStableAcrossRevisions": {
+      "document": "wdc816_2024",
+      "section": "Table 7-1 Caveats, which the 2004 revision numbers Table 8-1",
+      "quote": "A.ABS,X,ASL,LSR,ROL with no Page Crossing: 7 cycles, 6 cycles, 6 cycles, 7 cycles.",
+      "note": "Every cell of the comparison table is the same in the 2004 and 2024 revisions, twenty years apart. Only the section number moved. A claim taken from that table therefore does not depend on which revision a reader happens to hold, which is worth knowing because three revisions of this data sheet are pinned here."
+    },
+    "nmosFamilyPackages": {
+      "document": "mos6500_datasheet",
+      "section": "Features of 6502 through Features of 6515",
+      "quote": "Features of 6504: 8K Addressable Bytes of Memory (A0-A12). On-the-chip Clock. IRQ Interrupt. 8 Bit Bidirectional Data Bus.",
+      "note": "Ten packages, one die. The list of features under each is exhaustive, so a line absent from it is a line the package does not bring out: the 6504 has no non-maskable pin and the 6507 has neither interrupt pin. Six of the ten have an on-chip oscillator and four take their clock on pins, which is the only difference between 6502 and 6512, between 6503 and 6513, and so on, and it is not something a program can see.",
+      "whatIsImplemented": {
+        "addressLines": "12 on the 6503, 6505, 6506, 6513 and 6515; 13 on the 6504, 6507 and 6514; 16 on the 6502 and 6512",
+        "interruptPins": "Both on the 6502, 6503, 6512 and 6513. The request line alone on the 6504, 6505, 6506, 6514 and 6515. Neither on the 6507.",
+        "whatHappensWhenOneIsMissing": "Pulling it raises, because a line the package does not bring out is not a line a system can assert"
+      },
+      "secondSource": "Synertek's SY6500 data sheet names the same family in the same two groups by clock and has no 6507 in it. Nine of the ten are attested by two publishers; the 6507 is attested by one, which is consistent with it being the part MOS made for a single customer.",
+      "packages": ["6502", "6503", "6504", "6505", "6506", "6507", "6512", "6513", "6514", "6515"],
+      "alsoNamedBySynertek": [
+        "6502",
+        "6503",
+        "6504",
+        "6505",
+        "6506",
+        "6512",
+        "6513",
+        "6514",
+        "6515"
+      ]
     }
   }
 }

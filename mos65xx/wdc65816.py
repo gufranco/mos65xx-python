@@ -133,6 +133,7 @@ class Cpu:
         self.step_limit = step_limit
         self.model = "65816"
         self.address_mask = ADDRESS_MASK
+        self.package_pins: tuple[str, ...] = ("irq", "nmi", "rdy")
         self._emulation = False
         self._s = 0x01FF
         self.cycle_budget: int | None = None

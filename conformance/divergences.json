@@ -37,10 +37,7 @@
             "opcode": "E1",
             "test": "e1 e 8669",
             "pointerAt": "00F4FF",
-            "readsCycled": [
-              "00F4FF",
-              "00F500"
-            ],
+            "readsCycled": ["00F4FF", "00F500"],
             "verdict": "left the page, which the document says it should not"
           },
           {
@@ -48,11 +45,7 @@
             "opcode": "27",
             "test": "27 e 3341",
             "pointerAt": "002FFE",
-            "readsCycled": [
-              "002FFE",
-              "002FFF",
-              "003000"
-            ],
+            "readsCycled": ["002FFE", "002FFF", "003000"],
             "verdict": "left the page, which the document says it should"
           },
           {
@@ -60,11 +53,7 @@
             "opcode": "57",
             "test": "57 e 6432",
             "pointerAt": "0089FF",
-            "readsCycled": [
-              "0089FF",
-              "008900",
-              "008901"
-            ],
+            "readsCycled": ["0089FF", "008900", "008901"],
             "verdict": "wrapped inside the page, which the document says it should not"
           },
           {
@@ -72,10 +61,7 @@
             "opcode": "D4",
             "test": "the case at D=000C00 with an operand of FF",
             "pointerAt": "000CFF",
-            "readsCycled": [
-              "000CFF",
-              "000C00"
-            ],
+            "readsCycled": ["000CFF", "000C00"],
             "verdict": "wrapped inside the page, which the document says it should not"
           }
         ],
@@ -100,23 +86,14 @@
             "opcode": "10",
             "test": "10 b3 8d",
             "at": "0090CA",
-            "readsCycled": [
-              "0090CA",
-              "0090CB",
-              "0090CC"
-            ],
+            "readsCycled": ["0090CA", "0090CB", "0090CC"],
             "verdict": "third cycle at PC+2, and the branch went to 00907F"
           },
           {
             "opcode": "10",
             "test": "10 3c 3a",
             "at": "0077E1",
-            "readsCycled": [
-              "0077E1",
-              "0077E2",
-              "0077E3",
-              "00771F"
-            ],
+            "readsCycled": ["0077E1", "0077E2", "0077E3", "00771F"],
             "verdict": "third at PC+2, fourth at the low-byte-only sum, and the branch went to 00781F"
           }
         ]
@@ -169,11 +146,7 @@
           {
             "opcode": "69",
             "at": "00EC03",
-            "readsCycled": [
-              "00EC03",
-              "00EC04",
-              "00007F"
-            ],
+            "readsCycled": ["00EC03", "00EC04", "00007F"],
             "verdict": "a constant, and therefore not an address the part computed"
           }
         ]
@@ -181,6 +154,120 @@
       "whatThisProjectDoes": "Spends the extra cycle, and points it at the operand address rather than at the constant the recording carries. A decimal add on a 65c02 or a w65c02 takes three cycles here where the same add takes two on a 6502, which is the part the document settles. The address it drives is the one the part last had on the bus, because the document says an internal cycle's address may be invalid and the recording carries a placeholder rather than a measurement. conformance/cycles.py leaves that one cycle out of the comparison, narrowly and by opcode, and prints how many it left out.",
       "whatWouldSettleIt": "A logic analyser on a real W65C02S during a decimal add. Until then the extra cycle is real and its address is not evidence, and a model that reproduced 00007F would be reproducing the recorder rather than the part.",
       "whyItIsRecordedNow": "So that nobody tries to derive 00007F from the state, and so that the one cycle the runner does not compare is a stated exception rather than a silence."
+    },
+    {
+      "subject": "the address on the bus during the discarded read of an indexed access",
+      "documentSays": {
+        "document": "MCS6500 Hardware Manual, Appendix A, tables A.2.5, A.2.7, A.3.4 and A.4.4",
+        "quote": "T3 ADL: BAL + index register / ADH: BAH + C. Carry is 0 or 1 as required from previous add operation."
+      },
+      "andAlsoSays": {
+        "document": "MCS6500 Hardware Manual, Appendix A, table A.3.6",
+        "quote": "T4 ADL: BAL + Y / ADH: BAH. Data (Discarded).",
+        "why": "The same cycle of the same kind of access, written without the carry two pages later. The appendix gives the discarded read two different addresses.",
+        "inASecondPrinting": "Synertek reprinted the same appendix under its own name, and both forms appear there unchanged, on the same page numbers. Two publishers printed the same inconsistency, so it is the document rather than a slip in one copy."
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests 65x02 6502 v1",
+        "measured": "Every crossing case in the suite puts the base high byte on the bus for that cycle, never the corrected one. If the corrected address were driven there, the read would land on the right byte and the appendix's own footnote, which says the data fetched in T3 is ignored when the page is crossed, would have nothing to ignore."
+      },
+      "whatThisProjectDoes": "Drives the base high byte with the index added only to the low byte, which is the A.3.6 form. That is the reading the suite carries, the reading the footnote in the other four tables requires, and the reading under which a store to a hardware register does not touch a second register one page below the one it names.",
+      "whatWouldSettleIt": "A program on a real part: point an indexed store at an address one byte below a page boundary so the index crosses it, put a memory-mapped register at the uncorrected address, and see whether the register is read.",
+      "whyItMatters": "This is the cycle that makes an indexed store to a hardware register dangerous. A reader who took the BAH + C form would model the discarded read as landing on the same address as the write, and would miss the spurious access one page below it that real programs have to work around."
+    },
+    {
+      "subject": "which cycle of a taken branch carries which address",
+      "documentSays": {
+        "document": "MCS6500 Hardware Manual, Appendix A, table A.5.8",
+        "quote": "T2 PC + 2 + offset (w/o carry), Offset Added to Program Counter. T3 PC + 2 + offset (with carry), Carry Added."
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests 65x02 6502 v1",
+        "measured": "Every taken branch drives the unmodified program counter on its third cycle. In four hundred cases checked with a non-zero offset that stay inside a page, the third address is PC + 2 exactly, never PC + 2 + offset. On a crossing branch the fourth cycle carries PC + 2 + offset without carry, which is the address the table prints one row higher, and the corrected target is not reached until the opcode fetch of the next instruction."
+      },
+      "whatThisProjectDoes": "Drives the counter on the third cycle and the partially corrected address on the fourth, so both addresses appear one row later than the table prints them and the corrected target never appears inside the branch at all.",
+      "whatWouldSettleIt": "A program on a real part: place a branch so its target is on the next page, put a memory-mapped register at the partially corrected address, and see on which cycle it is read.",
+      "whyItMatters": "The table has one row for each of three cycles, so it reads as though the offset is on the bus a cycle before it is. Anything counting bus activity, a cycle-exact video timing model or a bus analyser trace, comes out a cycle early on every taken branch."
+    },
+    {
+      "subject": "the stack addresses of a pull, written as plain sums",
+      "documentSays": {
+        "document": "MCS6500 Hardware Manual, Appendix A, tables A.5.2, A.5.5 and A.5.7",
+        "quote": "T3 Stack Ptr. + 1. T4 Stack Ptr. + 2. T5 Stack Ptr. + 3."
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests 65x02 6502 v1",
+        "measured": "A return from interrupt entered with the stack pointer at FE reads 01FE, 01FF, 0100 and 0101. The sums in the table would give 01FF, 0200 and 0201."
+      },
+      "whatThisProjectDoes": "Keeps every stack access inside page one, which is what the part does and what the body of the same manual says elsewhere. The sums in the appendix hold everywhere except across the page edge, so they are read as shorthand rather than as arithmetic.",
+      "whatWouldSettleIt": "Nothing outstanding. The stack living in page one is stated in the body of the same document and is not in question; only the appendix's notation is loose.",
+      "whyItMatters": "A pull that starts near the top of the stack is exactly the case a program hits after a deep sequence of pushes, so a model built from the appendix alone would read four bytes from the wrong page at the moment it matters most."
+    },
+    {
+      "subject": "the page-crossing cycle on the indirect indexed rows of AND and ORA",
+      "documentSays": {
+        "document": "MCS6500 Programming Manual, Appendix B, pages B-3 and B-20",
+        "quote": "AND (Oper), Y  31  2  5. ORA (Oper), Y  11  2  5."
+      },
+      "andAlsoSays": {
+        "document": "MCS6500 Programming Manual, Appendix B, the same two pages",
+        "quote": "AND Oper, X  3D  3  4*. ORA Oper, X  1D  3  4*. * Add 1 if page boundary is crossed.",
+        "why": "Both instructions carry the mark on their absolute indexed rows, on the same page as the row that lacks it, so the omission is one row rather than a claim about the instruction. The six other Group One instructions carry it on all three indexed rows."
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests 65x02 6502 v1",
+        "measured": "Both take six cycles when the index carries out of the low byte and five when it does not, which is what ADC, CMP, EOR, LDA and SBC do on the same addressing mode. Nothing in the suite separates these two from those five."
+      },
+      "whatThisProjectDoes": "Takes the extra cycle on all eight, because the addressing mode is the same one and the cycle comes from re-reading at the corrected address rather than from the operation.",
+      "whatWouldSettleIt": "Nothing outstanding. The two instructions share their addressing hardware with six that are printed correctly, and the same appendix marks their absolute indexed rows.",
+      "whyItMatters": "A timing budget built by adding up the printed counts comes out one cycle short every time one of these two crosses a page, which on a machine whose video timing is counted in cycles is the difference between a stable picture and a torn one."
+    },
+    {
+      "subject": "how many cycles the reserved opcode 5C spends on a CMOS part",
+      "documentSays": {
+        "document": "W65C02S Data Sheet, Table 7-1, the Execution of invalid OpCodes row",
+        "quote": "All are NOP's (reserved for future use). OpCode 5C, Bytes 3, Cycles 8."
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests 65x02, the wdc65c02, synertek65c02 and rockwell65c02 sets",
+        "measured": "Ten thousand cases per part, thirty thousand in all, and every one of them is four cycles: the opcode, the two operand bytes, and the second operand byte read again. No case anywhere in the three sets shows eight."
+      },
+      "whatThisProjectDoes": "Takes four, because that is the only shape any source states. The data sheet gives a count and no addresses, so following it would mean inventing four bus cycles nobody has written down, and inventing them is worse than recording that they are unknown. The other forty-three reserved opcodes match the same table exactly, which is why this one is treated as a single open question rather than as a reason to distrust the row.",
+      "whatWouldSettleIt": "A logic analyser on a real W65C02S executing 5C, which would give both the count and the four addresses the data sheet does not print. Nothing short of that can be implemented, because a count alone is not a bus trace.",
+      "whyItMatters": "Four cycles of difference on an opcode no program deliberately executes matters only where a program runs off into unwritten memory, which is a crash either way. It is recorded because it is the one place in the reserved-opcode row where the part and the page disagree, and because a reader who trusts the row deserves to know which entry to check."
+    },
+    {
+      "subject": "which address the modify cycle and the push drive when the register is eight bits",
+      "documentSays": {
+        "document": "W65C816S Data Sheet, Table 6-7, groups 1d, 6b, 10b, 16b and 22c",
+        "quote": "1d. Absolute (R-M-W) a, cycle 5: DBR,AA+1, IO. 22c. Stack s, cycle 3: 0,S-1, REG Low."
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests/ProcessorTests 65816 v1",
+        "measured": "With an eight bit register the modify cycle of a read-modify-write is at AA and the push is at S. The addresses the table prints appear only when the register is sixteen bits, which is the case where the lettered row directly above them is also present."
+      },
+      "whatThisProjectDoes": "Drives the last byte actually accessed, which is AA and S in the narrow form and AA+1 and S-1 in the wide one. The table has only the wide form of these five rows.",
+      "whatWouldSettleIt": "Nothing outstanding. The narrow form follows from the rows above it: a cycle cannot sit on the byte after one that was never read.",
+      "whyItMatters": "Five rows of a table that is otherwise complete have no eight bit form, so a reader building a narrow register model from the page alone puts the modify cycle and the push one byte off. Four come out a byte high and the push a byte low, because the stack grows the other way."
+    },
+    {
+      "subject": "whether the new program counter of an indexed indirect jump is a program address",
+      "documentSays": {
+        "document": "W65C816S Data Sheet, Table 6-7, groups 2a and 2b",
+        "quote": "2a. Absolute Indexed Indirect (a,x), cycle 5: VDA 0, VPA 1, PBR,AA+X, New PCL."
+      },
+      "andAlsoSays": {
+        "document": "W65C816S Data Sheet, Table 6-7, group 3b",
+        "quote": "3b. Absolute Indirect (a), cycle 4: VDA 1, VPA 0, 0,AA, New PCL.",
+        "why": "The same operation, reading a new program counter through a pointer, marked the other way two groups later. The two differ only in which bank holds the pointer: the program bank for the indexed form, bank zero for the plain one."
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests/ProcessorTests 65816 v1",
+        "measured": "Every recorded case of both opcodes marks those cycles a valid data address and not a valid program address, which is the same way the recordings mark the plain indirect jump."
+      },
+      "whatThisProjectDoes": "Marks them a data address, following the recordings and the table's own treatment of the plain indirect jump. The table's other reading is defensible, since the pointer of the indexed form really does live in the program bank, but nothing else in the table draws that distinction and nothing recorded supports it.",
+      "whatWouldSettleIt": "A logic analyser on the VPA and VDA pins of a real W65C816S executing JMP (a,x). Those pins exist precisely so a system can tell the two apart, so the answer is directly observable on hardware and on nothing less.",
+      "whyItMatters": "A system that qualifies its memory map with these pins, which is what they are for, would route those two fetches to program memory rather than to data memory. On a machine where the two are different devices that is the difference between a jump that works and one that does not."
     }
   ]
 }

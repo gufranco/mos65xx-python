@@ -17,7 +17,7 @@ from typing import Any, override
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from mos65xx import Memory, wdc65816  # noqa: E402
+from mos65xx import Memory, mos6502, wdc65816  # noqa: E402
 
 DIVERGENCES = Path(__file__).resolve().parent / "divergences.json"
 
@@ -75,6 +75,91 @@ class ShapeTest(unittest.TestCase):
     def test_asking_about_something_unrecorded_fails_rather_than_saying_nothing(self) -> None:
         with self.assertRaises(AssertionError):
             about("a disagreement nobody has found")
+
+
+class AppendixBusTest(unittest.TestCase):
+    """The three appendix entries, driven on the part the appendix describes."""
+
+    def bus(self, program: bytes, **registers: int) -> list[tuple[int, str]]:
+        memory = Memory(0x10000, fill=0)
+        for offset, byte in enumerate(program):
+            memory.write8(0x0200 + offset, byte)
+        memory.write8(0x0010, 0xF0)
+        memory.write8(0x0011, 0x12)
+        cpu = mos6502.Cpu(memory, reset=False)
+        cpu.pc, cpu.s = 0x0200, 0x80
+        cpu.set_status(0x24)
+        cpu.a = cpu.x = cpu.y = 0
+        for name, value in registers.items():
+            setattr(cpu, name, value)
+        cpu.trace = []
+        cpu.step()
+        return [(address & 0xFFFF, kind) for address, _, kind in cpu.trace]
+
+    def test_the_discarded_read_lands_on_the_page_below_the_one_written(self) -> None:
+        found = self.bus(bytes((0x9D, 0xF0, 0x12)), x=0x20)
+
+        self.assertEqual(found[3:], [(0x1210, "read"), (0x1310, "write")])
+
+    def test_two_publishers_printed_the_same_inconsistency(self) -> None:
+        recorded = about("discarded read of an indexed access")
+
+        self.assertIn(
+            "Two publishers printed the same inconsistency",
+            recorded["andAlsoSays"]["inASecondPrinting"],
+        )
+
+    def test_the_entry_about_it_names_the_table_that_gets_it_right(self) -> None:
+        recorded = about("discarded read of an indexed access")
+
+        self.assertIn("A.3.6", recorded["andAlsoSays"]["document"])
+
+    def test_a_taken_branch_drives_the_counter_before_the_offset(self) -> None:
+        found = self.bus(bytes((0xD0, 0x17)))
+
+        self.assertEqual(found[2], (0x0202, "read"))
+
+    def test_the_entry_about_it_says_the_rows_sit_one_lower_than_they_run(self) -> None:
+        recorded = about("which cycle of a taken branch")
+
+        self.assertIn("one row higher", recorded["suiteSays"]["measured"])
+
+    def test_a_pull_from_the_top_of_the_stack_wraps_inside_page_one(self) -> None:
+        found = self.bus(bytes((0x40,)), s=0xFE)
+
+        self.assertEqual(found[2:], [(a, "read") for a in (0x01FE, 0x01FF, 0x0100, 0x0101)])
+
+    def test_the_entry_about_it_needs_nothing_further_to_settle(self) -> None:
+        recorded = about("stack addresses of a pull")
+
+        self.assertIn("Nothing outstanding", recorded["whatWouldSettleIt"])
+
+    def test_the_two_rows_missing_a_page_crossing_mark_still_take_the_cycle(self) -> None:
+        found = [len(self.bus(bytes((opcode, 0x10)), y=0x20)) for opcode in (0x31, 0x11)]
+
+        self.assertEqual(found, [6, 6])
+
+    def test_and_the_entry_names_the_rows_on_the_same_page_that_carry_it(self) -> None:
+        recorded = about("indirect indexed rows of AND and ORA")
+
+        self.assertIn("absolute indexed rows", recorded["andAlsoSays"]["why"])
+
+    def test_the_disputed_reserved_opcode_says_a_count_is_not_a_bus_trace(self) -> None:
+        recorded = about("cycles the reserved opcode 5C")
+
+        self.assertIn("a count alone is not a bus trace", recorded["whatWouldSettleIt"])
+
+    def test_the_narrow_form_of_five_rows_follows_from_the_rows_above_them(self) -> None:
+        recorded = about("modify cycle and the push drive when the register is eight bits")
+
+        self.assertIn(
+            "cannot sit on the byte after one that was never read", recorded["whatWouldSettleIt"]
+        )
+
+    def test_the_qualifier_question_is_answerable_only_on_a_pin(self) -> None:
+        recorded = about("new program counter of an indexed indirect jump")
+
+        self.assertIn("on hardware and on nothing less", recorded["whatWouldSettleIt"])
 
 
 class DataBankOnInterruptTest(unittest.TestCase):

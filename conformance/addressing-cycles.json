@@ -1,0 +1,1065 @@
+{
+  "note": "Appendix A of the MCS6500 Hardware Manual, which prints the address bus, the data bus and the read write line for every cycle of every addressing mode. It is the only manufacturer statement of NMOS cycle behaviour this project has found, so it is the rung one source for what the part puts on its bus and when. Each shape below carries the manual's own address expressions rather than a paraphrase, so a reader can hold the page beside the record. Where the part drives something other than what the page prints, the row carries partDrives and the disagreement is in divergences.json.",
+  "document": "manufacturer/mcs6500-hardware-manual-1976.pdf",
+  "section": "Appendix A, Summary of Single Cycle Execution",
+  "readOn": "2026-08-21",
+  "readHow": "Every page of the appendix read as printed, at pdf pages 168 to 180, rather than through the extracted text, which drops the read write column on four tables and garbles two others.",
+  "opening": {
+    "quote": "Note that the processor will not stop in any cycle where R/W is a 0 (write cycle). Instead, it will go right into the next read cycle and stop there. For this reason, some instructions may appear to be shorter than indicated here.",
+    "why": "The appendix is written for someone single cycling a real board, so it warns that a write cycle cannot be stopped in. That is a property of the stop mechanism rather than of the instruction, and it is why a bus trace taken by hand can be shorter than these tables. A model has no such limitation and reproduces every cycle."
+  },
+  "shapes": {
+    "single byte": {
+      "manualSection": "A.1",
+      "printedPage": "A-2",
+      "pdfPage": 169,
+      "cycles": [2],
+      "instructions": [
+        "ASL A",
+        "CLC",
+        "CLD",
+        "CLI",
+        "CLV",
+        "DEX",
+        "DEY",
+        "INX",
+        "INY",
+        "LSR A",
+        "NOP",
+        "ROL A",
+        "SEC",
+        "SED",
+        "SEI",
+        "TAX",
+        "TAY",
+        "TSX",
+        "TXA",
+        "TXS",
+        "TYA"
+      ],
+      "quote": "These single byte instructions require two cycles to execute. During the second cycle the address of the next instruction in program sequence will be placed on the address bus. However, the OP CODE which appears on the data bus during the second cycle will be ignored.",
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "OP CODE (Discarded)"
+        }
+      ],
+      "nextFetch": "PC + 1"
+    },
+    "immediate": {
+      "manualSection": "A.2.1",
+      "printedPage": "A-3",
+      "pdfPage": 170,
+      "cycles": [2],
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Fetch Data"
+        }
+      ],
+      "nextFetch": "PC + 2"
+    },
+    "zero page": {
+      "manualSection": "A.2.2",
+      "printedPage": "A-3",
+      "pdfPage": 170,
+      "cycles": [3],
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Fetch Effective Address"
+        },
+        {
+          "state": "T2",
+          "address": "00, ADL",
+          "access": "read",
+          "comment": "Fetch Data"
+        }
+      ],
+      "nextFetch": "PC + 2"
+    },
+    "absolute": {
+      "manualSection": "A.2.3",
+      "printedPage": "A-3",
+      "pdfPage": 170,
+      "cycles": [4],
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Fetch low order Effective Address byte"
+        },
+        {
+          "state": "T2",
+          "address": "PC + 2",
+          "access": "read",
+          "comment": "Fetch high order Effective Address byte"
+        },
+        {
+          "state": "T3",
+          "address": "ADH, ADL",
+          "access": "read",
+          "comment": "Fetch Data"
+        }
+      ],
+      "nextFetch": "PC + 3"
+    },
+    "indirect x": {
+      "manualSection": "A.2.4",
+      "printedPage": "A-3",
+      "pdfPage": 170,
+      "cycles": [6],
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Fetch Page Zero Base Address"
+        },
+        {
+          "state": "T2",
+          "address": "00, BAL",
+          "access": "read",
+          "comment": "Data (Discarded)"
+        },
+        {
+          "state": "T3",
+          "address": "00, BAL + X",
+          "access": "read",
+          "comment": "Fetch low order byte of Effective Address"
+        },
+        {
+          "state": "T4",
+          "address": "00, BAL + X + 1",
+          "access": "read",
+          "comment": "Fetch high order byte of Effective Address"
+        },
+        {
+          "state": "T5",
+          "address": "ADH, ADL",
+          "access": "read",
+          "comment": "Fetch Data"
+        }
+      ],
+      "nextFetch": "PC + 2"
+    },
+    "absolute indexed": {
+      "manualSection": "A.2.5",
+      "printedPage": "A-4",
+      "pdfPage": 171,
+      "cycles": [4, 5],
+      "footnote": "If the page boundary is crossed in the indexing operation, the data fetched in T3 is ignored. If page boundary is not crossed, the T4 cycle is bypassed.",
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Fetch low order byte of Base Address"
+        },
+        {
+          "state": "T2",
+          "address": "PC + 2",
+          "access": "read",
+          "comment": "Fetch high order byte of Base Address"
+        },
+        {
+          "state": "T3",
+          "address": "BAH + C, BAL + index register",
+          "access": "read",
+          "comment": "Fetch data (no page crossing). Carry is 0 or 1 as required from previous add operation",
+          "partDrives": "BAH, BAL + index register"
+        },
+        {
+          "state": "T4",
+          "address": "BAH + 1, BAL + index register",
+          "access": "read",
+          "comment": "Fetch data from next page"
+        }
+      ],
+      "onlyWhenCrossing": ["T4"],
+      "nextFetch": "PC + 3"
+    },
+    "zero page indexed": {
+      "manualSection": "A.2.6",
+      "printedPage": "A-4",
+      "pdfPage": 171,
+      "cycles": [4],
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Fetch Page Zero Base Address"
+        },
+        {
+          "state": "T2",
+          "address": "00, BAL",
+          "access": "read",
+          "comment": "Data (Discarded)"
+        },
+        {
+          "state": "T3",
+          "address": "00, BAL + index register",
+          "access": "read",
+          "comment": "Fetch Data (no page crossing)"
+        }
+      ],
+      "nextFetch": "PC + 2"
+    },
+    "indirect y": {
+      "manualSection": "A.2.7",
+      "printedPage": "A-5",
+      "pdfPage": 172,
+      "cycles": [5, 6],
+      "footnote": "If page boundary is crossed in indexing operation, the data fetch in T4 is ignored. If page boundary is not crossed, the T5 cycle is bypassed.",
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Fetch Page Zero Indirect Address"
+        },
+        {
+          "state": "T2",
+          "address": "00, IAL",
+          "access": "read",
+          "comment": "Fetch low order byte of Base Address"
+        },
+        {
+          "state": "T3",
+          "address": "00, IAL + 1",
+          "access": "read",
+          "comment": "Fetch high order byte of Base Address"
+        },
+        {
+          "state": "T4",
+          "address": "BAH + C, BAL + Y",
+          "access": "read",
+          "comment": "Fetch Data from same page",
+          "partDrives": "BAH, BAL + Y"
+        },
+        {
+          "state": "T5",
+          "address": "BAH + 1, BAL + Y",
+          "access": "read",
+          "comment": "Fetch Data from next page"
+        }
+      ],
+      "onlyWhenCrossing": ["T5"],
+      "nextFetch": "PC + 2"
+    },
+    "store zero page": {
+      "manualSection": "A.3.1",
+      "printedPage": "A-5",
+      "pdfPage": 172,
+      "cycles": [3],
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Fetch Zero Page Effective Address"
+        },
+        {
+          "state": "T2",
+          "address": "00, ADL",
+          "access": "write",
+          "comment": "Write internal register to memory"
+        }
+      ],
+      "nextFetch": "PC + 2"
+    },
+    "store absolute": {
+      "manualSection": "A.3.2",
+      "printedPage": "A-6",
+      "pdfPage": 173,
+      "cycles": [4],
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Fetch low order byte of Effective Address"
+        },
+        {
+          "state": "T2",
+          "address": "PC + 2",
+          "access": "read",
+          "comment": "Fetch high order byte of Effective Address"
+        },
+        {
+          "state": "T3",
+          "address": "ADH, ADL",
+          "access": "write",
+          "comment": "Write internal register to memory"
+        }
+      ],
+      "nextFetch": "PC + 3"
+    },
+    "store indirect x": {
+      "manualSection": "A.3.3",
+      "printedPage": "A-6",
+      "pdfPage": 173,
+      "cycles": [6],
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Fetch Page Zero Base Address"
+        },
+        {
+          "state": "T2",
+          "address": "00, BAL",
+          "access": "read",
+          "comment": "Data (Discarded)"
+        },
+        {
+          "state": "T3",
+          "address": "00, BAL + X",
+          "access": "read",
+          "comment": "Fetch low order byte of Effective Address"
+        },
+        {
+          "state": "T4",
+          "address": "00, BAL + X + 1",
+          "access": "read",
+          "comment": "Fetch high order byte of Effective Address"
+        },
+        {
+          "state": "T5",
+          "address": "ADH, ADL",
+          "access": "write",
+          "comment": "Write internal register to memory"
+        }
+      ],
+      "nextFetch": "PC + 2"
+    },
+    "store absolute indexed": {
+      "manualSection": "A.3.4",
+      "printedPage": "A-6",
+      "pdfPage": 173,
+      "cycles": [5],
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Fetch low order byte of Base Address"
+        },
+        {
+          "state": "T2",
+          "address": "PC + 2",
+          "access": "read",
+          "comment": "Fetch high order byte of Base Address"
+        },
+        {
+          "state": "T3",
+          "address": "BAH + C, BAL + index register",
+          "access": "read",
+          "comment": "Data (Discarded)",
+          "partDrives": "BAH, BAL + index register"
+        },
+        {
+          "state": "T4",
+          "address": "ADH, ADL",
+          "access": "write",
+          "comment": "Write internal register to memory"
+        }
+      ],
+      "nextFetch": "PC + 3"
+    },
+    "store zero page indexed": {
+      "manualSection": "A.3.5",
+      "printedPage": "A-7",
+      "pdfPage": 174,
+      "cycles": [4],
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Fetch Page Zero Base Address"
+        },
+        {
+          "state": "T2",
+          "address": "00, BAL",
+          "access": "read",
+          "comment": "Data (Discarded)"
+        },
+        {
+          "state": "T3",
+          "address": "00, BAL + index register",
+          "access": "write",
+          "comment": "Write internal register to memory"
+        }
+      ],
+      "nextFetch": "PC + 2"
+    },
+    "store indirect y": {
+      "manualSection": "A.3.6",
+      "printedPage": "A-7",
+      "pdfPage": 174,
+      "cycles": [6],
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Fetch Page Zero Indirect Address"
+        },
+        {
+          "state": "T2",
+          "address": "00, IAL",
+          "access": "read",
+          "comment": "Fetch low order byte of Base Address"
+        },
+        {
+          "state": "T3",
+          "address": "00, IAL + 1",
+          "access": "read",
+          "comment": "Fetch high order byte of Base Address"
+        },
+        {
+          "state": "T4",
+          "address": "BAH, BAL + Y",
+          "access": "read",
+          "comment": "Data (Discarded)"
+        },
+        {
+          "state": "T5",
+          "address": "ADH, ADL",
+          "access": "write",
+          "comment": "Write Internal Register to memory"
+        }
+      ],
+      "nextFetch": "PC + 2"
+    },
+    "modify zero page": {
+      "manualSection": "A.4.1",
+      "printedPage": "A-8",
+      "pdfPage": 175,
+      "cycles": [5],
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Fetch Page Zero Effective Address"
+        },
+        {
+          "state": "T2",
+          "address": "00, ADL",
+          "access": "read",
+          "comment": "Fetch Data"
+        },
+        {
+          "state": "T3",
+          "address": "00, ADL",
+          "access": "write",
+          "comment": "Data"
+        },
+        {
+          "state": "T4",
+          "address": "00, ADL",
+          "access": "write",
+          "comment": "Write modified Data back to memory"
+        }
+      ],
+      "nextFetch": "PC + 2"
+    },
+    "modify absolute": {
+      "manualSection": "A.4.2",
+      "printedPage": "A-8",
+      "pdfPage": 175,
+      "cycles": [6],
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Fetch low order byte of Effective Address"
+        },
+        {
+          "state": "T2",
+          "address": "PC + 2",
+          "access": "read",
+          "comment": "Fetch high order byte of Effective Address"
+        },
+        {
+          "state": "T3",
+          "address": "ADH, ADL",
+          "access": "read",
+          "comment": "Data"
+        },
+        {
+          "state": "T4",
+          "address": "ADH, ADL",
+          "access": "write",
+          "comment": "Data"
+        },
+        {
+          "state": "T5",
+          "address": "ADH, ADL",
+          "access": "write",
+          "comment": "Write modified Data back into memory"
+        }
+      ],
+      "nextFetch": "PC + 3"
+    },
+    "modify zero page x": {
+      "manualSection": "A.4.3",
+      "printedPage": "A-8",
+      "pdfPage": 175,
+      "cycles": [6],
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Fetch Page Zero Base Address"
+        },
+        {
+          "state": "T2",
+          "address": "00, BAL",
+          "access": "read",
+          "comment": "Data (Discarded)"
+        },
+        {
+          "state": "T3",
+          "address": "00, BAL + X",
+          "access": "read",
+          "comment": "Fetch Data"
+        },
+        {
+          "state": "T4",
+          "address": "00, BAL + X",
+          "access": "write",
+          "comment": "Data"
+        },
+        {
+          "state": "T5",
+          "address": "00, BAL + X",
+          "access": "write",
+          "comment": "Write modified Data back into memory"
+        }
+      ],
+      "nextFetch": "PC + 2"
+    },
+    "modify absolute x": {
+      "manualSection": "A.4.4",
+      "printedPage": "A-9",
+      "pdfPage": 176,
+      "cycles": [7],
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Fetch low order byte of Base Address"
+        },
+        {
+          "state": "T2",
+          "address": "PC + 2",
+          "access": "read",
+          "comment": "Fetch high order byte of Base Address"
+        },
+        {
+          "state": "T3",
+          "address": "BAH + C, BAL + X",
+          "access": "read",
+          "comment": "Data (Discarded)",
+          "partDrives": "BAH, BAL + X"
+        },
+        {
+          "state": "T4",
+          "address": "BAH + C, BAL + X",
+          "access": "read",
+          "comment": "Fetch Data",
+          "partDrives": "ADH, ADL"
+        },
+        {
+          "state": "T5",
+          "address": "ADH, ADL",
+          "access": "write",
+          "comment": "Data"
+        },
+        {
+          "state": "T6",
+          "address": "ADH, ADL",
+          "access": "write",
+          "comment": "Write modified Data back into memory"
+        }
+      ],
+      "nextFetch": "PC + 3"
+    },
+    "push": {
+      "manualSection": "A.5.1",
+      "printedPage": "A-9",
+      "pdfPage": 176,
+      "cycles": [3],
+      "instructions": ["PHP", "PHA"],
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "OP CODE (Discarded)"
+        },
+        {
+          "state": "T2",
+          "address": "Stack Ptr.",
+          "access": "write",
+          "comment": "Write Internal Register into Stack"
+        }
+      ],
+      "nextFetch": "PC + 1"
+    },
+    "pull": {
+      "manualSection": "A.5.2",
+      "printedPage": "A-10",
+      "pdfPage": 177,
+      "cycles": [4],
+      "instructions": ["PLP", "PLA"],
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "OP CODE (Discarded)"
+        },
+        {
+          "state": "T2",
+          "address": "Stack Ptr.",
+          "access": "read",
+          "comment": "Data (Discarded)"
+        },
+        {
+          "state": "T3",
+          "address": "Stack Ptr. + 1",
+          "access": "read",
+          "comment": "Fetch Data from Stack"
+        }
+      ],
+      "nextFetch": "PC + 1"
+    },
+    "jump to subroutine": {
+      "manualSection": "A.5.3",
+      "printedPage": "A-10",
+      "pdfPage": 177,
+      "cycles": [6],
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Fetch low order byte of Subroutine Address"
+        },
+        {
+          "state": "T2",
+          "address": "Stack Ptr.",
+          "access": "read",
+          "comment": "Data (Discarded)"
+        },
+        {
+          "state": "T3",
+          "address": "Stack Ptr.",
+          "access": "write",
+          "comment": "Push high order byte of program counter to Stack"
+        },
+        {
+          "state": "T4",
+          "address": "Stack Ptr. - 1",
+          "access": "write",
+          "comment": "Push low order byte of program counter to Stack"
+        },
+        {
+          "state": "T5",
+          "address": "PC + 2",
+          "access": "read",
+          "comment": "Fetch high order byte of Subroutine Address"
+        }
+      ],
+      "nextFetch": "ADH, ADL"
+    },
+    "break": {
+      "manualSection": "A.5.4",
+      "printedPage": "A-11",
+      "pdfPage": 178,
+      "cycles": [7],
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch BRK OP CODE (or force BRK)"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Data (Discarded)"
+        },
+        {
+          "state": "T2",
+          "address": "Stack Ptr.",
+          "access": "write",
+          "comment": "Push high order byte of program counter to Stack"
+        },
+        {
+          "state": "T3",
+          "address": "Stack Ptr. - 1",
+          "access": "write",
+          "comment": "Push low order byte of program counter to Stack"
+        },
+        {
+          "state": "T4",
+          "address": "Stack Ptr. - 2",
+          "access": "write",
+          "comment": "Push Status Register to Stack"
+        },
+        {
+          "state": "T5",
+          "address": "FFFE",
+          "access": "read",
+          "comment": "Fetch low order byte of interrupt vector"
+        },
+        {
+          "state": "T6",
+          "address": "FFFF",
+          "access": "read",
+          "comment": "Fetch high order byte of interrupt vector"
+        }
+      ],
+      "nextFetch": "ADH, ADL"
+    },
+    "return from interrupt": {
+      "manualSection": "A.5.5",
+      "printedPage": "A-11",
+      "pdfPage": 178,
+      "cycles": [6],
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Data (Discarded)"
+        },
+        {
+          "state": "T2",
+          "address": "Stack Ptr.",
+          "access": "read",
+          "comment": "Data (Discarded)"
+        },
+        {
+          "state": "T3",
+          "address": "Stack Ptr. + 1",
+          "access": "read",
+          "comment": "Pull P from Stack"
+        },
+        {
+          "state": "T4",
+          "address": "Stack Ptr. + 2",
+          "access": "read",
+          "comment": "Pull PCL from Stack"
+        },
+        {
+          "state": "T5",
+          "address": "Stack Ptr. + 3",
+          "access": "read",
+          "comment": "Pull PCH from Stack"
+        }
+      ],
+      "nextFetch": "PCH, PCL"
+    },
+    "jump absolute": {
+      "manualSection": "A.5.6.1",
+      "printedPage": "A-12",
+      "pdfPage": 179,
+      "cycles": [3],
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Fetch low order byte of Jump Address"
+        },
+        {
+          "state": "T2",
+          "address": "PC + 2",
+          "access": "read",
+          "comment": "Fetch high order byte of Jump Address"
+        }
+      ],
+      "nextFetch": "ADH, ADL"
+    },
+    "jump indirect": {
+      "manualSection": "A.5.6.2",
+      "printedPage": "A-12",
+      "pdfPage": 179,
+      "cycles": [5],
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Fetch low order byte of Indirect Address"
+        },
+        {
+          "state": "T2",
+          "address": "PC + 2",
+          "access": "read",
+          "comment": "Fetch high order byte of Indirect Address"
+        },
+        {
+          "state": "T3",
+          "address": "IAH, IAL",
+          "access": "read",
+          "comment": "Fetch low order byte of Jump Address"
+        },
+        {
+          "state": "T4",
+          "address": "IAH, IAL + 1",
+          "access": "read",
+          "comment": "Fetch high order byte of Jump Address"
+        }
+      ],
+      "nextFetch": "ADH, ADL"
+    },
+    "return from subroutine": {
+      "manualSection": "A.5.7",
+      "printedPage": "A-12",
+      "pdfPage": 179,
+      "cycles": [6],
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Data (Discarded)"
+        },
+        {
+          "state": "T2",
+          "address": "Stack Ptr.",
+          "access": "read",
+          "comment": "Data (Discarded)"
+        },
+        {
+          "state": "T3",
+          "address": "Stack Ptr. + 1",
+          "access": "read",
+          "comment": "Pull PCL from Stack"
+        },
+        {
+          "state": "T4",
+          "address": "Stack Ptr. + 2",
+          "access": "read",
+          "comment": "Pull PCH from Stack"
+        },
+        {
+          "state": "T5",
+          "address": "PCH, PCL",
+          "access": "read",
+          "comment": "Data (Discarded)"
+        }
+      ],
+      "nextFetch": "PCH, PCL + 1"
+    },
+    "branch": {
+      "manualSection": "A.5.8",
+      "printedPage": "A-13",
+      "pdfPage": 180,
+      "cycles": [2, 3, 4],
+      "instructions": ["BCC", "BCS", "BEQ", "BMI", "BNE", "BPL", "BVC", "BVS"],
+      "footnote": "Skip if branch not taken. Skip if branch not taken; skip if branch operation doesn't cross page boundary.",
+      "bus": [
+        {
+          "state": "T0",
+          "address": "PC",
+          "access": "read",
+          "comment": "Fetch OP CODE"
+        },
+        {
+          "state": "T1",
+          "address": "PC + 1",
+          "access": "read",
+          "comment": "Fetch Branch Offset"
+        },
+        {
+          "state": "T2",
+          "address": "PC + 2 + offset (w/o carry)",
+          "access": "read",
+          "comment": "Offset Added to Program Counter",
+          "partDrives": "PC + 2"
+        },
+        {
+          "state": "T3",
+          "address": "PC + 2 + offset (with carry)",
+          "access": "read",
+          "comment": "Carry Added",
+          "partDrives": "PC + 2 + offset (w/o carry)"
+        }
+      ],
+      "onlyWhenTaken": ["T2"],
+      "onlyWhenCrossing": ["T3"],
+      "nextFetch": "PC + 2 + offset (with carry)"
+    }
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "note": "Table 8-1 of the W65C816S data sheet, which sets the four parts side by side and says where they differ. It is the only manufacturer document here that compares them directly, which makes it the one place a claim about a difference can be checked rather than inferred from two documents that never mention each other. Every row below is driven on every model this project covers.",
+  "document": "manufacturer/w65c816s.pdf",
+  "section": "Table 8-1 Caveats",
+  "printedPage": 56,
+  "pdfPage": 56,
+  "readOn": "2026-08-21",
+  "readHow": "Read as printed. The timing block is one merged cell carrying four labelled rows, so the extracted text interleaves the labels with the values of the row above and cannot be trusted to say which number belongs to which row.",
+  "columns": ["6502", "65c02", "w65c02", "65816"],
+  "columnsAsPrinted": ["NMOS 6502", "W65C02", "W65C02S", "W65C816S"],
+  "rows": [
+    {
+      "id": "shiftOfAnIndexedAbsolute",
+      "printed": "A. ABS,X ASL,LSR,ROL with no Page Crossing",
+      "check": "cycles",
+      "program": [30, 0, 18],
+      "x": 16,
+      "says": {
+        "6502": 7,
+        "65c02": 6,
+        "w65c02": 6,
+        "65816": 7
+      },
+      "why": "The CMOS eight bit parts drop a cycle when the index does not leave the page. The sixteen bit part does not, so on this one row it behaves like the part it replaced rather than like the two between them."
+    },
+    {
+      "id": "indirectJumpOffThePageEdge",
+      "printed": "B. Jump Indirect Operand = XXFF",
+      "check": "cycles",
+      "program": [108, 255, 18],
+      "says": {
+        "6502": 5,
+        "65c02": 6,
+        "w65c02": 6,
+        "65816": 5
+      },
+      "printedForTheOldestPart": "5 cycles and invalid page crossing",
+      "why": "Three different answers to one instruction. The oldest part reads the high byte from the bottom of the same page rather than the top of the next, which is the defect the phrase invalid page crossing names. The CMOS eight bit parts fixed it and charged a cycle for the fix. The sixteen bit part fixed it and did not."
+    },
+    {
+      "id": "branchAcrossAPage",
+      "printed": "C. Branch Across Page",
+      "check": "cycles",
+      "program": [208, 127],
+      "start": 752,
+      "says": {
+        "6502": 4,
+        "65c02": 4,
+        "w65c02": 4,
+        "65816": 4
+      },
+      "why": "The one timing row where all four agree, which is worth pinning for that reason."
+    },
+    {
+      "id": "decimalArithmetic",
+      "printed": "D. Decimal Mode",
+      "check": "cycles",
+      "program": [105, 17],
+      "decimal": true,
+      "says": {
+        "6502": 2,
+        "65c02": 3,
+        "w65c02": 3,
+        "65816": 2
+      },
+      "printedAs": {
+        "6502": "No add. cycles",
+        "65c02": "Add 1 cycle",
+        "w65c02": "Add 1 Cycle",
+        "65816": "No add. cycles"
+      },
+      "why": "The CMOS eight bit parts spend a cycle making the flags valid after a decimal operation. The sixteen bit part produces the same valid flags without it."
+    },
+    {
+      "id": "discardedReadOfAnIndexedAccess",
+      "printed": "Indexed Across Page Boundary (d),y a,x a,y",
+      "check": "third address",
+      "program": [189, 240, 18],
+      "x": 32,
+      "says": {
+        "6502": "invalid address",
+        "65c02": "last instruction byte",
+        "w65c02": "last instruction byte",
+        "65816": "invalid address"
+      },
+      "printedAs": {
+        "6502": "Extra read of invalid address",
+        "65c02": "Extra read of last instruction fetch",
+        "w65c02": "Extra read of last instruction fetch",
+        "65816": "Extra read of invalid address"
+      },
+      "why": "This is the cycle that makes an indexed store to a hardware register dangerous, and the table says the sixteen bit part kept the older behaviour rather than the safer one the two parts between them adopted."
+    }
+  ]
+}

@@ -16,7 +16,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from mos65xx import Memory, mos6502, wdc65816  # noqa: E402
+from mos65xx import Memory, models, mos6502, wdc65816  # noqa: E402
 
 HARDWARE = Path(__file__).resolve().parent / "hardware.json"
 
@@ -36,10 +36,28 @@ def fact(name: str) -> dict[str, Any]:
 class DocumentTest(unittest.TestCase):
     """That the file names its sources well enough for somebody to go and check."""
 
-    def test_both_documents_are_named_with_a_revision_and_a_date_read(self) -> None:
+    def test_every_document_is_named_with_a_revision_and_a_date_read(self) -> None:
         for named in declared()["documents"].values():
-            for key in ("publisher", "title", "revision", "readOn", "readVia"):
+            for key in ("publisher", "title", "revision", "readOn"):
                 self.assertIn(key, named)
+
+    def test_and_says_where_the_copy_that_was_read_is_pinned(self) -> None:
+        """Every document names somewhere a reader can check they have the same file.
+
+        That used to be a manifest under docs, which the repository does not
+        carry, so the answer pointed at nothing for anyone who cloned it. It is
+        the readme now, which is tracked and lists the digest of each file.
+        """
+        missing = [
+            held["title"]
+            for held in declared()["documents"].values()
+            if "README.md" not in held.get("pinnedIn", "")
+        ]
+
+        self.assertEqual(missing, [])
+
+    def test_and_that_place_is_one_the_repository_actually_carries(self) -> None:
+        self.assertTrue((ROOT / "README.md").is_file())
 
     def test_every_fact_says_which_document_it_came_from(self) -> None:
         known = set(declared()["documents"])
@@ -235,6 +253,70 @@ class HonestyTest(unittest.TestCase):
 
     def test_the_pin_this_project_does_not_drive_says_so(self) -> None:
         self.assertIn("Nothing in this project drives it", fact("memoryLock")["note"])
+
+    def test_the_earliest_revision_names_two_modes_the_later_ones_drop(self) -> None:
+        early = fact("stackRangeInEmulationAsFirstPrinted")["quote"]
+        late = fact("stackRangeInEmulation")["quote"]
+
+        self.assertEqual(("d, s" in early, "d, s" in late), (True, False))
+
+    def test_a_stack_relative_read_leaves_the_emulation_stack_range(self) -> None:
+        memory = Memory(0x1000000, fill=0)
+        memory.write8(0x000200, 0xA3)
+        memory.write8(0x000201, 0xFF)
+        cpu = wdc65816.Cpu(memory, reset=False)
+        cpu.pc, cpu.pb, cpu.db, cpu.d = 0x0200, 0, 0, 0
+        cpu.emulation = True
+        cpu.s = 0x01FF
+        cpu.trace = []
+
+        cpu.step()
+
+        self.assertEqual(cpu.trace[-1][0], 0x0002FE)
+
+    def test_which_is_what_the_earliest_revision_says_and_the_later_ones_omit(self) -> None:
+        recorded = fact("stackRangeInEmulationAsFirstPrinted")
+
+        self.assertIn("lands above 0001FF rather than wrapping", recorded["note"])
+
+    def packages(self) -> list[str]:
+        """The ten the data sheet lists."""
+        return [str(name) for name in fact("nmosFamilyPackages")["packages"]]
+
+    def test_the_second_source_names_all_but_one_of_them(self) -> None:
+        synertek = fact("nmosFamilyPackages")["alsoNamedBySynertek"]
+
+        self.assertEqual(set(self.packages()) - set(synertek), {"6507"})
+
+    def test_and_the_record_says_which_one_and_why_that_is_unsurprising(self) -> None:
+        self.assertIn("made for a single customer", fact("nmosFamilyPackages")["secondSource"])
+
+    def test_the_data_sheet_lists_ten_packages(self) -> None:
+        self.assertEqual(len(self.packages()), 10)
+
+    def test_the_family_table_matches_the_parts_this_package_builds(self) -> None:
+        recorded = fact("nmosFamilyPackages")["whatIsImplemented"]["interruptPins"]
+        both = [
+            name for name in self.packages() if {"irq", "nmi"} <= set(models.describe(name).pins)
+        ]
+
+        self.assertEqual(
+            (both, "6502, 6503, 6512 and 6513" in recorded),
+            (["6502", "6503", "6512", "6513"], True),
+        )
+
+    def test_and_the_one_with_neither_line_is_the_one_the_table_names(self) -> None:
+        recorded = fact("nmosFamilyPackages")["whatIsImplemented"]["interruptPins"]
+        neither = [
+            name for name in self.packages() if not {"irq", "nmi"} & set(models.describe(name).pins)
+        ]
+
+        self.assertEqual((neither, "Neither on the 6507" in recorded), (["6507"], True))
+
+    def test_the_comparison_table_is_the_same_in_both_revisions_that_carry_it(self) -> None:
+        recorded = fact("caveatsTableIsStableAcrossRevisions")
+
+        self.assertIn("Only the section number moved", recorded["note"])
 
     def test_the_two_places_the_document_contradicts_itself_are_both_recorded(self) -> None:
         self.assertIn("contradictedBy", fact("indirectJumpBanks"))
