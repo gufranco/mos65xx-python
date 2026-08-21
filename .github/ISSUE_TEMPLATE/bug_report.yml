@@ -1,0 +1,61 @@
+name: Something is wrong
+description: An instruction does the wrong thing, spends the wrong number of cycles, or nothing works at all
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A report here is almost always settled by one stepped instruction from a
+        known state. The fields ask for exactly that.
+
+  - type: dropdown
+    id: part
+    attributes:
+      label: Which part
+      options:
+        - "65816"
+        - "6502"
+        - "nes6502"
+        - "synertek65c02"
+        - "rockwell65c02"
+        - "wdc65c02"
+    validations:
+      required: true
+
+  - type: textarea
+    id: opcode
+    attributes:
+      label: The instruction, and the state it ran in
+      description: The opcode bytes and the registers before it, enough to set the same state up.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: happened
+    attributes:
+      label: What this core does, and what you expected
+      description: Paste both, complete rather than trimmed.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: What says otherwise
+      description: |
+        A page of a manufacturer document, or a suite case. Naming the page beats
+        quoting a number.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Before submitting
+      options:
+        - label: The output above is complete rather than trimmed
+          required: true
+        - label: I have attached no firmware and no part of one
+          required: true

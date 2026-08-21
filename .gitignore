@@ -7,3 +7,8 @@ dist/
 build/
 *.egg-info/
 .DS_Store
+.mypy_cache/
+docs/
+.venv/
+venv/
+uv.lock

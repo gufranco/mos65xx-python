@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Which figures are documented and which are not
+    url: https://github.com/gufranco/mos65xx-python/blob/main/conformance/divergences.json
+    about: Every place a source is weaker than it looks, with what would settle it.
+  - name: How the console reaches memory
+    url: https://github.com/gufranco/snes-mapper-python
+    about: What an access costs is a property of the map, not of the processor.

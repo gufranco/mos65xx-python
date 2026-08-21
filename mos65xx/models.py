@@ -11,19 +11,60 @@ a hardware bug is wrong for the machine that shipped it.
 Adding a model means adding an entry here and holding it to a conformance suite.
 A model with no suite behind it does not belong in this table, because then its
 fidelity would be a claim rather than a measurement.
+
+Ten of these have no suite of their own, and each says which part it narrows.
+None is a different processor. Nine are the 6502 die in a smaller package, with
+address lines left inside and, on most of them, one or both interrupt pins gone;
+the 65802 is a 65816 in a forty pin part whose bank registers reach nothing
+outside the first bank. What holds them is the suite of the part they narrow
+plus a check that the narrowing is the only difference, so the claim is still
+measured; it is measured against a sibling rather than against a recording of
+its own.
+
+A pin the package does not bring out is not a pin a system can assert, so
+pulling one here raises rather than quietly taking the interrupt. That is the
+whole of what separates the 6503, 6504, 6505 and 6506 from one another: they
+have the same core, the same instructions and the same timing, and they differ
+in how far an address reaches and which of the two interrupt lines survived the
+pin count.
 """
+
+from __future__ import annotations
+
+from collections.abc import Callable, Iterable
+from typing import Any, override
 
 
 class UnknownModelError(Exception):
     pass
 
 
+class NoSuchPin(Exception):
+    """Raised when a caller pulls a line the package does not bring out.
+
+    The narrower parts of the family are the same die in a smaller package, and
+    the lines that did not fit are simply not there. A system cannot assert one,
+    so a model that quietly accepted the request would be describing a part
+    nobody could build.
+    """
+
+
 class Model:
     """One part of the family: what it is, what it reaches, and how to build it."""
 
     def __init__(
-        self, name, summary, address_bits, data_bits, decimal, core, aliases=(), revision=None
-    ):
+        self,
+        name: str,
+        summary: str,
+        address_bits: int,
+        data_bits: int,
+        decimal: bool,
+        core: Callable[..., Any],
+        aliases: Iterable[str] = (),
+        revision: str | None = None,
+        narrows: str | None = None,
+        pins: Iterable[str] = ("irq", "nmi", "rdy"),
+    ) -> None:
         self.name = name
         self.summary = summary
         self.address_bits = address_bits
@@ -32,43 +73,52 @@ class Model:
         self.core = core
         self.aliases = tuple(aliases)
         self.revision = revision
+        self.narrows = narrows
+        self.pins = tuple(pins)
 
     @property
-    def address_mask(self):
+    def address_mask(self) -> int:
         return (1 << self.address_bits) - 1
 
-    def build(self, memory, **options):
+    def build(self, memory: Any, **options: Any) -> Any:
         return self.core(self, memory, **options)
 
-    def __repr__(self):
+    @override
+    def __repr__(self) -> str:
         return f"<Model {self.name}, {self.address_bits} address bits>"
 
 
-def _build_6502(model, memory, **options):
+def _build_6502(model: Model, memory: Any, **options: Any) -> Any:
     from .mos6502 import Cpu as Cpu6502
 
     cpu = Cpu6502(memory, decimal=model.decimal, **options)
     cpu.model = model.name
     cpu.address_mask = model.address_mask
+    cpu.package_pins = model.pins
     return cpu
 
 
-def _build_65c02(model, memory, **options):
+def _build_65c02(model: Model, memory: Any, **options: Any) -> Any:
     from .mos65c02 import Cpu as Cpu65c02
     from .opcodes65c02 import TABLES
 
+    assert model.revision is not None, (
+        f"{model.name} names no revision, and the 65C02 tables key on one"
+    )
     cpu = Cpu65c02(memory, table=TABLES[model.revision], decimal=model.decimal, **options)
     cpu.model = model.name
     cpu.address_mask = model.address_mask
+    cpu.package_pins = model.pins
     return cpu
 
 
-def _build_65816(model, memory, **options):
+def _build_65816(model: Model, memory: Any, **options: Any) -> Any:
     from .wdc65816 import Cpu as Cpu65816
 
     cpu = Cpu65816(memory, **options)
     cpu.model = model.name
     cpu.address_mask = model.address_mask
+    cpu.package_pins = model.pins
     return cpu
 
 
@@ -97,7 +147,112 @@ _CATALOGUE = (
         data_bits=8,
         decimal=True,
         core=_build_6502,
+        narrows="6502",
+        pins=("rdy",),
         aliases=("mos6507",),
+    ),
+    Model(
+        name="6503",
+        summary=(
+            "MOS 6503. Twelve address lines and both interrupt pins, in a twenty eight pin "
+            "package. Four kilobytes, and everything above that is a mirror."
+        ),
+        address_bits=12,
+        data_bits=8,
+        decimal=True,
+        core=_build_6502,
+        narrows="6502",
+        pins=("irq", "nmi"),
+        aliases=("mos6503",),
+    ),
+    Model(
+        name="6504",
+        summary=(
+            "MOS 6504. Thirteen address lines and the request pin only, so a program on it "
+            "cannot be interrupted by anything it cannot mask."
+        ),
+        address_bits=13,
+        data_bits=8,
+        decimal=True,
+        core=_build_6502,
+        narrows="6502",
+        pins=("irq",),
+        aliases=("mos6504",),
+    ),
+    Model(
+        name="6505",
+        summary=(
+            "MOS 6505. Twelve address lines, the request pin and the ready line, with no "
+            "non-maskable pin brought out."
+        ),
+        address_bits=12,
+        data_bits=8,
+        decimal=True,
+        core=_build_6502,
+        narrows="6502",
+        pins=("irq", "rdy"),
+        aliases=("mos6505",),
+    ),
+    Model(
+        name="6506",
+        summary=(
+            "MOS 6506. Twelve address lines and the request pin, with the ready line spent on "
+            "a second clock output instead."
+        ),
+        address_bits=12,
+        data_bits=8,
+        decimal=True,
+        core=_build_6502,
+        narrows="6502",
+        pins=("irq",),
+        aliases=("mos6506",),
+    ),
+    Model(
+        name="6512",
+        summary=(
+            "MOS 6512. The 6502 with the clock oscillator left off the die, so the two phases "
+            "come in on pins. Nothing a program can see differs."
+        ),
+        address_bits=16,
+        data_bits=8,
+        decimal=True,
+        core=_build_6502,
+        narrows="6502",
+        pins=("irq", "nmi", "rdy"),
+        aliases=("mos6512",),
+    ),
+    Model(
+        name="6513",
+        summary="MOS 6513. The 6503 driven by an external clock rather than its own.",
+        address_bits=12,
+        data_bits=8,
+        decimal=True,
+        core=_build_6502,
+        narrows="6502",
+        pins=("irq", "nmi"),
+        aliases=("mos6513",),
+    ),
+    Model(
+        name="6514",
+        summary="MOS 6514. The 6504 driven by an external clock rather than its own.",
+        address_bits=13,
+        data_bits=8,
+        decimal=True,
+        core=_build_6502,
+        narrows="6502",
+        pins=("irq",),
+        aliases=("mos6514",),
+    ),
+    Model(
+        name="6515",
+        summary="MOS 6515. The 6505 driven by an external clock rather than its own.",
+        address_bits=12,
+        data_bits=8,
+        decimal=True,
+        core=_build_6502,
+        narrows="6502",
+        pins=("irq", "rdy"),
+        aliases=("mos6515",),
     ),
     Model(
         name="2a03",
@@ -177,6 +332,7 @@ _CATALOGUE = (
         data_bits=16,
         decimal=True,
         core=_build_65816,
+        narrows="65816",
         aliases=("w65c802", "65c802"),
     ),
 )
@@ -190,11 +346,11 @@ for _model in _CATALOGUE:
         _BY_ALIAS[_alias] = _model
 
 
-def _normalise(name):
+def _normalise(name: str) -> str:
     return str(name).strip().lower().replace("-", "").replace("_", "")
 
 
-def describe(name):
+def describe(name: str) -> Model:
     """The model of that name, however it happens to be written."""
     found = _BY_ALIAS.get(_normalise(name))
     if found is None:

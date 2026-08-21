@@ -1,4 +1,8 @@
+from __future__ import annotations
+
 from collections import namedtuple
+from collections.abc import Sequence
+from typing import Any
 
 MODE_SIZE = {
     "absolute": 2,
@@ -328,21 +332,23 @@ class Truncated(Exception):
     pass
 
 
-def operand_size(mode, m, x):
+def operand_size(mode: str, m: bool, x: bool) -> int:
     flag = FLAG_DEPENDENT.get(mode)
     if flag is None:
         return MODE_SIZE[mode]
     return 1 if (m if flag == "m" else x) else 2
 
 
-def branch_target(address, size, operand, width):
+def branch_target(address: int, size: int, operand: int, width: int) -> int:
     delta = operand - (1 << (width * 8)) if operand >= 1 << (width * 8 - 1) else operand
     return (address & 0xFF0000) | ((address + size + delta) & 0xFFFF)
 
 
-def render(mode, operand, address, size, width):
+def render(mode: str, operand: int | None, address: int, size: int, width: int) -> str:
     if mode == "implied":
         return ""
+
+    assert operand is not None, f"{mode} carries an operand and this one has none"
     if mode in FLAG_DEPENDENT:
         return f"#${operand:02x}" if width == 1 else f"#${operand:04x}"
     if mode in DIRECT_MODES:
@@ -358,7 +364,7 @@ def render(mode, operand, address, size, width):
     raise KeyError(mode)
 
 
-def decode(data, offset, address, m=True, x=True):
+def decode(data: Sequence[int], offset: int, address: int, m: bool = True, x: bool = True) -> Any:
     if not 0 <= offset < len(data):
         raise Truncated(offset)
     opcode = data[offset]
@@ -382,7 +388,7 @@ def decode(data, offset, address, m=True, x=True):
     )
 
 
-def apply_flags(instruction, m, x):
+def apply_flags(instruction: Any, m: bool, x: bool) -> Any:
     if instruction.mnemonic == "sep":
         return (m or bool(instruction.operand & 0x20), x or bool(instruction.operand & 0x10))
     if instruction.mnemonic == "rep":
@@ -393,8 +399,16 @@ def apply_flags(instruction, m, x):
     return m, x
 
 
-def disassemble(data, offset, address, count=None, m=True, x=True, stop_at_return=False):
-    listing = []
+def disassemble(
+    data: Sequence[int],
+    offset: int,
+    address: int,
+    count: int | None = None,
+    m: bool = True,
+    x: bool = True,
+    stop_at_return: bool = False,
+) -> list[Any]:
+    listing: list[Any] = []
     while count is None or len(listing) < count:
         try:
             instruction = decode(data, offset, address, m, x)

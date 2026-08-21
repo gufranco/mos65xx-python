@@ -35,14 +35,22 @@ after a reset, because the hardware defines only the program counter, and a core
 that clears the rest makes a read of something never written look deliberate.
 """
 
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any
+
 from .memory import UNSET_SEED, scramble
-from .opcodes6502 import NMOS
+from .models import NoSuchPin
+from .opcodes6502 import MODE_SIZE, NMOS
 
 STEP_LIMIT = 2_000_000
 
 RESET_VECTOR = 0xFFFC
 BREAK_VECTOR = 0xFFFE
 NMI_VECTOR = 0xFFFA
+IRQ_VECTOR = 0xFFFE
+"""The same address the break instruction uses: one vector serves both."""
 
 STACK_PAGE = 0x0100
 
@@ -56,6 +64,11 @@ FLAG_V = 0x40
 FLAG_N = 0x80
 
 MAGIC = 0xEE
+
+READ = "read"
+WRITE = "write"
+MODIFY = "modify"
+"""What an access is for, which decides what indexing costs."""
 
 
 class StepLimit(Exception):
@@ -75,13 +88,13 @@ class Cpu:
 
     def __init__(
         self,
-        memory,
-        step_limit=STEP_LIMIT,
-        seed=UNSET_SEED,
-        reset=True,
-        decimal=True,
-        table=NMOS,
-    ):
+        memory: Any,
+        step_limit: int = STEP_LIMIT,
+        seed: int = UNSET_SEED,
+        reset: bool = True,
+        decimal: bool = True,
+        table: Any = NMOS,
+    ) -> None:
         self.memory = memory
         self.step_limit = step_limit
         self.decimal = decimal
@@ -89,6 +102,10 @@ class Cpu:
         self.steps = 0
         self.stopped = False
         self.model = "6502"
+        self.address_mask = 0xFFFF
+        self.package_pins: tuple[str, ...] = ("irq", "nmi", "rdy")
+
+        self.trace: list[tuple[int, int, str]] | None = None
 
         self.a = self.x = self.y = 0x00
         self.s = 0xFD
@@ -99,7 +116,7 @@ class Cpu:
         if reset:
             self.reset(seed)
 
-    def reset(self, seed=UNSET_SEED):
+    def reset(self, seed: int = UNSET_SEED) -> Cpu:
         """What a reset actually defines, and nothing beyond it.
 
         The vector decides where execution starts and the interrupt disable is
@@ -116,7 +133,7 @@ class Cpu:
         self.pc = self.read16(RESET_VECTOR)
         return self
 
-    def status(self):
+    def status(self) -> int:
         """The status byte as anything reading it would see."""
         value = FLAG_U
         value |= FLAG_B if self.b else 0
@@ -128,7 +145,7 @@ class Cpu:
         value |= FLAG_C if self.c else 0
         return value
 
-    def set_status(self, value):
+    def set_status(self, value: int) -> None:
         """Take a status byte, keeping only the bits the register actually has."""
         self.b = bool(value & FLAG_B)
         self.n = bool(value & FLAG_N)
@@ -138,88 +155,181 @@ class Cpu:
         self.z = bool(value & FLAG_Z)
         self.c = bool(value & FLAG_C)
 
-    def read8(self, address):
-        return self.memory.read8(address & 0xFFFF) & 0xFF
+    def read8(self, address: int) -> int:
+        found = self.memory.read8(address & 0xFFFF) & 0xFF
+        assert isinstance(found, int)
+        if self.trace is not None:
+            self.trace.append((address & 0xFFFF, found, "read"))
+        return found
 
-    def write8(self, address, value):
+    def write8(self, address: int, value: int) -> None:
         self.memory.write8(address & 0xFFFF, value & 0xFF)
+        if self.trace is not None:
+            self.trace.append((address & 0xFFFF, value & 0xFF, "write"))
 
-    def read16(self, address):
+    def dead(self, address: int) -> None:
+        """A cycle spent reading something the part will not use.
+
+        Every cycle of this processor is a bus cycle: it has no way to think
+        without driving an address, so what looks like internal work is a read
+        whose result is thrown away. Those reads reach real devices, and a device
+        that counts its own reads can tell. They are cycles, so they are here.
+        """
+        self.read8(address)
+
+    def read16(self, address: int) -> int:
         return self.read8(address) | (self.read8(address + 1) << 8)
 
-    def read16_in_page(self, address):
+    def read16_in_page(self, address: int) -> int:
         """A pointer read the way the part reads one, without leaving its page."""
         high = (address & 0xFF00) | ((address + 1) & 0x00FF)
         return self.read8(address) | (self.read8(high) << 8)
 
-    def read16_in_zero_page(self, address):
+    def read16_in_zero_page(self, address: int) -> int:
         return self.read8(address & 0xFF) | (self.read8((address + 1) & 0xFF) << 8)
 
-    def fetch8(self):
+    def fetch8(self) -> int:
         value = self.read8(self.pc)
         self.pc = (self.pc + 1) & 0xFFFF
         return value
 
-    def fetch16(self):
+    def fetch16(self) -> int:
         low = self.fetch8()
         return low | (self.fetch8() << 8)
 
-    def push8(self, value):
+    def push8(self, value: int) -> None:
         self.write8(STACK_PAGE | self.s, value)
         self.s = (self.s - 1) & 0xFF
 
-    def pull8(self):
+    def pull8(self) -> int:
         self.s = (self.s + 1) & 0xFF
         return self.read8(STACK_PAGE | self.s)
 
-    def push16(self, value):
+    def push16(self, value: int) -> None:
         self.push8((value >> 8) & 0xFF)
         self.push8(value & 0xFF)
 
-    def pull16(self):
+    def pull16(self) -> int:
         low = self.pull8()
         return low | (self.pull8() << 8)
 
-    def set_nz(self, value):
+    def set_nz(self, value: int) -> None:
         self.z = (value & 0xFF) == 0
         self.n = bool(value & 0x80)
 
-    def effective(self, mode):
-        """Where an instruction's operand lives, by the rules of its mode."""
+    def effective(self, mode: str, kind: str = READ) -> int:
+        """Where an instruction's operand lives, by the rules of its mode.
+
+        The kind of access decides how many cycles getting there costs, so it has
+        to be named. Indexing wrong and correcting it is free for a read that
+        happens to stay inside a page and never free for a write, and both are
+        below in `indexed`.
+        """
         if mode == "zeroPage":
             return self.fetch8()
         if mode == "zeroPageX":
-            return (self.fetch8() + self.x) & 0xFF
+            base = self.fetch8()
+            self.dead(self.spare_in_page_zero(base))
+            return (base + self.x) & 0xFF
         if mode == "zeroPageY":
-            return (self.fetch8() + self.y) & 0xFF
+            base = self.fetch8()
+            self.dead(self.spare_in_page_zero(base))
+            return (base + self.y) & 0xFF
         if mode == "absolute":
             return self.fetch16()
         if mode == "absoluteX":
-            return (self.fetch16() + self.x) & 0xFFFF
+            return self.indexed(self.fetch16(), self.x, kind)
         if mode == "absoluteY":
-            return (self.fetch16() + self.y) & 0xFFFF
+            return self.indexed(self.fetch16(), self.y, kind)
         if mode == "indexedIndirectX":
-            return self.read16_in_zero_page((self.fetch8() + self.x) & 0xFF)
+            base = self.fetch8()
+            self.dead(self.spare_in_page_zero(base))
+            return self.read16_in_zero_page((base + self.x) & 0xFF)
         if mode == "indirectIndexedY":
-            return (self.read16_in_zero_page(self.fetch8()) + self.y) & 0xFFFF
+            return self.indexed(self.read16_in_zero_page(self.fetch8()), self.y, kind)
         if mode == "zeroPageIndirect":
             return self.read16_in_zero_page(self.fetch8())
         raise UnsupportedError(f"{mode} has no effective address")
 
-    def operand(self, mode):
+    def indexed(self, base: int, index: int, kind: str) -> int:
+        """Add an index, and pay what the part pays for adding it.
+
+        The part adds the index to the low byte and puts the result on the bus
+        before it knows whether a carry into the high byte is needed. For a read
+        that costs nothing when no carry is needed, because the address it read
+        was the right one. When a carry is needed it read the wrong address, and
+        the cycle spent doing that is visible: the wrong address appears on the
+        bus, and only then is the right one read.
+
+        A write never takes the shortcut. The part will not write to an address it
+        might have to correct, so it always spends the cycle, and always as a read
+        of the uncorrected address. The same is true of a read-modify-write.
+        """
+        target = (base + index) & 0xFFFF
+        uncorrected = (base & 0xFF00) | (target & 0x00FF)
+        if kind != READ or uncorrected != target:
+            self.dead(self.spare_for_index(base, target))
+        return target
+
+    def idles_after_opcode(self, opcode: int, mnemonic: str, mode: str) -> bool:
+        """Whether a one byte instruction spends a cycle on the byte after it.
+
+        On this part every one of them does: it has no operand to fetch and
+        nothing else to drive, so it reads the next byte and ignores it. The CMOS
+        parts turned some of the opcodes nobody documented into single cycles,
+        which is why this is a question rather than a rule.
+        """
+        return not MODE_SIZE[mode]
+
+    def spare_for_index(self, base: int, target: int) -> int:
+        """Which address the spare cycle of an indexed access reads.
+
+        This part puts the half-formed address there: the low byte with the index
+        added and the high byte as it was. The CMOS parts do not, and that is a
+        per-part decision rather than a detail, so it is a method.
+        """
+        return (base & 0xFF00) | (target & 0x00FF)
+
+    def spare_in_page_zero(self, base: int) -> int:
+        """Which address the spare cycle of a page zero indexed access reads.
+
+        This part reads the page zero address before the index was added.
+        """
+        return base
+
+    def modify_kind(self, mnemonic: str) -> str:
+        """Whether a read-modify-write pays the indexing cycle unconditionally.
+
+        On this part every one of them does: it will not write to an address it
+        might have to correct, so the half-formed address goes on the bus first
+        whether or not a carry turns out to be needed. The CMOS parts pay it for
+        some of these instructions and not others, which is why this is a method.
+        """
+        return MODIFY
+
+    def settle(self, address: int, held: int) -> None:
+        """What this part does between reading a value and writing the new one.
+
+        It writes back what it just read. There is nowhere to keep the value while
+        the operation runs, so the address is written twice and the first write
+        carries the old contents.
+        """
+        self.write8(address, held)
+
+    def operand(self, mode: str) -> int:
         if mode == "immediate":
             return self.fetch8()
         if mode == "accumulator":
             return self.a
         return self.read8(self.effective(mode))
 
-    def unindexed_base(self, mode):
+    def unindexed_base(self, mode: str) -> tuple[int, int]:
         """The address before indexing, which the unstable stores need."""
         base = self.fetch16()
         index = self.x if mode == "absoluteX" else self.y
         return base, (base + index) & 0xFFFF
 
-    def add_with_carry(self, value):
+    def add_with_carry(self, value: int) -> None:
         carry = 1 if self.c else 0
         if self.d and self.decimal:
             low = (self.a & 0x0F) + (value & 0x0F) + carry
@@ -241,7 +351,7 @@ class Cpu:
         self.a = total & 0xFF
         self.set_nz(self.a)
 
-    def subtract_with_carry(self, value):
+    def subtract_with_carry(self, value: int) -> None:
         borrow = 0 if self.c else 1
         binary = (self.a - value - borrow) & 0xFF
         self.c = (self.a - value - borrow) >= 0
@@ -259,20 +369,32 @@ class Cpu:
             return
         self.a = binary
 
-    def compare(self, register, value):
+    def compare(self, register: int, value: int) -> None:
         result = (register - value) & 0xFF
         self.c = register >= value
         self.set_nz(result)
 
-    def branch(self, taken):
+    def branch(self, taken: bool) -> None:
+        """Take the branch, and pay for it in the order the part pays.
+
+        A branch not taken costs nothing beyond its two bytes. Taken, the part
+        spends a cycle with the instruction it is not going to run on the bus
+        while it adds the offset to the low byte of the counter. If that addition
+        carries, it spends another with the half-corrected address on the bus.
+        """
         offset = self.fetch8()
         if not taken:
             return
         if offset & 0x80:
             offset -= 0x100
-        self.pc = (self.pc + offset) & 0xFFFF
+        self.dead(self.pc)
+        target = (self.pc + offset) & 0xFFFF
+        uncorrected = (self.pc & 0xFF00) | (target & 0x00FF)
+        if uncorrected != target:
+            self.dead(uncorrected)
+        self.pc = target
 
-    def step(self):
+    def step(self) -> None:
         if self.stopped:
             raise Stopped("the processor has been stopped")
         self.steps += 1
@@ -280,17 +402,19 @@ class Cpu:
             raise StepLimit(f"stopped after {self.steps} steps at ${self.pc:04X}")
         opcode = self.fetch8()
         mnemonic, mode = self.table[opcode]
+        if self.idles_after_opcode(opcode, mnemonic, mode):
+            self.dead(self.pc)
         handler = getattr(self, f"op_{mnemonic}", None)
         if handler is None:
             raise UnsupportedError(f"{mnemonic} is not implemented")
         handler(mode)
 
-    def run_until(self, predicate):
+    def run_until(self, predicate: Callable[[Cpu], bool]) -> Cpu:
         while not predicate(self):
             self.step()
         return self
 
-    def call(self, address):
+    def call(self, address: int) -> Cpu:
         """Run from an address until the routine it names returns."""
         self.pc = address & 0xFFFF
         depth = 0
@@ -304,298 +428,374 @@ class Cpu:
                 depth += 1
             self.step()
 
-    def op_lda(self, mode):
+    def op_lda(self, mode: str) -> None:
         self.a = self.operand(mode)
         self.set_nz(self.a)
 
-    def op_ldx(self, mode):
+    def op_ldx(self, mode: str) -> None:
         self.x = self.operand(mode)
         self.set_nz(self.x)
 
-    def op_ldy(self, mode):
+    def op_ldy(self, mode: str) -> None:
         self.y = self.operand(mode)
         self.set_nz(self.y)
 
-    def op_sta(self, mode):
-        self.write8(self.effective(mode), self.a)
+    def op_sta(self, mode: str) -> None:
+        self.write8(self.effective(mode, WRITE), self.a)
 
-    def op_stx(self, mode):
-        self.write8(self.effective(mode), self.x)
+    def op_stx(self, mode: str) -> None:
+        self.write8(self.effective(mode, WRITE), self.x)
 
-    def op_sty(self, mode):
-        self.write8(self.effective(mode), self.y)
+    def op_sty(self, mode: str) -> None:
+        self.write8(self.effective(mode, WRITE), self.y)
 
-    def op_tax(self, mode):
+    def op_tax(self, mode: str) -> None:
         self.x = self.a
         self.set_nz(self.x)
 
-    def op_tay(self, mode):
+    def op_tay(self, mode: str) -> None:
         self.y = self.a
         self.set_nz(self.y)
 
-    def op_txa(self, mode):
+    def op_txa(self, mode: str) -> None:
         self.a = self.x
         self.set_nz(self.a)
 
-    def op_tya(self, mode):
+    def op_tya(self, mode: str) -> None:
         self.a = self.y
         self.set_nz(self.a)
 
-    def op_tsx(self, mode):
+    def op_tsx(self, mode: str) -> None:
         self.x = self.s
         self.set_nz(self.x)
 
-    def op_txs(self, mode):
+    def op_txs(self, mode: str) -> None:
         self.s = self.x
 
-    def op_pha(self, mode):
+    def op_pha(self, mode: str) -> None:
         self.push8(self.a)
 
-    def op_php(self, mode):
+    def op_php(self, mode: str) -> None:
         self.push8(self.status() | FLAG_B)
 
-    def op_pla(self, mode):
+    def op_pla(self, mode: str) -> None:
+        self.dead(STACK_PAGE | self.s)
         self.a = self.pull8()
         self.set_nz(self.a)
 
-    def op_plp(self, mode):
+    def op_plp(self, mode: str) -> None:
+        self.dead(STACK_PAGE | self.s)
         self.set_status(self.pull8())
         self.b = False
 
-    def op_and(self, mode):
+    def op_and(self, mode: str) -> None:
         self.a &= self.operand(mode)
         self.set_nz(self.a)
 
-    def op_ora(self, mode):
+    def op_ora(self, mode: str) -> None:
         self.a |= self.operand(mode)
         self.set_nz(self.a)
 
-    def op_eor(self, mode):
+    def op_eor(self, mode: str) -> None:
         self.a ^= self.operand(mode)
         self.set_nz(self.a)
 
-    def op_bit(self, mode):
+    def op_bit(self, mode: str) -> None:
         value = self.operand(mode)
         self.z = (self.a & value) == 0
         self.n = bool(value & 0x80)
         self.v = bool(value & 0x40)
 
-    def op_adc(self, mode):
+    def op_adc(self, mode: str) -> None:
         self.add_with_carry(self.operand(mode))
 
-    def op_sbc(self, mode):
+    def op_sbc(self, mode: str) -> None:
         self.subtract_with_carry(self.operand(mode))
 
-    def op_cmp(self, mode):
+    def op_cmp(self, mode: str) -> None:
         self.compare(self.a, self.operand(mode))
 
-    def op_cpx(self, mode):
+    def op_cpx(self, mode: str) -> None:
         self.compare(self.x, self.operand(mode))
 
-    def op_cpy(self, mode):
+    def op_cpy(self, mode: str) -> None:
         self.compare(self.y, self.operand(mode))
 
-    def op_inc(self, mode):
-        address = self.effective(mode)
-        value = (self.read8(address) + 1) & 0xFF
-        self.write8(address, value)
-        self.set_nz(value)
+    def op_inc(self, mode: str) -> None:
+        self.read_modify_write(mode, "inc", self.bump)
 
-    def op_dec(self, mode):
-        address = self.effective(mode)
-        value = (self.read8(address) - 1) & 0xFF
-        self.write8(address, value)
-        self.set_nz(value)
+    def op_dec(self, mode: str) -> None:
+        self.read_modify_write(mode, "dec", self.drop)
 
-    def op_inx(self, mode):
+    def bump(self, value: int) -> int:
+        result = (value + 1) & 0xFF
+        self.set_nz(result)
+        return result
+
+    def drop(self, value: int) -> int:
+        result = (value - 1) & 0xFF
+        self.set_nz(result)
+        return result
+
+    def op_inx(self, mode: str) -> None:
         self.x = (self.x + 1) & 0xFF
         self.set_nz(self.x)
 
-    def op_iny(self, mode):
+    def op_iny(self, mode: str) -> None:
         self.y = (self.y + 1) & 0xFF
         self.set_nz(self.y)
 
-    def op_dex(self, mode):
+    def op_dex(self, mode: str) -> None:
         self.x = (self.x - 1) & 0xFF
         self.set_nz(self.x)
 
-    def op_dey(self, mode):
+    def op_dey(self, mode: str) -> None:
         self.y = (self.y - 1) & 0xFF
         self.set_nz(self.y)
 
-    def shift_left(self, value):
+    def shift_left(self, value: int) -> int:
         self.c = bool(value & 0x80)
         result = (value << 1) & 0xFF
         self.set_nz(result)
         return result
 
-    def shift_right(self, value):
+    def shift_right(self, value: int) -> int:
         self.c = bool(value & 0x01)
         result = value >> 1
         self.set_nz(result)
         return result
 
-    def rotate_left(self, value):
+    def rotate_left(self, value: int) -> int:
         carry = 1 if self.c else 0
         self.c = bool(value & 0x80)
         result = ((value << 1) | carry) & 0xFF
         self.set_nz(result)
         return result
 
-    def rotate_right(self, value):
+    def rotate_right(self, value: int) -> int:
         carry = 0x80 if self.c else 0
         self.c = bool(value & 0x01)
         result = (value >> 1) | carry
         self.set_nz(result)
         return result
 
-    def read_modify_write(self, mode, transform):
+    def read_modify_write(
+        self, mode: str, mnemonic: str, transform: Callable[[int], int]
+    ) -> tuple[int | None, int]:
+        """Read it, write it back unchanged, then write the new value.
+
+        The second write is the one nobody expects. This part has nowhere to keep
+        the result while it decides, so it puts the value it just read straight
+        back and only then writes what the operation produced. A device mapped at
+        that address is written twice, the first time with its own old value, and
+        a device that acts on writes acts twice.
+        """
         if mode == "accumulator":
             self.a = transform(self.a)
             return None, self.a
-        address = self.effective(mode)
-        value = transform(self.read8(address))
+        address = self.effective(mode, self.modify_kind(mnemonic))
+        held = self.read8(address)
+        self.settle(address, held)
+        value = transform(held)
         self.write8(address, value)
         return address, value
 
-    def op_asl(self, mode):
-        self.read_modify_write(mode, self.shift_left)
+    def op_asl(self, mode: str) -> None:
+        self.read_modify_write(mode, "asl", self.shift_left)
 
-    def op_lsr(self, mode):
-        self.read_modify_write(mode, self.shift_right)
+    def op_lsr(self, mode: str) -> None:
+        self.read_modify_write(mode, "lsr", self.shift_right)
 
-    def op_rol(self, mode):
-        self.read_modify_write(mode, self.rotate_left)
+    def op_rol(self, mode: str) -> None:
+        self.read_modify_write(mode, "rol", self.rotate_left)
 
-    def op_ror(self, mode):
-        self.read_modify_write(mode, self.rotate_right)
+    def op_ror(self, mode: str) -> None:
+        self.read_modify_write(mode, "ror", self.rotate_right)
 
-    def op_jmp(self, mode):
+    def op_jmp(self, mode: str) -> None:
         if mode == "indirect":
             self.pc = self.read16_in_page(self.fetch16())
             return
         self.pc = self.fetch16()
 
-    def op_jsr(self, mode):
+    def op_jsr(self, mode: str) -> None:
+        """Read half the destination, push, then read the other half.
+
+        The push happens between the two halves of the address it is jumping to,
+        which is invisible except when the stack has walked into the instruction:
+        then the push overwrites the byte that has not been read yet, and the
+        jump goes wherever the pushed byte says. Between the two, the part spends
+        a cycle reading the stack it is about to write.
+        """
         low = self.fetch8()
+        self.dead(STACK_PAGE | self.s)
         self.push16(self.pc)
         self.pc = (self.fetch8() << 8) | low
 
-    def op_rts(self, mode):
-        self.pc = (self.pull16() + 1) & 0xFFFF
+    def op_rts(self, mode: str) -> None:
+        self.dead(STACK_PAGE | self.s)
+        pulled = self.pull16()
+        self.dead(pulled)
+        self.pc = (pulled + 1) & 0xFFFF
 
-    def op_rti(self, mode):
+    def op_rti(self, mode: str) -> None:
+        self.dead(STACK_PAGE | self.s)
         self.set_status(self.pull8())
         self.b = False
         self.pc = self.pull16()
 
-    def op_brk(self, mode):
+    def op_brk(self, mode: str) -> None:
         self.pc = (self.pc + 1) & 0xFFFF
         self.push16(self.pc)
         self.push8(self.status() | FLAG_B)
         self.i = True
         self.pc = self.read16(BREAK_VECTOR)
 
-    def op_bpl(self, mode):
+    def interrupt(self, vector: int) -> None:
+        """Take an interrupt the way a pin does, rather than the way BRK does.
+
+        Three things separate this from a break. The return address is the next
+        instruction rather than the byte after a signature, because no opcode was
+        consumed. The pushed status has the break bit clear, which is the only
+        thing a handler can look at to tell which of the two happened. And the
+        register itself keeps whatever that bit held: it is stored like a flag and
+        written like neither, the same rule the break instruction follows.
+        """
+        self.dead(self.pc)
+        self.dead(self.pc)
+        self.push16(self.pc)
+        self.push8(self.status() & ~FLAG_B)
+        self.i = True
+        self.pc = self.read16(vector)
+
+    def require(self, pin: str) -> None:
+        """Refuse a line this part does not bring out of its package."""
+        if pin not in self.package_pins:
+            raise NoSuchPin(
+                f"the {self.model} has no {pin} pin; it brings out {', '.join(self.package_pins)}"
+            )
+
+    def irq(self) -> bool:
+        """Pull the interrupt request line, and say whether the part took it.
+
+        The line is level sensitive and the disable flag decides, so a request
+        that arrives with interrupts disabled is not remembered: it is simply not
+        taken, and a caller holding the line low will have it taken later when the
+        flag clears. False means the request is still outstanding.
+        """
+        self.require("irq")
+        if self.i:
+            return False
+        self.interrupt(IRQ_VECTOR)
+        return True
+
+    def nmi(self) -> None:
+        """Pull the non-maskable line, which no flag defends against.
+
+        The real pin is edge sensitive, so it is the transition that interrupts
+        and holding the line low afterwards does nothing. A caller models that by
+        calling this once per transition, which is why there is nothing to poll
+        and nothing to report.
+        """
+        self.require("nmi")
+        self.interrupt(NMI_VECTOR)
+
+    def op_bpl(self, mode: str) -> None:
         self.branch(not self.n)
 
-    def op_bmi(self, mode):
+    def op_bmi(self, mode: str) -> None:
         self.branch(self.n)
 
-    def op_bvc(self, mode):
+    def op_bvc(self, mode: str) -> None:
         self.branch(not self.v)
 
-    def op_bvs(self, mode):
+    def op_bvs(self, mode: str) -> None:
         self.branch(self.v)
 
-    def op_bcc(self, mode):
+    def op_bcc(self, mode: str) -> None:
         self.branch(not self.c)
 
-    def op_bcs(self, mode):
+    def op_bcs(self, mode: str) -> None:
         self.branch(self.c)
 
-    def op_bne(self, mode):
+    def op_bne(self, mode: str) -> None:
         self.branch(not self.z)
 
-    def op_beq(self, mode):
+    def op_beq(self, mode: str) -> None:
         self.branch(self.z)
 
-    def op_clc(self, mode):
+    def op_clc(self, mode: str) -> None:
         self.c = False
 
-    def op_sec(self, mode):
+    def op_sec(self, mode: str) -> None:
         self.c = True
 
-    def op_cli(self, mode):
+    def op_cli(self, mode: str) -> None:
         self.i = False
 
-    def op_sei(self, mode):
+    def op_sei(self, mode: str) -> None:
         self.i = True
 
-    def op_clv(self, mode):
+    def op_clv(self, mode: str) -> None:
         self.v = False
 
-    def op_cld(self, mode):
+    def op_cld(self, mode: str) -> None:
         self.d = False
 
-    def op_sed(self, mode):
+    def op_sed(self, mode: str) -> None:
         self.d = True
 
-    def op_nop(self, mode):
+    def op_nop(self, mode: str) -> None:
         if mode not in ("implied", "accumulator"):
             self.operand(mode)
 
-    def op_jam(self, mode):
+    def op_jam(self, mode: str) -> None:
         self.stopped = True
 
-    def op_slo(self, mode):
-        _, value = self.read_modify_write(mode, self.shift_left)
+    def op_slo(self, mode: str) -> None:
+        _, value = self.read_modify_write(mode, "slo", self.shift_left)
         self.a |= value
         self.set_nz(self.a)
 
-    def op_rla(self, mode):
-        _, value = self.read_modify_write(mode, self.rotate_left)
+    def op_rla(self, mode: str) -> None:
+        _, value = self.read_modify_write(mode, "rla", self.rotate_left)
         self.a &= value
         self.set_nz(self.a)
 
-    def op_sre(self, mode):
-        _, value = self.read_modify_write(mode, self.shift_right)
+    def op_sre(self, mode: str) -> None:
+        _, value = self.read_modify_write(mode, "sre", self.shift_right)
         self.a ^= value
         self.set_nz(self.a)
 
-    def op_rra(self, mode):
-        _, value = self.read_modify_write(mode, self.rotate_right)
+    def op_rra(self, mode: str) -> None:
+        _, value = self.read_modify_write(mode, "rra", self.rotate_right)
         self.add_with_carry(value)
 
-    def op_sax(self, mode):
-        self.write8(self.effective(mode), self.a & self.x)
+    def op_sax(self, mode: str) -> None:
+        self.write8(self.effective(mode, WRITE), self.a & self.x)
 
-    def op_lax(self, mode):
+    def op_lax(self, mode: str) -> None:
         self.a = self.x = self.operand(mode)
         self.set_nz(self.a)
 
-    def op_dcp(self, mode):
-        address = self.effective(mode)
-        value = (self.read8(address) - 1) & 0xFF
-        self.write8(address, value)
+    def op_dcp(self, mode: str) -> None:
+        _, value = self.read_modify_write(mode, "dcp", lambda held: (held - 1) & 0xFF)
         self.compare(self.a, value)
 
-    def op_isc(self, mode):
-        address = self.effective(mode)
-        value = (self.read8(address) + 1) & 0xFF
-        self.write8(address, value)
+    def op_isc(self, mode: str) -> None:
+        _, value = self.read_modify_write(mode, "isc", lambda held: (held + 1) & 0xFF)
         self.subtract_with_carry(value)
 
-    def op_anc(self, mode):
+    def op_anc(self, mode: str) -> None:
         self.a &= self.fetch8()
         self.set_nz(self.a)
         self.c = self.n
 
-    def op_alr(self, mode):
+    def op_alr(self, mode: str) -> None:
         self.a &= self.fetch8()
         self.a = self.shift_right(self.a)
 
-    def op_arr(self, mode):
+    def op_arr(self, mode: str) -> None:
         value = self.fetch8()
         self.a &= value
         carry = 0x80 if self.c else 0
@@ -619,46 +819,47 @@ class Cpu:
         self.c = bool(self.a & 0x40)
         self.v = bool(((self.a >> 6) ^ (self.a >> 5)) & 0x01)
 
-    def op_sbx(self, mode):
+    def op_sbx(self, mode: str) -> None:
         value = self.fetch8()
         result = (self.a & self.x) - value
         self.c = result >= 0
         self.x = result & 0xFF
         self.set_nz(self.x)
 
-    def op_las(self, mode):
+    def op_las(self, mode: str) -> None:
         value = self.operand(mode) & self.s
         self.a = self.x = self.s = value
         self.set_nz(value)
 
-    def op_ane(self, mode):
+    def op_ane(self, mode: str) -> None:
         self.a = (self.a | MAGIC) & self.x & self.fetch8()
         self.set_nz(self.a)
 
-    def op_lxa(self, mode):
+    def op_lxa(self, mode: str) -> None:
         self.a = self.x = (self.a | MAGIC) & self.fetch8()
         self.set_nz(self.a)
 
-    def unstable_store(self, mode, register):
+    def unstable_store(self, mode: str, register: int) -> None:
         if mode in ("absoluteX", "absoluteY"):
             base, address = self.unindexed_base(mode)
         else:
             base = self.read16_in_zero_page(self.fetch8())
             address = (base + self.y) & 0xFFFF
+        self.dead((base & 0xFF00) | (address & 0x00FF))
         value = register & (((base >> 8) + 1) & 0xFF)
         if (base & 0xFF00) != (address & 0xFF00):
             address = (address & 0x00FF) | (value << 8)
         self.write8(address, value)
 
-    def op_sha(self, mode):
+    def op_sha(self, mode: str) -> None:
         self.unstable_store(mode, self.a & self.x)
 
-    def op_shx(self, mode):
+    def op_shx(self, mode: str) -> None:
         self.unstable_store(mode, self.x)
 
-    def op_shy(self, mode):
+    def op_shy(self, mode: str) -> None:
         self.unstable_store(mode, self.y)
 
-    def op_tas(self, mode):
+    def op_tas(self, mode: str) -> None:
         self.s = self.a & self.x
         self.unstable_store(mode, self.s)

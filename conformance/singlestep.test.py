@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import contextlib
-import importlib
 import io
 import json
 import shutil
@@ -7,15 +8,16 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any, override
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "conformance"))
 
-singlestep = importlib.import_module("singlestep")
+from conformance import singlestep  # noqa: E402
 
 
-def a_test(**changes):
+def a_test(**changes: Any) -> dict[str, Any]:
     initial = {
         "pc": 0x8000,
         "s": 0x01FF,
@@ -36,30 +38,30 @@ def a_test(**changes):
 
 
 class LoadTest(unittest.TestCase):
-    def test_a_missing_suite_reports_itself_rather_than_raising(self):
+    def test_a_missing_suite_reports_itself_rather_than_raising(self) -> None:
         self.assertEqual(singlestep.suite_files(Path("/nowhere/at/all")), [])
 
-    def test_files_come_back_sorted_so_a_run_is_reproducible(self):
+    def test_files_come_back_sorted_so_a_run_is_reproducible(self) -> None:
         with tempfile.TemporaryDirectory() as where:
             for name in ("ff.n.json", "00.n.json", "7a.e.json"):
                 (Path(where) / name).write_text("[]")
 
-            found = [path.name for path in singlestep.suite_files(where)]
+            found = [path.name for path in singlestep.suite_files(Path(where))]
 
         self.assertEqual(found, ["00.n.json", "7a.e.json", "ff.n.json"])
 
-    def test_anything_that_is_not_a_test_file_is_left_alone(self):
+    def test_anything_that_is_not_a_test_file_is_left_alone(self) -> None:
         with tempfile.TemporaryDirectory() as where:
             (Path(where) / "00.n.json").write_text("[]")
             (Path(where) / "README.md").write_text("not a suite")
 
-            found = [path.name for path in singlestep.suite_files(where)]
+            found = [path.name for path in singlestep.suite_files(Path(where))]
 
         self.assertEqual(found, ["00.n.json"])
 
 
 class StateTest(unittest.TestCase):
-    def test_the_initial_state_reaches_every_register(self):
+    def test_the_initial_state_reaches_every_register(self) -> None:
         cpu, _ = singlestep.machine_for(a_test()["initial"])
 
         self.assertEqual(cpu.a, 0x1234)
@@ -69,29 +71,29 @@ class StateTest(unittest.TestCase):
         self.assertEqual(cpu.pb, 0x00)
         self.assertEqual(cpu.pc, 0x8000)
 
-    def test_the_emulation_flag_is_taken_from_the_test(self):
+    def test_the_emulation_flag_is_taken_from_the_test(self) -> None:
         cpu, _ = singlestep.machine_for(dict(a_test()["initial"], e=1))
 
         self.assertTrue(cpu.emulation)
 
-    def test_memory_outside_the_test_is_not_assumed_clear(self):
+    def test_memory_outside_the_test_is_not_assumed_clear(self) -> None:
         _, memory = singlestep.machine_for(a_test()["initial"])
 
         far = [memory.read8(at) for at in range(0x400000, 0x400040)]
 
         self.assertNotEqual(far, [0] * 64)
 
-    def test_the_bytes_the_test_names_are_placed(self):
+    def test_the_bytes_the_test_names_are_placed(self) -> None:
         _, memory = singlestep.machine_for(a_test()["initial"])
 
         self.assertEqual(memory.read8(0x008000), 0xEA)
 
 
 class CompareTest(unittest.TestCase):
-    def test_a_matching_run_reports_nothing(self):
+    def test_a_matching_run_reports_nothing(self) -> None:
         self.assertEqual(singlestep.check(a_test()), [])
 
-    def test_a_wrong_register_is_named(self):
+    def test_a_wrong_register_is_named(self) -> None:
         broken = a_test()
         broken["final"] = dict(broken["final"], a=0x9999)
 
@@ -99,7 +101,7 @@ class CompareTest(unittest.TestCase):
 
         self.assertTrue(any(name == "a" for name, _, _ in found))
 
-    def test_a_wrong_memory_byte_is_named_by_its_address(self):
+    def test_a_wrong_memory_byte_is_named_by_its_address(self) -> None:
         broken = a_test()
         broken["final"] = dict(broken["final"], ram=[[0x008000, 0x00]])
 
@@ -107,7 +109,7 @@ class CompareTest(unittest.TestCase):
 
         self.assertTrue(any(name == "$008000" for name, _, _ in found))
 
-    def test_the_status_byte_is_compared(self):
+    def test_the_status_byte_is_compared(self) -> None:
         broken = a_test()
         broken["final"] = dict(broken["final"], p=0xFF)
 
@@ -117,13 +119,13 @@ class CompareTest(unittest.TestCase):
 
 
 class RunTest(unittest.TestCase):
-    def test_a_run_counts_what_passed_and_what_did_not(self):
+    def test_a_run_counts_what_passed_and_what_did_not(self) -> None:
         passed, failed, examples = singlestep.run_tests([a_test(), a_test()])
 
         self.assertEqual((passed, failed), (2, 0))
         self.assertEqual(examples, [])
 
-    def test_a_failing_case_is_kept_as_an_example(self):
+    def test_a_failing_case_is_kept_as_an_example(self) -> None:
         broken = a_test()
         broken["final"] = dict(broken["final"], a=0x9999)
 
@@ -132,7 +134,7 @@ class RunTest(unittest.TestCase):
         self.assertEqual((passed, failed), (0, 1))
         self.assertEqual(examples[0][0], "ea n 0")
 
-    def test_only_a_few_examples_are_kept(self):
+    def test_only_a_few_examples_are_kept(self) -> None:
         broken = a_test()
         broken["final"] = dict(broken["final"], a=0x9999)
 
@@ -140,19 +142,19 @@ class RunTest(unittest.TestCase):
 
         self.assertLessEqual(len(examples), singlestep.EXAMPLE_LIMIT)
 
-    def test_a_register_the_test_leaves_out_is_not_compared(self):
+    def test_a_register_the_test_leaves_out_is_not_compared(self) -> None:
         quiet = a_test()
         quiet["final"] = {"pc": 0x8001}
 
         self.assertEqual(singlestep.check(quiet), [])
 
-    def test_a_run_that_ends_in_the_wrong_mode_is_a_disagreement(self):
+    def test_a_run_that_ends_in_the_wrong_mode_is_a_disagreement(self) -> None:
         wrong = a_test()
         wrong["final"] = dict(wrong["final"], e=1)
 
         self.assertIn(("e", 1, 0), singlestep.check(wrong))
 
-    def test_a_case_that_raises_is_counted_rather_than_ending_the_run(self):
+    def test_a_case_that_raises_is_counted_rather_than_ending_the_run(self) -> None:
         broken = a_test()
         broken["initial"] = dict(broken["initial"], ram="not a list of pairs")
 
@@ -163,23 +165,24 @@ class RunTest(unittest.TestCase):
 
 
 class FileTest(unittest.TestCase):
-    def setUp(self):
+    @override
+    def setUp(self) -> None:
         self.root = tempfile.mkdtemp(prefix="singlestep-file-")
         self.addCleanup(shutil.rmtree, self.root, True)
 
-    def write(self, name, tests):
+    def write(self, name: str, tests: Any) -> Path:
         path = Path(self.root) / name
         path.write_text(json.dumps(tests))
         return path
 
-    def test_a_file_runs_every_case_it_holds(self):
+    def test_a_file_runs_every_case_it_holds(self) -> None:
         path = self.write("ea.n.json", [a_test(), a_test()])
 
         passed, failed, _ = singlestep.run_file(path)
 
         self.assertEqual((passed, failed), (2, 0))
 
-    def test_a_limit_takes_only_the_first_few_cases(self):
+    def test_a_limit_takes_only_the_first_few_cases(self) -> None:
         path = self.write("ea.n.json", [a_test()] * 10)
 
         passed, failed, _ = singlestep.run_file(path, limit=3)
@@ -188,37 +191,40 @@ class FileTest(unittest.TestCase):
 
 
 class MainTest(unittest.TestCase):
-    def setUp(self):
+    @override
+    def setUp(self) -> None:
         self.root = tempfile.mkdtemp(prefix="singlestep-main-")
         self.addCleanup(shutil.rmtree, self.root, True)
 
-    def write(self, name, tests):
-        (Path(self.root) / name).write_text(json.dumps(tests))
+    def write(self, name: str, tests: Any) -> Path:
+        path = Path(self.root) / name
+        path.write_text(json.dumps(tests))
+        return path
 
-    def broken_test(self):
+    def broken_test(self) -> dict[str, Any]:
         broken = a_test()
         broken["final"] = dict(broken["final"], a=0x9999)
         return broken
 
-    def run_main(self, argv):
+    def run_main(self, argv: list[str]) -> Any:
         captured = io.StringIO()
         with contextlib.redirect_stdout(captured):
             code = singlestep.main(argv)
         return code, captured.getvalue()
 
-    def test_no_arguments_explains_how_to_call_it(self):
+    def test_no_arguments_explains_how_to_call_it(self) -> None:
         code, output = self.run_main([])
 
         self.assertEqual(code, 2)
         self.assertIn("usage", output)
 
-    def test_a_suite_that_is_not_there_says_so_without_failing_the_build(self):
+    def test_a_suite_that_is_not_there_says_so_without_failing_the_build(self) -> None:
         code, output = self.run_main([str(Path(self.root) / "absent")])
 
         self.assertEqual(code, 0)
         self.assertIn("no suite at", output)
 
-    def test_a_passing_suite_reports_success(self):
+    def test_a_passing_suite_reports_success(self) -> None:
         self.write("ea.n.json", [a_test(), a_test()])
 
         code, output = self.run_main([str(self.root)])
@@ -226,7 +232,15 @@ class MainTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("2 agreed, 0 did not", output)
 
-    def test_a_failing_suite_names_the_file_and_the_first_disagreement(self):
+    def test_a_file_holding_no_cases_is_named_rather_than_absorbed(self) -> None:
+        self.write("ea.n.json", [a_test()])
+        (Path(self.root) / "db.json").write_text("")
+
+        code, output = self.run_main([str(self.root)])
+
+        self.assertEqual((code, "1 files hold no cases: db" in output), (0, True))
+
+    def test_a_failing_suite_names_the_file_and_the_first_disagreement(self) -> None:
         self.write("ea.n.json", [self.broken_test()])
 
         code, output = self.run_main([str(self.root)])
@@ -235,7 +249,7 @@ class MainTest(unittest.TestCase):
         self.assertIn("ea.n.json: 1 wrong", output)
         self.assertIn("a want 39321", output)
 
-    def test_a_filter_takes_only_the_files_whose_name_matches(self):
+    def test_a_filter_takes_only_the_files_whose_name_matches(self) -> None:
         self.write("ea.n.json", [a_test()])
         self.write("00.n.json", [self.broken_test()])
 
@@ -244,14 +258,14 @@ class MainTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("1 files", output)
 
-    def test_a_limit_is_taken_from_the_second_argument(self):
+    def test_a_limit_is_taken_from_the_second_argument(self) -> None:
         self.write("ea.n.json", [a_test()] * 10)
 
         _, output = self.run_main([str(self.root), "4"])
 
         self.assertIn("4 agreed", output)
 
-    def test_only_a_few_broken_files_are_listed_and_the_rest_are_counted(self):
+    def test_only_a_few_broken_files_are_listed_and_the_rest_are_counted(self) -> None:
         for index in range(singlestep.EXAMPLE_LIMIT + 2):
             self.write(f"{index:02x}.n.json", [self.broken_test()])
 
@@ -270,7 +284,7 @@ class NarrowPartTest(unittest.TestCase):
     suite except one.
     """
 
-    def case(self):
+    def case(self) -> dict[str, Any]:
         return {
             "name": "a9 42",
             "initial": {
@@ -294,67 +308,90 @@ class NarrowPartTest(unittest.TestCase):
             "cycles": [[0x8000, 0xA9, "read"], [0x8001, 0x42, "read"]],
         }
 
-    def test_a_narrow_part_runs_a_case_that_names_only_what_it_has(self):
+    def test_a_narrow_part_runs_a_case_that_names_only_what_it_has(self) -> None:
         self.assertEqual(singlestep.check(self.case(), model="6502"), [])
 
-    def test_a_narrow_part_reports_a_disagreement_the_same_way(self):
+    def test_a_narrow_part_reports_a_disagreement_the_same_way(self) -> None:
         case = self.case()
         case["final"]["a"] = 0x43
 
         self.assertEqual(singlestep.check(case, model="6502")[0][0], "a")
 
-    def test_a_case_that_agrees_is_counted_as_agreeing(self):
+    def test_a_case_that_agrees_is_counted_as_agreeing(self) -> None:
         passed, failed, _ = singlestep.run_tests([self.case()], model="2a03")
 
         self.assertEqual((passed, failed), (1, 0))
 
 
 class OptionTest(unittest.TestCase):
-    def test_a_directory_alone_runs_the_default_part(self):
+    def test_a_directory_alone_runs_the_default_part(self) -> None:
         rest, model = singlestep.options(["suite"])
 
         self.assertEqual(rest, ["suite"])
         self.assertEqual(model, singlestep.DEFAULT_MODEL)
 
-    def test_a_named_part_is_taken_as_given(self):
+    def test_a_named_part_is_taken_as_given(self) -> None:
         _, model = singlestep.options(["suite", "--model", "6502"])
 
         self.assertEqual(model, "6502")
 
-    def test_the_flag_can_come_before_the_directory(self):
+    def test_the_flag_can_come_before_the_directory(self) -> None:
         rest, model = singlestep.options(["--model", "2a03", "suite"])
 
         self.assertEqual((rest, model), (["suite"], "2a03"))
 
-    def test_a_flag_with_nothing_after_it_is_refused(self):
+    def test_a_flag_with_nothing_after_it_is_refused(self) -> None:
         with self.assertRaises(singlestep.Usage):
             singlestep.options(["suite", "--model"])
 
-    def test_no_directory_at_all_is_refused(self):
+    def test_no_directory_at_all_is_refused(self) -> None:
         with self.assertRaises(singlestep.Usage):
             singlestep.options([])
 
-    def test_a_part_this_package_does_not_carry_is_refused(self):
+    def test_a_part_this_package_does_not_carry_is_refused(self) -> None:
         from mos65xx import UnknownModelError
 
         with self.assertRaises(UnknownModelError):
             singlestep.options(["suite", "--model", "z80"])
 
-    def test_the_limits_and_filter_survive_the_parsing(self):
+    def test_the_limits_and_filter_survive_the_parsing(self) -> None:
         rest, _ = singlestep.options(["suite", "20", "a9", "--model", "6502"])
 
         self.assertEqual(rest, ["suite", "20", "a9"])
 
 
 class RefusalTest(unittest.TestCase):
-    def test_a_call_with_no_arguments_explains_itself(self):
+    def test_a_call_with_no_arguments_explains_itself(self) -> None:
         self.assertEqual(singlestep.main([]), 2)
 
-    def test_a_part_it_does_not_carry_explains_itself(self):
+    def test_a_part_it_does_not_carry_explains_itself(self) -> None:
         self.assertEqual(singlestep.main(["suite", "--model", "nonsense"]), 2)
 
-    def test_a_flag_with_nothing_after_it_explains_itself(self):
+    def test_a_flag_with_nothing_after_it_explains_itself(self) -> None:
         self.assertEqual(singlestep.main(["suite", "--model"]), 2)
+
+
+class EmptyFileTest(unittest.TestCase):
+    """That a file with nothing in it is no cases rather than a crash.
+
+    The suites carry one file per opcode, and the two whose whole behaviour is to
+    stop the part are empty because there is nothing to record. A runner that
+    raises on them cannot run the suite at all.
+    """
+
+    def test_an_empty_file_holds_no_cases(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            path = Path(where) / "cb.json"
+            path.write_text("")
+
+            self.assertEqual(singlestep.run_file(path, model="6502"), (0, 0, []))
+
+    def test_a_file_holding_only_whitespace_is_the_same(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            path = Path(where) / "db.json"
+            path.write_text("\n  \n")
+
+            self.assertEqual(singlestep.run_file(path, model="6502"), (0, 0, []))
 
 
 if __name__ == "__main__":

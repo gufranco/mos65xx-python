@@ -1,0 +1,1632 @@
+{
+  "note": "Appendix B of the MCS6500 Programming Manual, which gives every instruction its own page: the flags it touches, and for each addressing mode the opcode, the byte count and the cycle count. Read as printed rather than through the extracted text, because the flag row is a line of check marks, dashes and digits that no text layer survives. This is the manufacturer's own statement of the instruction set, so it is what the opcode table and the cycle counts are held to.",
+  "document": "manufacturer/mcs6500-programming-manual-1976.pdf",
+  "section": "Appendix B, Instruction List Alphabetic by Mnemonic",
+  "printedPages": "B-3 to B-29",
+  "pdfPages": "200 to 226",
+  "readOn": "2026-08-21",
+  "notation": {
+    "changes": "The manual prints a check mark: the flag takes a value from the result.",
+    "unchanged": "The manual prints a dash: the flag is not touched.",
+    "0": "The manual prints a zero: the flag is always reset.",
+    "1": "The manual prints a one: the flag is always set.",
+    "bit 7 of memory": "The manual prints M with a subscript seven, only on BIT.",
+    "bit 6 of memory": "The manual prints M with a subscript six, only on BIT.",
+    "from stack": "The manual prints From Stack across the whole row, on PLP and RTI."
+  },
+  "misprints": {
+    "note": "Six of the eight Group One instructions print an asterisk on their indirect indexed row, for the cycle a page crossing adds. Two do not, and the part adds the cycle on all eight.",
+    "missingPageCrossingMark": ["AND", "ORA"],
+    "carryIt": ["ADC", "CMP", "EOR", "LDA", "SBC"],
+    "why": "The asterisk is printed for AND and ORA on their absolute indexed rows on the same page, so the omission is on the one row rather than a claim about the instruction. Nothing distinguishes these two from the six that carry it."
+  },
+  "instructions": {
+    "ADC": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "changes",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "changes"
+      },
+      "modes": [
+        {
+          "mode": "immediate",
+          "opcode": 105,
+          "bytes": 2,
+          "cycles": 2
+        },
+        {
+          "mode": "zero page",
+          "opcode": 101,
+          "bytes": 2,
+          "cycles": 3
+        },
+        {
+          "mode": "zero page,X",
+          "opcode": 117,
+          "bytes": 2,
+          "cycles": 4
+        },
+        {
+          "mode": "absolute",
+          "opcode": 109,
+          "bytes": 3,
+          "cycles": 4
+        },
+        {
+          "mode": "absolute,X",
+          "opcode": 125,
+          "bytes": 3,
+          "cycles": 4,
+          "addOneWhenCrossing": true
+        },
+        {
+          "mode": "absolute,Y",
+          "opcode": 121,
+          "bytes": 3,
+          "cycles": 4,
+          "addOneWhenCrossing": true
+        },
+        {
+          "mode": "(indirect,X)",
+          "opcode": 97,
+          "bytes": 2,
+          "cycles": 6
+        },
+        {
+          "mode": "(indirect),Y",
+          "opcode": 113,
+          "bytes": 2,
+          "cycles": 5,
+          "addOneWhenCrossing": true
+        }
+      ]
+    },
+    "AND": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "immediate",
+          "opcode": 41,
+          "bytes": 2,
+          "cycles": 2
+        },
+        {
+          "mode": "zero page",
+          "opcode": 37,
+          "bytes": 2,
+          "cycles": 3
+        },
+        {
+          "mode": "zero page,X",
+          "opcode": 53,
+          "bytes": 2,
+          "cycles": 4
+        },
+        {
+          "mode": "absolute",
+          "opcode": 45,
+          "bytes": 3,
+          "cycles": 4
+        },
+        {
+          "mode": "absolute,X",
+          "opcode": 61,
+          "bytes": 3,
+          "cycles": 4,
+          "addOneWhenCrossing": true
+        },
+        {
+          "mode": "absolute,Y",
+          "opcode": 57,
+          "bytes": 3,
+          "cycles": 4,
+          "addOneWhenCrossing": true
+        },
+        {
+          "mode": "(indirect,X)",
+          "opcode": 33,
+          "bytes": 2,
+          "cycles": 6
+        },
+        {
+          "mode": "(indirect),Y",
+          "opcode": 49,
+          "bytes": 2,
+          "cycles": 5
+        }
+      ]
+    },
+    "ASL": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "changes",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "accumulator",
+          "opcode": 10,
+          "bytes": 1,
+          "cycles": 2
+        },
+        {
+          "mode": "zero page",
+          "opcode": 6,
+          "bytes": 2,
+          "cycles": 5
+        },
+        {
+          "mode": "zero page,X",
+          "opcode": 22,
+          "bytes": 2,
+          "cycles": 6
+        },
+        {
+          "mode": "absolute",
+          "opcode": 14,
+          "bytes": 3,
+          "cycles": 6
+        },
+        {
+          "mode": "absolute,X",
+          "opcode": 30,
+          "bytes": 3,
+          "cycles": 7
+        }
+      ]
+    },
+    "BCC": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "relative",
+          "opcode": 144,
+          "bytes": 2,
+          "cycles": 2,
+          "addOneWhenCrossing": true
+        }
+      ]
+    },
+    "BCS": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "relative",
+          "opcode": 176,
+          "bytes": 2,
+          "cycles": 2,
+          "addOneWhenCrossing": true
+        }
+      ]
+    },
+    "BEQ": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "relative",
+          "opcode": 240,
+          "bytes": 2,
+          "cycles": 2,
+          "addOneWhenCrossing": true
+        }
+      ]
+    },
+    "BIT": {
+      "flags": {
+        "N": "bit 7 of memory",
+        "Z": "changes",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "bit 6 of memory"
+      },
+      "modes": [
+        {
+          "mode": "zero page",
+          "opcode": 36,
+          "bytes": 2,
+          "cycles": 3
+        },
+        {
+          "mode": "absolute",
+          "opcode": 44,
+          "bytes": 3,
+          "cycles": 4
+        }
+      ]
+    },
+    "BMI": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "relative",
+          "opcode": 48,
+          "bytes": 2,
+          "cycles": 2,
+          "addOneWhenCrossing": true
+        }
+      ]
+    },
+    "BNE": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "relative",
+          "opcode": 208,
+          "bytes": 2,
+          "cycles": 2,
+          "addOneWhenCrossing": true
+        }
+      ]
+    },
+    "BPL": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "relative",
+          "opcode": 16,
+          "bytes": 2,
+          "cycles": 2,
+          "addOneWhenCrossing": true
+        }
+      ]
+    },
+    "BRK": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "1",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 0,
+          "bytes": 1,
+          "cycles": 7
+        }
+      ]
+    },
+    "BVC": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "relative",
+          "opcode": 80,
+          "bytes": 2,
+          "cycles": 2,
+          "addOneWhenCrossing": true
+        }
+      ]
+    },
+    "BVS": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "relative",
+          "opcode": 112,
+          "bytes": 2,
+          "cycles": 2,
+          "addOneWhenCrossing": true
+        }
+      ]
+    },
+    "CLC": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "0",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 24,
+          "bytes": 1,
+          "cycles": 2
+        }
+      ]
+    },
+    "CLD": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "0",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 216,
+          "bytes": 1,
+          "cycles": 2
+        }
+      ]
+    },
+    "CLI": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "0",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 88,
+          "bytes": 1,
+          "cycles": 2
+        }
+      ]
+    },
+    "CLV": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "0"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 184,
+          "bytes": 1,
+          "cycles": 2
+        }
+      ]
+    },
+    "CMP": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "changes",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "immediate",
+          "opcode": 201,
+          "bytes": 2,
+          "cycles": 2
+        },
+        {
+          "mode": "zero page",
+          "opcode": 197,
+          "bytes": 2,
+          "cycles": 3
+        },
+        {
+          "mode": "zero page,X",
+          "opcode": 213,
+          "bytes": 2,
+          "cycles": 4
+        },
+        {
+          "mode": "absolute",
+          "opcode": 205,
+          "bytes": 3,
+          "cycles": 4
+        },
+        {
+          "mode": "absolute,X",
+          "opcode": 221,
+          "bytes": 3,
+          "cycles": 4,
+          "addOneWhenCrossing": true
+        },
+        {
+          "mode": "absolute,Y",
+          "opcode": 217,
+          "bytes": 3,
+          "cycles": 4,
+          "addOneWhenCrossing": true
+        },
+        {
+          "mode": "(indirect,X)",
+          "opcode": 193,
+          "bytes": 2,
+          "cycles": 6
+        },
+        {
+          "mode": "(indirect),Y",
+          "opcode": 209,
+          "bytes": 2,
+          "cycles": 5,
+          "addOneWhenCrossing": true
+        }
+      ]
+    },
+    "CPX": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "changes",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "immediate",
+          "opcode": 224,
+          "bytes": 2,
+          "cycles": 2
+        },
+        {
+          "mode": "zero page",
+          "opcode": 228,
+          "bytes": 2,
+          "cycles": 3
+        },
+        {
+          "mode": "absolute",
+          "opcode": 236,
+          "bytes": 3,
+          "cycles": 4
+        }
+      ]
+    },
+    "CPY": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "changes",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "immediate",
+          "opcode": 192,
+          "bytes": 2,
+          "cycles": 2
+        },
+        {
+          "mode": "zero page",
+          "opcode": 196,
+          "bytes": 2,
+          "cycles": 3
+        },
+        {
+          "mode": "absolute",
+          "opcode": 204,
+          "bytes": 3,
+          "cycles": 4
+        }
+      ]
+    },
+    "DEC": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "zero page",
+          "opcode": 198,
+          "bytes": 2,
+          "cycles": 5
+        },
+        {
+          "mode": "zero page,X",
+          "opcode": 214,
+          "bytes": 2,
+          "cycles": 6
+        },
+        {
+          "mode": "absolute",
+          "opcode": 206,
+          "bytes": 3,
+          "cycles": 6
+        },
+        {
+          "mode": "absolute,X",
+          "opcode": 222,
+          "bytes": 3,
+          "cycles": 7
+        }
+      ]
+    },
+    "DEX": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 202,
+          "bytes": 1,
+          "cycles": 2
+        }
+      ]
+    },
+    "DEY": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 136,
+          "bytes": 1,
+          "cycles": 2
+        }
+      ]
+    },
+    "EOR": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "immediate",
+          "opcode": 73,
+          "bytes": 2,
+          "cycles": 2
+        },
+        {
+          "mode": "zero page",
+          "opcode": 69,
+          "bytes": 2,
+          "cycles": 3
+        },
+        {
+          "mode": "zero page,X",
+          "opcode": 85,
+          "bytes": 2,
+          "cycles": 4
+        },
+        {
+          "mode": "absolute",
+          "opcode": 77,
+          "bytes": 3,
+          "cycles": 4
+        },
+        {
+          "mode": "absolute,X",
+          "opcode": 93,
+          "bytes": 3,
+          "cycles": 4,
+          "addOneWhenCrossing": true
+        },
+        {
+          "mode": "absolute,Y",
+          "opcode": 89,
+          "bytes": 3,
+          "cycles": 4,
+          "addOneWhenCrossing": true
+        },
+        {
+          "mode": "(indirect,X)",
+          "opcode": 65,
+          "bytes": 2,
+          "cycles": 6
+        },
+        {
+          "mode": "(indirect),Y",
+          "opcode": 81,
+          "bytes": 2,
+          "cycles": 5,
+          "addOneWhenCrossing": true
+        }
+      ]
+    },
+    "INC": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "zero page",
+          "opcode": 230,
+          "bytes": 2,
+          "cycles": 5
+        },
+        {
+          "mode": "zero page,X",
+          "opcode": 246,
+          "bytes": 2,
+          "cycles": 6
+        },
+        {
+          "mode": "absolute",
+          "opcode": 238,
+          "bytes": 3,
+          "cycles": 6
+        },
+        {
+          "mode": "absolute,X",
+          "opcode": 254,
+          "bytes": 3,
+          "cycles": 7
+        }
+      ]
+    },
+    "INX": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 232,
+          "bytes": 1,
+          "cycles": 2
+        }
+      ]
+    },
+    "INY": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 200,
+          "bytes": 1,
+          "cycles": 2
+        }
+      ]
+    },
+    "JMP": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "absolute",
+          "opcode": 76,
+          "bytes": 3,
+          "cycles": 3
+        },
+        {
+          "mode": "indirect",
+          "opcode": 108,
+          "bytes": 3,
+          "cycles": 5
+        }
+      ]
+    },
+    "JSR": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "absolute",
+          "opcode": 32,
+          "bytes": 3,
+          "cycles": 6
+        }
+      ]
+    },
+    "LDA": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "immediate",
+          "opcode": 169,
+          "bytes": 2,
+          "cycles": 2
+        },
+        {
+          "mode": "zero page",
+          "opcode": 165,
+          "bytes": 2,
+          "cycles": 3
+        },
+        {
+          "mode": "zero page,X",
+          "opcode": 181,
+          "bytes": 2,
+          "cycles": 4
+        },
+        {
+          "mode": "absolute",
+          "opcode": 173,
+          "bytes": 3,
+          "cycles": 4
+        },
+        {
+          "mode": "absolute,X",
+          "opcode": 189,
+          "bytes": 3,
+          "cycles": 4,
+          "addOneWhenCrossing": true
+        },
+        {
+          "mode": "absolute,Y",
+          "opcode": 185,
+          "bytes": 3,
+          "cycles": 4,
+          "addOneWhenCrossing": true
+        },
+        {
+          "mode": "(indirect,X)",
+          "opcode": 161,
+          "bytes": 2,
+          "cycles": 6
+        },
+        {
+          "mode": "(indirect),Y",
+          "opcode": 177,
+          "bytes": 2,
+          "cycles": 5,
+          "addOneWhenCrossing": true
+        }
+      ]
+    },
+    "LDX": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "immediate",
+          "opcode": 162,
+          "bytes": 2,
+          "cycles": 2
+        },
+        {
+          "mode": "zero page",
+          "opcode": 166,
+          "bytes": 2,
+          "cycles": 3
+        },
+        {
+          "mode": "zero page,Y",
+          "opcode": 182,
+          "bytes": 2,
+          "cycles": 4
+        },
+        {
+          "mode": "absolute",
+          "opcode": 174,
+          "bytes": 3,
+          "cycles": 4
+        },
+        {
+          "mode": "absolute,Y",
+          "opcode": 190,
+          "bytes": 3,
+          "cycles": 4,
+          "addOneWhenCrossing": true
+        }
+      ]
+    },
+    "LDY": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "immediate",
+          "opcode": 160,
+          "bytes": 2,
+          "cycles": 2
+        },
+        {
+          "mode": "zero page",
+          "opcode": 164,
+          "bytes": 2,
+          "cycles": 3
+        },
+        {
+          "mode": "zero page,X",
+          "opcode": 180,
+          "bytes": 2,
+          "cycles": 4
+        },
+        {
+          "mode": "absolute",
+          "opcode": 172,
+          "bytes": 3,
+          "cycles": 4
+        },
+        {
+          "mode": "absolute,X",
+          "opcode": 188,
+          "bytes": 3,
+          "cycles": 4,
+          "addOneWhenCrossing": true
+        }
+      ]
+    },
+    "LSR": {
+      "flags": {
+        "N": "0",
+        "Z": "changes",
+        "C": "changes",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "accumulator",
+          "opcode": 74,
+          "bytes": 1,
+          "cycles": 2
+        },
+        {
+          "mode": "zero page",
+          "opcode": 70,
+          "bytes": 2,
+          "cycles": 5
+        },
+        {
+          "mode": "zero page,X",
+          "opcode": 86,
+          "bytes": 2,
+          "cycles": 6
+        },
+        {
+          "mode": "absolute",
+          "opcode": 78,
+          "bytes": 3,
+          "cycles": 6
+        },
+        {
+          "mode": "absolute,X",
+          "opcode": 94,
+          "bytes": 3,
+          "cycles": 7
+        }
+      ]
+    },
+    "NOP": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 234,
+          "bytes": 1,
+          "cycles": 2
+        }
+      ]
+    },
+    "ORA": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "immediate",
+          "opcode": 9,
+          "bytes": 2,
+          "cycles": 2
+        },
+        {
+          "mode": "zero page",
+          "opcode": 5,
+          "bytes": 2,
+          "cycles": 3
+        },
+        {
+          "mode": "zero page,X",
+          "opcode": 21,
+          "bytes": 2,
+          "cycles": 4
+        },
+        {
+          "mode": "absolute",
+          "opcode": 13,
+          "bytes": 3,
+          "cycles": 4
+        },
+        {
+          "mode": "absolute,X",
+          "opcode": 29,
+          "bytes": 3,
+          "cycles": 4,
+          "addOneWhenCrossing": true
+        },
+        {
+          "mode": "absolute,Y",
+          "opcode": 25,
+          "bytes": 3,
+          "cycles": 4,
+          "addOneWhenCrossing": true
+        },
+        {
+          "mode": "(indirect,X)",
+          "opcode": 1,
+          "bytes": 2,
+          "cycles": 6
+        },
+        {
+          "mode": "(indirect),Y",
+          "opcode": 17,
+          "bytes": 2,
+          "cycles": 5
+        }
+      ]
+    },
+    "PHA": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 72,
+          "bytes": 1,
+          "cycles": 3
+        }
+      ]
+    },
+    "PHP": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 8,
+          "bytes": 1,
+          "cycles": 3
+        }
+      ]
+    },
+    "PLA": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 104,
+          "bytes": 1,
+          "cycles": 4
+        }
+      ]
+    },
+    "PLP": {
+      "flags": {
+        "N": "from stack",
+        "Z": "from stack",
+        "C": "from stack",
+        "I": "from stack",
+        "D": "from stack",
+        "V": "from stack"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 40,
+          "bytes": 1,
+          "cycles": 4
+        }
+      ]
+    },
+    "ROL": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "changes",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "accumulator",
+          "opcode": 42,
+          "bytes": 1,
+          "cycles": 2
+        },
+        {
+          "mode": "zero page",
+          "opcode": 38,
+          "bytes": 2,
+          "cycles": 5
+        },
+        {
+          "mode": "zero page,X",
+          "opcode": 54,
+          "bytes": 2,
+          "cycles": 6
+        },
+        {
+          "mode": "absolute",
+          "opcode": 46,
+          "bytes": 3,
+          "cycles": 6
+        },
+        {
+          "mode": "absolute,X",
+          "opcode": 62,
+          "bytes": 3,
+          "cycles": 7
+        }
+      ]
+    },
+    "ROR": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "changes",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "accumulator",
+          "opcode": 106,
+          "bytes": 1,
+          "cycles": 2
+        },
+        {
+          "mode": "zero page",
+          "opcode": 102,
+          "bytes": 2,
+          "cycles": 5
+        },
+        {
+          "mode": "zero page,X",
+          "opcode": 118,
+          "bytes": 2,
+          "cycles": 6
+        },
+        {
+          "mode": "absolute",
+          "opcode": 110,
+          "bytes": 3,
+          "cycles": 6
+        },
+        {
+          "mode": "absolute,X",
+          "opcode": 126,
+          "bytes": 3,
+          "cycles": 7
+        }
+      ]
+    },
+    "RTI": {
+      "flags": {
+        "N": "from stack",
+        "Z": "from stack",
+        "C": "from stack",
+        "I": "from stack",
+        "D": "from stack",
+        "V": "from stack"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 64,
+          "bytes": 1,
+          "cycles": 6
+        }
+      ]
+    },
+    "RTS": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 96,
+          "bytes": 1,
+          "cycles": 6
+        }
+      ]
+    },
+    "SBC": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "changes",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "changes"
+      },
+      "modes": [
+        {
+          "mode": "immediate",
+          "opcode": 233,
+          "bytes": 2,
+          "cycles": 2
+        },
+        {
+          "mode": "zero page",
+          "opcode": 229,
+          "bytes": 2,
+          "cycles": 3
+        },
+        {
+          "mode": "zero page,X",
+          "opcode": 245,
+          "bytes": 2,
+          "cycles": 4
+        },
+        {
+          "mode": "absolute",
+          "opcode": 237,
+          "bytes": 3,
+          "cycles": 4
+        },
+        {
+          "mode": "absolute,X",
+          "opcode": 253,
+          "bytes": 3,
+          "cycles": 4,
+          "addOneWhenCrossing": true
+        },
+        {
+          "mode": "absolute,Y",
+          "opcode": 249,
+          "bytes": 3,
+          "cycles": 4,
+          "addOneWhenCrossing": true
+        },
+        {
+          "mode": "(indirect,X)",
+          "opcode": 225,
+          "bytes": 2,
+          "cycles": 6
+        },
+        {
+          "mode": "(indirect),Y",
+          "opcode": 241,
+          "bytes": 2,
+          "cycles": 5,
+          "addOneWhenCrossing": true
+        }
+      ]
+    },
+    "SEC": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "1",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 56,
+          "bytes": 1,
+          "cycles": 2
+        }
+      ]
+    },
+    "SED": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "1",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 248,
+          "bytes": 1,
+          "cycles": 2
+        }
+      ]
+    },
+    "SEI": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "1",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 120,
+          "bytes": 1,
+          "cycles": 2
+        }
+      ]
+    },
+    "STA": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "zero page",
+          "opcode": 133,
+          "bytes": 2,
+          "cycles": 3
+        },
+        {
+          "mode": "zero page,X",
+          "opcode": 149,
+          "bytes": 2,
+          "cycles": 4
+        },
+        {
+          "mode": "absolute",
+          "opcode": 141,
+          "bytes": 3,
+          "cycles": 4
+        },
+        {
+          "mode": "absolute,X",
+          "opcode": 157,
+          "bytes": 3,
+          "cycles": 5
+        },
+        {
+          "mode": "absolute,Y",
+          "opcode": 153,
+          "bytes": 3,
+          "cycles": 5
+        },
+        {
+          "mode": "(indirect,X)",
+          "opcode": 129,
+          "bytes": 2,
+          "cycles": 6
+        },
+        {
+          "mode": "(indirect),Y",
+          "opcode": 145,
+          "bytes": 2,
+          "cycles": 6
+        }
+      ]
+    },
+    "STX": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "zero page",
+          "opcode": 134,
+          "bytes": 2,
+          "cycles": 3
+        },
+        {
+          "mode": "zero page,Y",
+          "opcode": 150,
+          "bytes": 2,
+          "cycles": 4
+        },
+        {
+          "mode": "absolute",
+          "opcode": 142,
+          "bytes": 3,
+          "cycles": 4
+        }
+      ]
+    },
+    "STY": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "zero page",
+          "opcode": 132,
+          "bytes": 2,
+          "cycles": 3
+        },
+        {
+          "mode": "zero page,X",
+          "opcode": 148,
+          "bytes": 2,
+          "cycles": 4
+        },
+        {
+          "mode": "absolute",
+          "opcode": 140,
+          "bytes": 3,
+          "cycles": 4
+        }
+      ]
+    },
+    "TAX": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 170,
+          "bytes": 1,
+          "cycles": 2
+        }
+      ]
+    },
+    "TAY": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 168,
+          "bytes": 1,
+          "cycles": 2
+        }
+      ]
+    },
+    "TSX": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 186,
+          "bytes": 1,
+          "cycles": 2
+        }
+      ]
+    },
+    "TXA": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 138,
+          "bytes": 1,
+          "cycles": 2
+        }
+      ]
+    },
+    "TXS": {
+      "flags": {
+        "N": "unchanged",
+        "Z": "unchanged",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 154,
+          "bytes": 1,
+          "cycles": 2
+        }
+      ]
+    },
+    "TYA": {
+      "flags": {
+        "N": "changes",
+        "Z": "changes",
+        "C": "unchanged",
+        "I": "unchanged",
+        "D": "unchanged",
+        "V": "unchanged"
+      },
+      "modes": [
+        {
+          "mode": "implied",
+          "opcode": 152,
+          "bytes": 1,
+          "cycles": 2
+        }
+      ]
+    }
+  }
+}
