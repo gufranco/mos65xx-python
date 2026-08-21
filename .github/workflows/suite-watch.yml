@@ -40,9 +40,9 @@ jobs:
       moved: ${{ steps.ask.outputs.moved }}
       any: ${{ steps.ask.outputs.any }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -72,9 +72,9 @@ jobs:
       matrix:
         group: ${{ fromJSON(needs.survey.outputs.moved) }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
