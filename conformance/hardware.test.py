@@ -271,23 +271,13 @@ class HonestyTest(unittest.TestCase):
         self.assertIn("lands above 0001FF rather than wrapping", recorded["note"])
 
     def packages(self) -> list[str]:
-        """The ten the data sheet lists, read from what it is recorded as covering."""
-        manifest = json.loads((ROOT / "docs" / "documents.json").read_text())
-        found = [
-            entry["covers"]
-            for entry in manifest["documents"]
-            if "mos-6500-mpu-nov" in entry["file"]
-        ]
-
-        return [str(name) for name in found[0]]
+        """The ten the data sheet lists."""
+        return [str(name) for name in fact("nmosFamilyPackages")["packages"]]
 
     def test_the_second_source_names_all_but_one_of_them(self) -> None:
-        manifest = json.loads((ROOT / "docs" / "documents.json").read_text())
-        synertek = [
-            entry["covers"] for entry in manifest["documents"] if "synertek-sy6500" in entry["file"]
-        ]
+        synertek = fact("nmosFamilyPackages")["alsoNamedBySynertek"]
 
-        self.assertEqual(set(self.packages()) - set(synertek[0]), {"6507"})
+        self.assertEqual(set(self.packages()) - set(synertek), {"6507"})
 
     def test_and_the_record_says_which_one_and_why_that_is_unsurprising(self) -> None:
         self.assertIn("made for a single customer", fact("nmosFamilyPackages")["secondSource"])

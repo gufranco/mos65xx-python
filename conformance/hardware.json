@@ -305,7 +305,19 @@
         "interruptPins": "Both on the 6502, 6503, 6512 and 6513. The request line alone on the 6504, 6505, 6506, 6514 and 6515. Neither on the 6507.",
         "whatHappensWhenOneIsMissing": "Pulling it raises, because a line the package does not bring out is not a line a system can assert"
       },
-      "secondSource": "Synertek's SY6500 data sheet names the same family in the same two groups by clock and has no 6507 in it. Nine of the ten are attested by two publishers; the 6507 is attested by one, which is consistent with it being the part MOS made for a single customer."
+      "secondSource": "Synertek's SY6500 data sheet names the same family in the same two groups by clock and has no 6507 in it. Nine of the ten are attested by two publishers; the 6507 is attested by one, which is consistent with it being the part MOS made for a single customer.",
+      "packages": ["6502", "6503", "6504", "6505", "6506", "6507", "6512", "6513", "6514", "6515"],
+      "alsoNamedBySynertek": [
+        "6502",
+        "6503",
+        "6504",
+        "6505",
+        "6506",
+        "6512",
+        "6513",
+        "6514",
+        "6515"
+      ]
     }
   }
 }
