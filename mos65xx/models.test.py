@@ -281,6 +281,18 @@ class PinTest(unittest.TestCase):
 
         self.assertEqual(without, ["6507"])
 
+    def test_a_built_part_reports_the_pins_its_package_has(self) -> None:
+        found = {name: self.part(name).package_pins for name in ("6502", "6507", "65816")}
+
+        self.assertEqual(
+            found,
+            {
+                "6502": ("irq", "nmi", "rdy"),
+                "6507": ("rdy",),
+                "65816": ("irq", "nmi", "rdy"),
+            },
+        )
+
     def test_every_part_the_suites_cover_brings_out_all_three(self) -> None:
         covered = ("6502", "2a03", "65c02", "r65c02", "w65c02", "65816")
         found = {models.describe(name).pins for name in covered}

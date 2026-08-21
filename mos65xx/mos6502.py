@@ -672,8 +672,7 @@ class Cpu:
         """Refuse a line this part does not bring out of its package."""
         if pin not in self.package_pins:
             raise NoSuchPin(
-                f"the {self.model} has no {pin} pin; it brings out "
-                f"{', '.join(self.package_pins) or 'none of them'}"
+                f"the {self.model} has no {pin} pin; it brings out {', '.join(self.package_pins)}"
             )
 
     def irq(self) -> bool:
