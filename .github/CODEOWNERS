@@ -1,0 +1,14 @@
+# Every path, one owner. The repository has a single maintainer, so this file
+# exists to make review required rather than to route it: without an owner,
+# GitHub's branch protection has nobody to ask.
+*       @gufranco
+
+# The three files that decide what everything else is checked against. A change
+# to any of them changes what "correct" means for the whole package.
+/conformance/hardware.json      @gufranco
+/conformance/divergences.json   @gufranco
+/conformance/suites.json        @gufranco
+
+# What decides whether an upstream move is noticed at all. This watched one of
+# two repositories for as long as it existed.
+/conformance/watch.py           @gufranco
