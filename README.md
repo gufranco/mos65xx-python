@@ -285,6 +285,30 @@ the page-crossing cycle, while the six other Group One instructions carry it and
 while these same two carry it on their absolute indexed rows one line above. The
 part takes the cycle on all eight.
 
+### The opcodes the CMOS parts reserved
+
+The NMOS parts leave forty-four opcodes undefined, and some of them stop the
+part until it is reset, so nothing can be asserted about them. The CMOS parts
+turned every one into a no-operation of a stated length, and the W65C02S data
+sheet prints that length and timing for each. That is in
+[`conformance/cmos-reserved.json`](conformance/cmos-reserved.json) and checked
+by
+[`conformance/cmos_reserved.test.py`](conformance/cmos_reserved.test.py).
+
+The cell that carries the list has its own columns break part way down, so the
+reading is settled by arithmetic rather than by layout: the six groups come to
+forty-four opcodes, the same data sheet says the part has two hundred and
+twelve, and the opcode matrix on an earlier page leaves exactly forty-four
+blank. Three counts in one document agreeing is what fixes it.
+
+Forty-three of the forty-four hold. The exception is `5C`, where the data sheet
+says eight cycles and thirty thousand recorded cases across three parts all say
+four. The data sheet gives a count and no addresses, so following it would mean
+inventing four bus cycles nobody has written down. The four this project takes
+are the ones the recordings show, and the disagreement is in
+[`conformance/divergences.json`](conformance/divergences.json) with the one
+measurement that would close it.
+
 ## Conformance
 
 ```bash
@@ -353,6 +377,7 @@ conformance/
   hardware.json       what the datasheets print, fact by fact, with the sentence
   addressing-cycles.json  every cycle of every NMOS addressing mode, as printed
   instruction-set.json    every documented opcode, its length, timing and flags
+  cmos-reserved.json      the 44 opcodes the CMOS parts left as no-operations
   divergences.json    where a document and the recorded cycles part, and why
 ```
 

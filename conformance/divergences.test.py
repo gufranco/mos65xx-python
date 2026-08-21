@@ -136,6 +136,11 @@ class AppendixBusTest(unittest.TestCase):
 
         self.assertIn("absolute indexed rows", recorded["andAlsoSays"]["why"])
 
+    def test_the_disputed_reserved_opcode_says_a_count_is_not_a_bus_trace(self) -> None:
+        recorded = about("cycles the reserved opcode 5C")
+
+        self.assertIn("a count alone is not a bus trace", recorded["whatWouldSettleIt"])
+
 
 class DataBankOnInterruptTest(unittest.TestCase):
     """The first divergence, driven: does a software interrupt clear the bank."""

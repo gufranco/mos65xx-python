@@ -1,0 +1,56 @@
+{
+  "note": "The forty-four opcodes the W65C02S leaves reserved, with the length and timing its data sheet gives each one. The NMOS parts leave these undefined and some of them hang the part until reset; the CMOS parts turned every one into a no-operation of a stated length, which makes them checkable in a way the NMOS undocumented opcodes are not.",
+  "document": "manufacturer/w65c02s.pdf",
+  "section": "Table 7-1 Microprocessor Operational Enhancements, the Execution of invalid OpCodes row",
+  "printedPage": 30,
+  "pdfPage": 30,
+  "readOn": "2026-08-21",
+  "quote": "All are NOP's (reserved for future use).",
+  "howTheListWasRead": "The cell's own columns break part way down, so C2 and E2 sit on lines of their own with their two and two below the gap. The reading is settled by arithmetic rather than by layout: the six groups come to forty-four opcodes, and the same data sheet says the part has two hundred and twelve, which is what two hundred and fifty-six less forty-four leaves. Table 5-2, the opcode matrix, leaves exactly these forty-four blank.",
+  "crossCheck": {
+    "matrixBlanks": 44,
+    "statedOpcodes": 212,
+    "why": "Two independent counts in the same document agreeing is what fixes the reading."
+  },
+  "groups": [
+    {
+      "opcodes": [2, 34, 66, 98, 130, 194, 226],
+      "printed": "02,22,42,62,82 C2, E2",
+      "bytes": 2,
+      "cycles": 2
+    },
+    {
+      "opcodes": [
+        3, 19, 35, 51, 67, 83, 99, 115, 131, 147, 163, 179, 195, 211, 227, 243, 11, 27, 43, 59, 75,
+        91, 107, 123, 139, 155, 171, 187, 235, 251
+      ],
+      "printed": "X3,0B-BB,EB,FB",
+      "bytes": 1,
+      "cycles": 1
+    },
+    {
+      "opcodes": [68],
+      "printed": "44",
+      "bytes": 2,
+      "cycles": 3
+    },
+    {
+      "opcodes": [84, 212, 244],
+      "printed": "54,D4,F4",
+      "bytes": 2,
+      "cycles": 4
+    },
+    {
+      "opcodes": [92],
+      "printed": "5C",
+      "bytes": 3,
+      "cycles": 8
+    },
+    {
+      "opcodes": [220, 252],
+      "printed": "DC,FC",
+      "bytes": 3,
+      "cycles": 4
+    }
+  ]
+}

@@ -220,6 +220,20 @@
       "whatThisProjectDoes": "Takes the extra cycle on all eight, because the addressing mode is the same one and the cycle comes from re-reading at the corrected address rather than from the operation.",
       "whatWouldSettleIt": "Nothing outstanding. The two instructions share their addressing hardware with six that are printed correctly, and the same appendix marks their absolute indexed rows.",
       "whyItMatters": "A timing budget built by adding up the printed counts comes out one cycle short every time one of these two crosses a page, which on a machine whose video timing is counted in cycles is the difference between a stable picture and a torn one."
+    },
+    {
+      "subject": "how many cycles the reserved opcode 5C spends on a CMOS part",
+      "documentSays": {
+        "document": "W65C02S Data Sheet, Table 7-1, the Execution of invalid OpCodes row",
+        "quote": "All are NOP's (reserved for future use). OpCode 5C, Bytes 3, Cycles 8."
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests 65x02, the wdc65c02, synertek65c02 and rockwell65c02 sets",
+        "measured": "Ten thousand cases per part, thirty thousand in all, and every one of them is four cycles: the opcode, the two operand bytes, and the second operand byte read again. No case anywhere in the three sets shows eight."
+      },
+      "whatThisProjectDoes": "Takes four, because that is the only shape any source states. The data sheet gives a count and no addresses, so following it would mean inventing four bus cycles nobody has written down, and inventing them is worse than recording that they are unknown. The other forty-three reserved opcodes match the same table exactly, which is why this one is treated as a single open question rather than as a reason to distrust the row.",
+      "whatWouldSettleIt": "A logic analyser on a real W65C02S executing 5C, which would give both the count and the four addresses the data sheet does not print. Nothing short of that can be implemented, because a count alone is not a bus trace.",
+      "whyItMatters": "Four cycles of difference on an opcode no program deliberately executes matters only where a program runs off into unwritten memory, which is a crash either way. It is recorded because it is the one place in the reserved-opcode row where the part and the page disagree, and because a reader who trusts the row deserves to know which entry to check."
     }
   ]
 }
