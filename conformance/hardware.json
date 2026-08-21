@@ -42,6 +42,24 @@
       "readOn": "2026-08-21",
       "pinnedIn": "docs/documents.json, manufacturer/rockwell-r65c00-microprocessors.pdf",
       "covers": "Rockwell's own CMOS part, which the suite records separately because it is not the same as Synertek's or WDC's."
+    },
+    "wdc816_1994": {
+      "publisher": "The Western Design Center, Inc.",
+      "title": "W65C816S 8/16-bit Microprocessor Data Sheet",
+      "revision": "July 1994",
+      "readOn": "2026-08-21",
+      "readVia": "docs/manufacturer/wdc-w65c816s-jul-1994.pdf, 72 pages",
+      "covers": "The same part, eleven years earlier. Its prose sections match the 2004 revision word for word except in one sentence, where it names two addressing modes the later revision dropped. Its own caveats table is a scan with no text layer.",
+      "pinnedIn": "docs/documents.json, manufacturer/wdc-w65c816s-jul-1994.pdf"
+    },
+    "wdc816_2024": {
+      "publisher": "The Western Design Center, Inc.",
+      "title": "W65C816S 8/16-bit Microprocessor Data Sheet",
+      "revision": "March 13, 2024",
+      "readOn": "2026-08-21",
+      "readVia": "docs/manufacturer/w65c816s-2024.pdf, 55 pages",
+      "covers": "The current revision. Its caveats table carries the same values as the 2004 one, renumbered from Table 8-1 to Table 7-1, which is what makes those claims safe to cite without pinning a revision.",
+      "pinnedIn": "docs/documents.json, manufacturer/w65c816s-2024.pdf"
     }
   },
   "facts": {
@@ -254,6 +272,19 @@
       "section": "Table 7-1 of the W65C02S data sheet",
       "quote": "Interrupt after fetch of BRK instruction: NMOS 6502, interrupt vector is loaded, BRK vector is ignored; W65C02S, BRK is executed, and then interrupt is executed.",
       "notModelled": "Neither behaviour. A pin taken in the middle of an instruction needs a core that can stop part way through one, and this one runs an instruction to completion before it will take an interrupt. Recorded because it is a real difference between the parts and this project does not have it."
+    },
+    "stackRangeInEmulationAsFirstPrinted": {
+      "document": "wdc816_1994",
+      "section": "8.1",
+      "quote": "In the Emulation mode, the Stack address range is 000100 to 0001FF. The following opcodes and addressing modes will increment or decrement beyond this range when accessing two or three bytes: JSL; JSR(a,x); PEA, PEI, PER, PHD, PLD, RTL; d, s; (d,s), y",
+      "note": "Two entries longer than the same sentence in the 2004 and 2024 revisions, which stop after RTL. The two that were dropped are the stack relative addressing modes, and they belong there: with the stack pointer near the top of page one, a stack relative read lands above 0001FF rather than wrapping. The sentence promises the same thing in all three revisions and only the earliest one lists everything it applies to, so the earliest is the one this project follows.",
+      "whyTheLaterListIsTheIncompleteOne": "The note on the shorter list reasons that it names exactly what the part added. That reasoning argues for the longer list: stack relative addressing is also something the part added, and it is only absent from the sentence, never from the part."
+    },
+    "caveatsTableIsStableAcrossRevisions": {
+      "document": "wdc816_2024",
+      "section": "Table 7-1 Caveats, which the 2004 revision numbers Table 8-1",
+      "quote": "A.ABS,X,ASL,LSR,ROL with no Page Crossing: 7 cycles, 6 cycles, 6 cycles, 7 cycles.",
+      "note": "Every cell of the comparison table is the same in the 2004 and 2024 revisions, twenty years apart. Only the section number moved. A claim taken from that table therefore does not depend on which revision a reader happens to hold, which is worth knowing because three revisions of this data sheet are pinned here."
     }
   }
 }

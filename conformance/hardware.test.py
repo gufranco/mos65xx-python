@@ -245,6 +245,36 @@ class HonestyTest(unittest.TestCase):
     def test_the_pin_this_project_does_not_drive_says_so(self) -> None:
         self.assertIn("Nothing in this project drives it", fact("memoryLock")["note"])
 
+    def test_the_earliest_revision_names_two_modes_the_later_ones_drop(self) -> None:
+        early = fact("stackRangeInEmulationAsFirstPrinted")["quote"]
+        late = fact("stackRangeInEmulation")["quote"]
+
+        self.assertEqual(("d, s" in early, "d, s" in late), (True, False))
+
+    def test_a_stack_relative_read_leaves_the_emulation_stack_range(self) -> None:
+        memory = Memory(0x1000000, fill=0)
+        memory.write8(0x000200, 0xA3)
+        memory.write8(0x000201, 0xFF)
+        cpu = wdc65816.Cpu(memory, reset=False)
+        cpu.pc, cpu.pb, cpu.db, cpu.d = 0x0200, 0, 0, 0
+        cpu.emulation = True
+        cpu.s = 0x01FF
+        cpu.trace = []
+
+        cpu.step()
+
+        self.assertEqual(cpu.trace[-1][0], 0x0002FE)
+
+    def test_which_is_what_the_earliest_revision_says_and_the_later_ones_omit(self) -> None:
+        recorded = fact("stackRangeInEmulationAsFirstPrinted")
+
+        self.assertIn("lands above 0001FF rather than wrapping", recorded["note"])
+
+    def test_the_comparison_table_is_the_same_in_both_revisions_that_carry_it(self) -> None:
+        recorded = fact("caveatsTableIsStableAcrossRevisions")
+
+        self.assertIn("Only the section number moved", recorded["note"])
+
     def test_the_two_places_the_document_contradicts_itself_are_both_recorded(self) -> None:
         self.assertIn("contradictedBy", fact("indirectJumpBanks"))
         self.assertIn("whyItIsAnErratum", fact("vectors")["erratumInTable6_3"])

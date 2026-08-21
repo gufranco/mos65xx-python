@@ -331,6 +331,26 @@ sixteen bit part together on the other. That holds for the shift of an indexed
 absolute, for the indirect jump, for the extra cycle decimal arithmetic costs,
 and for which address the discarded cycle of an indexed access lands on.
 
+### Three revisions of one data sheet, and what changed between them
+
+Three revisions of the W65C816S data sheet are pinned here, from 1994, 2004 and
+2024. Reading all three answers a question a single revision cannot: which
+claims are stable and which are an artefact of the copy someone happened to
+download.
+
+The comparison table is stable. Every cell of it is identical in 2004 and 2024,
+twenty years apart, with only the section number moving from 8-1 to 7-1. A claim
+taken from that table does not need a revision pinned beside it.
+
+One sentence is not stable, and it lost information rather than gaining it. The
+1994 revision lists the addressing modes that run past the emulation stack range
+as `JSL; JSR(a,x); PEA, PEI, PER, PHD, PLD, RTL; d, s; (d,s), y`. The 2004 and
+2024 revisions stop after `RTL`. The two that were dropped are the stack
+relative modes, and they belong in the list: with the stack pointer at `01FF`, a
+stack relative read lands at `0002FE` rather than wrapping, which the recorded
+cycles confirm and this project reproduces. The earliest revision is the one
+that describes the part.
+
 ## Conformance
 
 ```bash
