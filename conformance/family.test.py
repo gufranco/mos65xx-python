@@ -194,9 +194,16 @@ class ClaimedCountTest(unittest.TestCase):
     """
 
     def counted(self) -> int:
+        """Every test in the directories the pipeline runs, and nowhere else.
+
+        Scoped rather than swept for a reason. `docs/` is not in the repository,
+        so a sweep of the whole tree counts files a fresh checkout does not have
+        and the number disagrees with itself depending on which machine asks.
+        """
         return sum(
             len(re.findall(r"^\s+def test_", found.read_text(), re.M))
-            for found in sorted(ROOT.glob("**/*.test.py"))
+            for directory in ("mos65xx", "conformance")
+            for found in sorted((ROOT / directory).glob("**/*.test.py"))
         )
 
     def test_the_readme_advertises_the_number_of_tests_there_are(self) -> None:
