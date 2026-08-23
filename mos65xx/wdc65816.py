@@ -1462,11 +1462,18 @@ class Cpu:
         The pin inhibits every register change the aborted instruction would have
         made and then vectors with that instruction's own address as the return
         address, so the handler can repair whatever the bus could not reach and
-        run it again. Inhibiting the changes needs a core that can be stopped
-        part way through an instruction, which this is not: it finishes the
-        instruction and then takes the interrupt. So this is the interrupt
-        sequence without the rollback, and a caller that needs the rollback
-        cannot get it here.
+        run it again. This is that sequence without the rollback, and a caller
+        who needs the rollback cannot get it here.
+
+        What stands in the way is no longer suspension. `Clock` stops the part
+        between any two cycles, so the moment an abort would be latched is now
+        reachable from outside. What is missing is the other half: an instruction
+        that has begun cannot be abandoned, because the changes it has already
+        made are in the registers rather than in a place a rollback could undo.
+        Closing it means either the core checking the pin at each cycle and
+        unwinding, or an instruction holding its writes until it commits, and
+        neither is something to add without a recording of a real abort to hold
+        it to.
         """
         return self.interrupt("abort")
 
