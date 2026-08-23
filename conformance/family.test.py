@@ -179,5 +179,33 @@ class DocumentedModelTest(unittest.TestCase):
         self.assertEqual(unnamed, [])
 
 
+class ClaimedCountTest(unittest.TestCase):
+    """That the number of tests the readme advertises is the number there are.
+
+    It went stale four times before this existed, every time by somebody adding
+    tests and not thinking about a badge line. A count in prose is a claim about
+    the repository, and a claim nothing checks is one that drifts silently until
+    a reader believes something false.
+
+    Counted from the source rather than by running the suites, because a test
+    that runs every other test to check a number would cost minutes to answer a
+    question worth milliseconds. The two agree: `unittest` reports one test per
+    `def test_`, and nothing here generates cases at runtime.
+    """
+
+    def counted(self) -> int:
+        return sum(
+            len(re.findall(r"^\s+def test_", found.read_text(), re.M))
+            for found in sorted(ROOT.glob("**/*.test.py"))
+        )
+
+    def test_the_readme_advertises_the_number_of_tests_there_are(self) -> None:
+        readme = (ROOT / "README.md").read_text()
+        claimed = re.search(r"\*\*([\d,]+)\*\* tests", readme)
+
+        assert claimed is not None
+        self.assertEqual(int(claimed.group(1).replace(",", "")), self.counted())
+
+
 if __name__ == "__main__":
     unittest.main()
