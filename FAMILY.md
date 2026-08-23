@@ -64,12 +64,18 @@ A caller moving between the two should not have to relearn anything the hardware
 does not force.
 
 ```python
-cpu = Cpu("z80")  # or Cpu("6502"), Cpu("w65c02"), Cpu("65816")
-cpu = Cpu("6502", memory)  # memory is optional; without one the part gets its own
-cpu.step()
+cpu = Cpu("z80")            # or Cpu("6502"), Cpu("w65c02"), Cpu("65816")
+cpu = Cpu("6502", memory)   # memory is optional; without one the part gets its own
+
+cpu.step()                  # one instruction, returns the cycles it cost
+cpu.run_for(cycles)         # a budget of cycles, returns what was actually spent
+cpu.run_until(check, limit) # steps while check(cpu) is false; limit raises RunLimit
 cpu.reset()
 cpu.irq()
 cpu.nmi()
+
+cpu.cycles                  # cycles since construction, across resets
+cpu.steps                   # instructions since the last reset
 
 decode(data)
 disassemble(data)
@@ -77,7 +83,48 @@ disassemble(data)
 
 Differences that are allowed, because the parts differ: the Z80 takes a vector on
 `irq()` and has a separate `Ports` space; the 65816 has `abort()` and a bank
-register. Everything else matches.
+register. Everything else matches, including the name of every parameter. A T
+state is the Z80's cycle, so the budget is called `cycles` on both rather than
+being named for one part.
+
+## Driving a part from a clock
+
+A processor runs at whatever its crystal says. A model that runs as fast as the
+host manages is an emulator, so every core reports what it spent and lets a host
+hold it to a real frequency.
+
+- **`step()` returns the cycles that instruction cost.** Not `None`. A host that
+  cannot ask what an instruction cost cannot pace anything.
+- **`cycles` is cumulative and survives a reset.** A reset returns the part to a
+  known state; it does not rewind the clock the board is running on.
+- **`run_for()` returns what it really spent, which usually overshoots.** An
+  instruction is not divisible. A host carries the overshoot into the next slice
+  instead of discarding it, and a long run does not drift.
+- **A halted part still costs its host every cycle.** Whatever a part does when
+  it stops is what the model does. A jammed NMOS 6502 drives $FFFF forever; a
+  65816 given STP or WAI drives no address with every line inactive; a halted Z80
+  spends four T states at a time. None of them raises from `run_for()`, because
+  the board's clock has not stopped.
+- **`held()` answers whether a part has stopped advancing the program.** One
+  name across the family for a question each part answers differently.
+- **Where `step()` cannot complete an instruction, `held_cycle()` produces one
+  cycle of that state and `step()` raises.** `Stopped` when only a reset will
+  restart the part, `Waiting` when an interrupt will. The Z80 needs neither: a
+  halted Z80 keeps executing, so `step()` returns the four T states each pass
+  costs and there is nothing extra to model.
+
+## One definition per name
+
+An exception class defined twice under one name is a trap that looks like it
+works: `except Stopped` is written against one part, tested against it, and sails
+straight through against another. Every shared name has exactly one definition in
+the package, in its own module, and every core imports it.
+
+The same applies to an attribute. Where two parts genuinely need the same name
+for different things, as `.d` is the decimal flag on a 6502 and the direct page
+register on a 65816, the collision is documented in the README with the portable
+alternative named beside it. It is never resolved by renaming one part into
+something its own documentation does not call it.
 
 ## Conventions that are not negotiable
 
