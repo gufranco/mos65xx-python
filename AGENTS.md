@@ -9,6 +9,31 @@ The 6502, the 65C02 and the 65816: a disassembler and an execution core for each
 held to the SingleStepTests corpora, which are the strongest per-instruction
 oracle that exists for these parts.
 
+## The interface a caller drives
+
+The part is powered and not reset when it is built. `reset()` is the caller's to
+call, because no board hands over a processor that has reset itself.
+
+Three ways to run it, sharing one place where a cycle is spent:
+
+- `step()` runs one instruction and returns the cycles it cost.
+- `run_for(cycles)` spends a budget of them and overshoots, because an
+  instruction cannot be cut in half. It keeps clocking a part that has halted,
+  because a halted part still costs its host every cycle.
+- `Clock(cpu).tick()` advances exactly one cycle and stops, on a thread, because
+  Python cannot suspend a call stack. Fifty times slower and the only way to
+  change what a read answers mid-instruction.
+
+Three inputs are lines rather than events, each read where the data sheets say
+the part reads them: `irq_line` as a level tested at instruction completion,
+`nmi_line` on its transition, `ready_line` before every cycle, with the NMOS
+carve-out for a write already on its way out. `on_cycle` is called once per
+cycle, after that cycle's activity.
+
+Every cycle passes through `spend()` and nowhere else. A counter kept in one
+method and a hook called from another drift the first time somebody adds a cycle
+to only one of them, and nothing catches it. Keep it that way.
+
 ## The authority ladder
 
 Every factual question is answered by the highest rung that has an answer, and a
