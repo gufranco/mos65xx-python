@@ -25,7 +25,7 @@
   <a href="https://github.com/gufranco/mos65xx-python/issues">Issues</a>
 </p>
 
-**16** parts · **17,900,000** state cases and **17,870,080** cycle-exact cases, **0** failures · **256** opcodes each · **778** tests · **100%** statement and branch coverage
+**16** parts · **17,900,000** state cases and **17,870,080** cycle-exact cases, **0** failures · **256** opcodes each · **823** tests · **100%** statement and branch coverage
 
 ```python
 from mos65xx import Cpu, SparseMemory
