@@ -364,7 +364,9 @@ def render(mode: str, operand: int | None, address: int, size: int, width: int) 
     raise KeyError(mode)
 
 
-def decode(data: Sequence[int], offset: int, address: int, m: bool = True, x: bool = True) -> Any:
+def decode(
+    data: Sequence[int], offset: int = 0, address: int = 0, m: bool = True, x: bool = True
+) -> Any:
     if not 0 <= offset < len(data):
         raise Truncated(offset)
     opcode = data[offset]
@@ -401,8 +403,8 @@ def apply_flags(instruction: Any, m: bool, x: bool) -> Any:
 
 def disassemble(
     data: Sequence[int],
-    offset: int,
-    address: int,
+    offset: int = 0,
+    address: int = 0,
     count: int | None = None,
     m: bool = True,
     x: bool = True,
