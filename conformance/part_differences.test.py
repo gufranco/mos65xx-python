@@ -38,7 +38,7 @@ def drive(row: dict[str, Any], model: str) -> list[tuple[int, str]]:
         space.write8(start + offset, byte)
     for address, value in VECTOR.items():
         space.write8(address, value)
-    cpu = Cpu(space, model=model, reset=False)
+    cpu = Cpu(model, space, reset=False)
     cpu.pc, cpu.a = start, 0x05
     cpu.x, cpu.y = row.get("x", 0), row.get("y", 0)
     if model == "65816":

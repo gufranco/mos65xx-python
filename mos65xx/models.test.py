@@ -47,38 +47,38 @@ class BuildTest(unittest.TestCase):
         return mos65xx.SparseMemory()
 
     def test_a_processor_is_built_from_its_model_name(self) -> None:
-        cpu = mos65xx.Cpu(self.memory(), model="65816")
+        cpu = mos65xx.Cpu("65816", self.memory())
 
         self.assertEqual(cpu.model, "65816")
 
     def test_the_default_model_is_the_largest_of_the_family(self) -> None:
-        self.assertEqual(mos65xx.Cpu(self.memory()).model, "65816")
+        self.assertEqual(mos65xx.Cpu().model, "65816")
 
     def test_the_smaller_part_carries_the_same_core_with_less_address_space(self) -> None:
-        cpu = mos65xx.Cpu(self.memory(), model="65802")
+        cpu = mos65xx.Cpu("65802", self.memory())
 
         self.assertEqual(cpu.model, "65802")
         self.assertEqual(cpu.address_mask, 0xFFFF)
 
     def test_the_larger_part_reaches_the_whole_address_space(self) -> None:
-        self.assertEqual(mos65xx.Cpu(self.memory(), model="65816").address_mask, 0xFFFFFF)
+        self.assertEqual(mos65xx.Cpu("65816", self.memory()).address_mask, 0xFFFFFF)
 
     def test_the_address_mask_confines_where_a_read_can_land(self) -> None:
         memory = self.memory()
         memory.write8(0x0012, 0x5A)
-        cpu = mos65xx.Cpu(memory, model="65802")
+        cpu = mos65xx.Cpu("65802", memory)
 
         self.assertEqual(cpu.read8(0x7E0012), 0x5A)
 
     def test_the_larger_part_does_not_confine_it(self) -> None:
         memory = self.memory()
         memory.write8(0x7E0012, 0x5A)
-        cpu = mos65xx.Cpu(memory, model="65816")
+        cpu = mos65xx.Cpu("65816", memory)
 
         self.assertEqual(cpu.read8(0x7E0012), 0x5A)
 
     def test_options_reach_the_processor_that_gets_built(self) -> None:
-        cpu = mos65xx.Cpu(self.memory(), model="65816", reset=False)
+        cpu = mos65xx.Cpu("65816", self.memory(), reset=False)
 
         self.assertFalse(cpu.emulation)
 
@@ -96,7 +96,7 @@ class FamilyTest(unittest.TestCase):
         from mos65xx import Cpu, SparseMemory
 
         for name in models.MODELS:
-            cpu = Cpu(SparseMemory(seed=1), model=name)
+            cpu = Cpu(name, SparseMemory(seed=1))
 
             self.assertEqual(cpu.model, name)
             self.assertEqual(cpu.address_mask, models.describe(name).address_mask)

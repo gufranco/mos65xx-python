@@ -69,6 +69,15 @@
       "readVia": "mos-6500-mpu-nov-1985.pdf, 12 pages",
       "covers": "Which parts the NMOS family has. A page per package giving its addressable range and the interrupt lines it brings out, which between them are the whole of what a program can tell apart.",
       "pinnedIn": "the References section of README.md, and locally by digest as manufacturer/mos-6500-mpu-nov-1985.pdf"
+    },
+    "wdc816_book": {
+      "publisher": "The Western Design Center, Inc.",
+      "title": "Programming the 65816, by David Eyes and Ron Lichty",
+      "revision": "2007",
+      "readOn": "2026-08-23",
+      "readVia": "wdc-programming-the-65816-2007.pdf, 469 pages, Appendix C read in full",
+      "covers": "The manufacturer's own book. Its Appendix C describes every pin at length, which is where the data sheet is briefest.",
+      "pinnedIn": "the References section of README.md"
     }
   },
   "facts": {
@@ -318,6 +327,33 @@
         "6514",
         "6515"
       ]
+    },
+    "falseReadIsVisibleOnThePins": {
+      "document": "wdc816_book",
+      "section": "Appendix C, Valid Program Address and Valid Data Address",
+      "quote": "since the 65816 sometimes generates a false read during instructions that cross page boundaries, these may be trapped via these two signals if this is desirable. Note, however, that addresses should not be qualified in emulation mode if hardware such as the Apple II disk controller is used, which requires false read to operate.",
+      "note": "The manufacturer confirming that the discarded read of an indexed access is real, that a system can tell it apart on the qualifier pins, and that at least one shipped machine depends on it happening. A model that skipped that cycle would break that machine."
     }
-  }
+  },
+  "documentContradictions": [
+    {
+      "id": "address-qualifiers-transposed-between-the-data-sheet-and-the-book",
+      "kind": "publisherVersusPublisher",
+      "documents": ["wdc816", "wdc816_book"],
+      "dataSheetPrints": {
+        "where": "W65C816S Data Sheet, section 3.14, printed page 19",
+        "headers": "VDA then VPA",
+        "programAddressRow": "0 1 Valid program address-may be used for program cache control."
+      },
+      "bookPrints": {
+        "where": "Programming the 65816, Appendix C",
+        "headers": "VPA then VDA",
+        "programAddressRow": "0 1 Valid program address"
+      },
+      "problem": "The same four rows in the same order under headers in the opposite order. One of the two has its columns transposed, and it is the book: under its headers a valid program address is the line with the Valid Data Address pin high and the Valid Program Address pin low, which inverts the meaning of both names.",
+      "reading": "The data sheet is the one that is self consistent, so a valid program address is VDA low and VPA high. This project follows the data sheet.",
+      "whyItIsWorthRecording": "A demonstrated instance of this publisher transposing these two signals in its own documentation. It does not settle the one place where the data sheet and the recorded cycles disagree about which of the two is asserted, but it shows the mistake is one the publisher has made elsewhere, which is evidence about how much weight a single printed row can carry.",
+      "verifiedOn": "the rendered page of each, 2026-08-23"
+    }
+  ]
 }

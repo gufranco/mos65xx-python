@@ -33,7 +33,7 @@ memory = SparseMemory()
 memory.write8(0x008000, 0xA9)
 memory.write8(0x008001, 0x42)
 
-cpu = Cpu(memory, model="65816", reset=False)
+cpu = Cpu("65816", memory, reset=False)
 cpu.pb, cpu.pc = 0x00, 0x8000
 cpu.step()
 
@@ -60,7 +60,7 @@ One of them was a single case in 2,560,000. A jump to a subroutine pushes its re
 
 Another was decimal subtraction on the CMOS parts. Both parts produce the same digits whenever both operands are valid decimal numbers, and nothing stops a program subtracting one that is not. The older part borrows out of the low digit into the high one; the newer subtracts in binary and corrects afterwards. Feed both `$FC` and they differ by a whole digit.
 
-**Nothing starts clean.** Memory is filled with a reproducible scrambled pattern unless a caller asks for something else in writing. A reset sets only what the hardware itself defines and leaves the accumulator, the index registers and the low byte of the stack pointer holding what they held.
+**Nothing starts clean, and nothing can be asked to.** Memory holds a reproducible scrambled pattern and there is no parameter that clears it. A reset sets only what the hardware itself defines and leaves the accumulator, the index registers and the low byte of the stack pointer holding what they held.
 
 <table>
 <tr>
@@ -171,7 +171,7 @@ A run of bytes too short to complete its instruction raises `Truncated` rather t
 
 ## Models
 
-The model is chosen at construction. `Cpu(memory)` gives a 65816.
+The model is named at construction. `Cpu()` gives a 65816, and memory is optional.
 
 ```python
 from mos65xx import Cpu, SparseMemory, describe
@@ -180,7 +180,7 @@ describe("w65c802").address_bits
 
 # 16
 
-cpu = Cpu(SparseMemory(), model="65802")
+cpu = Cpu("65802", SparseMemory())
 ```
 
 | Model | Address bits | Pins | Decimal | Notes |
@@ -209,7 +209,7 @@ The address bus is not cosmetic. The 65802 has sixteen address lines, so bank bi
 Neither are the pins. The ten NMOS packages share one die and one instruction set, and what separates most of them is how far an address reaches and which interrupt lines the package brought out. A line that is not on the package is not a line a system can assert, so pulling one here raises rather than quietly taking the interrupt:
 
 ```python
-cpu = Cpu(SparseMemory(), model="6507")
+cpu = Cpu("6507", SparseMemory())
 cpu.irq()
 
 # NoSuchPin: the 6507 has no irq pin; it brings out rdy
@@ -237,17 +237,17 @@ Memory(size=0x1000).data == bytearray(0x1000)
 
 # False
 
-Memory(size=0x1000, fill=0).data == bytearray(0x1000)
+Memory(size=0x1000).data == bytearray(0x1000)
 
 # True, because a caller asked for it in writing
 
-cpu = Cpu(Memory(size=0x1000000, fill=0))
+cpu = Cpu("65816", Memory(size=0x1000000))
 cpu.a, cpu.x, cpu.y
 
 # whatever a reset leaves behind, reproducible from the seed, not zero
 ```
 
-`SparseMemory` holds only what has been written and hashes the address for everything else, so a test that touches a dozen bytes does not pay for sixteen megabytes to stay unclean. Both take a `seed`, so a differential run against another implementation stays comparable.
+`SparseMemory` holds only what has been written and hashes the address for everything else, so a test that touches a dozen bytes does not pay for sixteen megabytes to stay unclean. Both take a `seed`, so a differential run against another implementation stays comparable. Neither takes a fill: an earlier version let a caller name a byte to fill with, and every use of it turned out to be a test quietly arranging for a read of unwritten memory to answer zero, which is the exact defect the scrambling exists to expose. `Memory` takes an `image` instead, which is what a board genuinely knows at power on, and leaves everything the image does not cover undefined.
 
 ### The appendix, cycle by cycle
 
@@ -538,7 +538,7 @@ This project follows [Semantic Versioning](https://semver.org/), and every relea
 <summary><strong>Why is memory scrambled by default rather than zeroed?</strong></summary>
 <br>
 
-Because a console is. Code that reads a byte it never wrote is reading whatever the hardware settled on, and that read is a bug. Zero-filled memory makes the bug invisible: the value read is stable, plausible, and usually harmless, so the test passes and the console does not. Scrambling makes the read show up as what it is. Pass `fill=0` when you genuinely want zeroes, and the decision is then recorded in the code.
+Because a console is. Code that reads a byte it never wrote is reading whatever the hardware settled on, and that read is a bug. Zero-filled memory makes the bug invisible: the value read is stable, plausible, and usually harmless, so the test passes and the console does not. Scrambling makes the read show up as what it is. Pass `` when you genuinely want zeroes, and the decision is then recorded in the code.
 
 </details>
 
@@ -579,6 +579,17 @@ The ones worth borrowing from are embedded in emulators and shaped by the machin
 ## License
 
 [MIT](LICENSE)
+
+## What is still open
+
+Nine questions remain where being faithful to the silicon is a claim rather than
+a measurement, and each one names the measurement that would close it. They are
+in [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md), kept in step with
+[`conformance/divergences.json`](conformance/divergences.json) by a test, so the
+file cannot quietly become a claim that this project knows more than it does.
+
+Almost all of them would fall to one logic analyser on one real part running a
+dozen short programs. The parts are still made.
 
 ## References
 

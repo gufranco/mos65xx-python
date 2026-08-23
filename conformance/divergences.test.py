@@ -43,7 +43,7 @@ class Watched(Memory):
     """Memory that remembers which addresses were read, in order."""
 
     def __init__(self) -> None:
-        super().__init__(0x1000000, fill=0)
+        super().__init__(0x1000000)
         self.seen: list[int] = []
 
     @override
@@ -81,7 +81,7 @@ class AppendixBusTest(unittest.TestCase):
     """The three appendix entries, driven on the part the appendix describes."""
 
     def bus(self, program: bytes, **registers: int) -> list[tuple[int, str]]:
-        memory = Memory(0x10000, fill=0)
+        memory = Memory(0x10000)
         for offset, byte in enumerate(program):
             memory.write8(0x0200 + offset, byte)
         memory.write8(0x0010, 0xF0)
@@ -166,7 +166,7 @@ class DataBankOnInterruptTest(unittest.TestCase):
     """The first divergence, driven: does a software interrupt clear the bank."""
 
     def broken(self, emulation: bool) -> Any:
-        memory = Memory(0x1000000, fill=0)
+        memory = Memory(0x1000000)
         cpu = wdc65816.Cpu(memory, reset=False)
         cpu.emulation = emulation
         cpu.db = 0x7E

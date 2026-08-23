@@ -6,6 +6,11 @@ real machine that read is a bug waiting for the day the pattern changes. Memory
 that begins at zero hides every one of those reads, so nothing here begins at
 zero unless a caller asks for it in writing.
 
+Nothing here can be asked for cleared. Earlier versions let a caller name a byte
+to fill with, and every use of it was a test quietly arranging for a read of
+unwritten memory to answer zero, which is the exact bug the scrambling exists to
+expose.
+
 Two shapes are offered because the cost of being unclean differs. `Memory` fills
 a real buffer, which suits a machine that will touch most of its address space.
 `SparseMemory` derives an unwritten byte from its address, which suits a test
@@ -63,26 +68,26 @@ class SparseMemory:
 
 
 class Memory:
-    """Flat memory, filled rather than cleared.
+    """Flat memory, holding the pattern the parts it is built from decide.
 
-    `fill` is a byte, a bytes-like image loaded at the bottom, or None for the
-    scrambled pattern above. A caller that genuinely wants zeroes asks for zero
-    and says so, which is the point: it becomes a decision rather than a default.
+    There is no way to ask for a cleared one, because no machine hands one over.
+    A read of a byte nothing wrote is a defect on real silicon, and memory that
+    answers zero to it turns that defect into a passing test.
+
+    `image` is what a board genuinely does know at power on: the bytes a mask
+    ROM or a cartridge holds, loaded at the bottom. Everything the image does
+    not cover stays undefined, because on the board it is.
     """
 
     def __init__(
         self,
         size: int = 0x1000000,
-        fill: "int | Sequence[int] | None" = None,
+        image: "Sequence[int] | None" = None,
         seed: int = UNSET_SEED,
     ) -> None:
-        if fill is None:
-            self.data = scramble(size, seed)
-        elif isinstance(fill, int):
-            self.data = bytearray([fill & 0xFF]) * size
-        else:
-            self.data = bytearray(size)
-            self.data[: len(fill)] = fill
+        self.data = scramble(size, seed)
+        if image is not None:
+            self.data[: len(image)] = image
 
     def read8(self, address: int) -> int:
         return self.data[address & ADDRESS_MASK]

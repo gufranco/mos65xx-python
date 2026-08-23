@@ -96,50 +96,55 @@ class MemoryTest(unittest.TestCase):
 
         self.assertNotEqual(memory.data, bytearray(0x1000))
 
-    def test_fills_with_a_byte(self) -> None:
-        memory = Memory(size=0x100, fill=0xAA)
+    def test_there_is_no_way_to_ask_for_a_cleared_one(self) -> None:
+        with self.assertRaises(TypeError):
+            Memory(size=0x100, fill=0)  # type: ignore[call-arg]
 
-        self.assertEqual(set(memory.data), {0xAA})
+    def test_nor_for_one_filled_with_any_single_byte(self) -> None:
+        memory = Memory(size=0x100)
 
-    def test_keeps_only_the_low_byte_of_the_fill(self) -> None:
-        memory = Memory(size=0x10, fill=0x1BB)
+        self.assertGreater(len(set(memory.data)), 1)
 
-        self.assertEqual(set(memory.data), {0xBB})
+    def test_a_machine_that_has_just_been_switched_on_is_not_all_zeroes(self) -> None:
+        memory = Memory(size=0x100)
 
-    def test_zero_is_a_decision_a_caller_can_make(self) -> None:
-        memory = Memory(size=0x100, fill=0)
-
-        self.assertEqual(memory.data, bytearray(0x100))
+        self.assertNotEqual(memory.data, bytearray(0x100))
 
     def test_takes_an_image_at_the_bottom(self) -> None:
-        memory = Memory(size=0x100, fill=b"\x01\x02\x03")
+        memory = Memory(size=0x100, image=b"\x01\x02\x03")
 
         self.assertEqual(bytes(memory.data[:3]), b"\x01\x02\x03")
 
-    def test_pads_the_rest_of_an_image(self) -> None:
-        memory = Memory(size=0x10, fill=b"\xff")
+    def test_leaves_what_the_image_does_not_cover_undefined(self) -> None:
+        memory = Memory(size=0x10, image=b"\xff")
 
-        self.assertEqual(memory.data[1:], bytearray(0x0F))
+        self.assertNotEqual(memory.data[1:], bytearray(0x0F))
+
+    def test_which_is_the_same_pattern_it_would_have_held_without_one(self) -> None:
+        bare = Memory(size=0x10, seed=7)
+        loaded = Memory(size=0x10, image=b"\xff", seed=7)
+
+        self.assertEqual(loaded.data[1:], bare.data[1:])
 
     def test_repeats_for_one_seed(self) -> None:
         self.assertEqual(Memory(size=0x100, seed=3).data, Memory(size=0x100, seed=3).data)
 
     def test_reads_back_what_was_written(self) -> None:
-        memory = Memory(size=0x10000, fill=0)
+        memory = Memory(size=0x10000)
 
         memory.write8(0x1234, 0x5A)
 
         self.assertEqual(memory.read8(0x1234), 0x5A)
 
     def test_keeps_only_the_low_byte(self) -> None:
-        memory = Memory(size=0x10000, fill=0)
+        memory = Memory(size=0x10000)
 
         memory.write8(0x20, 0x3FF)
 
         self.assertEqual(memory.read8(0x20), 0xFF)
 
     def test_wraps_the_address_into_the_space(self) -> None:
-        memory = Memory(size=0x1000000, fill=0)
+        memory = Memory(size=0x1000000)
 
         memory.write8(0x1000020, 0x77)
 

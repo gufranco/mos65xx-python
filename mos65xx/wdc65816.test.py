@@ -320,7 +320,7 @@ class BlockMoveTest(unittest.TestCase):
         self.assertEqual(cpu.db, 0x7F)
 
     def test_a_move_that_runs_out_of_cycles_stays_on_its_own_opcode(self) -> None:
-        memory = emu.Memory(0x1000000, fill=0)
+        memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory, reset=False)
         cpu.emulation = False
         cpu.m8 = cpu.x8 = False
@@ -335,7 +335,7 @@ class BlockMoveTest(unittest.TestCase):
         self.assertEqual(cpu.pc, 0x8000)
 
     def test_a_move_interrupted_partway_keeps_the_bytes_it_copied(self) -> None:
-        memory = emu.Memory(0x1000000, fill=0)
+        memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory, reset=False)
         cpu.emulation = False
         cpu.m8 = cpu.x8 = False
@@ -430,25 +430,26 @@ class MemoryFillTest(unittest.TestCase):
     def test_a_different_seed_scrambles_differently(self) -> None:
         self.assertNotEqual(emu.Memory(256, seed=1).data, emu.Memory(256, seed=2).data)
 
-    def test_a_byte_fill_repeats_that_byte(self) -> None:
-        self.assertEqual(bytes(emu.Memory(4, fill=0xAB).data), b"\xab\xab\xab\xab")
+    def test_no_caller_can_ask_for_a_cleared_one(self) -> None:
+        with self.assertRaises(TypeError):
+            emu.Memory(4, fill=0)
 
-    def test_zero_is_available_but_has_to_be_asked_for(self) -> None:
-        self.assertEqual(bytes(emu.Memory(4, fill=0).data), bytes(4))
+    def test_an_image_is_laid_at_the_front_and_the_rest_stays_undefined(self) -> None:
+        memory = emu.Memory(8, image=b"\x01\x02")
 
-    def test_an_image_is_laid_at_the_front_and_the_rest_is_clear(self) -> None:
-        memory = emu.Memory(8, fill=b"\x01\x02")
-
-        self.assertEqual(bytes(memory.data), b"\x01\x02" + bytes(6))
+        self.assertEqual(
+            (bytes(memory.data[:2]), bytes(memory.data[2:]) == bytes(6)),
+            (b"\x01\x02", False),
+        )
 
     def test_a_read_wraps_to_twenty_four_bits(self) -> None:
-        memory = emu.Memory(0x1000000, fill=0)
+        memory = emu.Memory(0x1000000)
         memory.write8(0x000010, 0x77)
 
         self.assertEqual(memory.read8(0x1000010), 0x77)
 
     def test_a_write_keeps_only_the_low_byte(self) -> None:
-        memory = emu.Memory(16, fill=0)
+        memory = emu.Memory(16)
         memory.write8(0, 0x1FF)
 
         self.assertEqual(memory.read8(0), 0xFF)
@@ -456,7 +457,7 @@ class MemoryFillTest(unittest.TestCase):
 
 class ResetTest(unittest.TestCase):
     def machine(self, vector: int = 0x8000, seed: int = emu.UNSET_SEED) -> Any:
-        memory = emu.Memory(0x1000000, fill=0)
+        memory = emu.Memory(0x1000000)
         memory.write8(emu.RESET_VECTOR, vector & 0xFF)
         memory.write8(emu.RESET_VECTOR + 1, vector >> 8)
         return emu.Cpu(memory, seed=seed)
@@ -497,7 +498,7 @@ class ResetTest(unittest.TestCase):
         self.assertEqual(self.machine(seed=7).a, self.machine(seed=7).a)
 
     def test_asking_for_no_reset_gives_a_stated_starting_point(self) -> None:
-        cpu = emu.Cpu(emu.Memory(0x10000, fill=0), reset=False)
+        cpu = emu.Cpu(emu.Memory(0x10000), reset=False)
 
         self.assertFalse(cpu.emulation)
         self.assertEqual((cpu.a, cpu.x, cpu.y), (0, 0, 0))
@@ -547,7 +548,7 @@ class EveryOpcodeTest(unittest.TestCase):
 
 class WordAndLongReadTest(unittest.TestCase):
     def machine(self) -> Any:
-        return emu.Cpu(emu.Memory(0x1000000, fill=0), reset=False)
+        return emu.Cpu(emu.Memory(0x1000000), reset=False)
 
     def test_a_word_is_read_low_byte_first(self) -> None:
         cpu = self.machine()
@@ -578,7 +579,7 @@ class BankZeroWordTest(unittest.TestCase):
     """
 
     def machine(self, code: Sequence[int]) -> Any:
-        memory = emu.Memory(0x1000000, fill=0)
+        memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory, reset=False)
         cpu.m8 = cpu.x8 = False
         cpu.d = 0xFFF0
@@ -720,7 +721,7 @@ class DirectPagePointerWrapTest(unittest.TestCase):
 
 class SoftwareInterruptTest(unittest.TestCase):
     def machine(self, opcode: int, emulation: bool) -> Any:
-        memory = emu.Memory(0x1000000, fill=0)
+        memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory, reset=False)
         cpu.emulation = emulation
         if not emulation:
@@ -788,7 +789,7 @@ class SoftwareInterruptTest(unittest.TestCase):
 
 class DefensivePathTest(unittest.TestCase):
     def machine(self) -> Any:
-        return emu.Cpu(emu.Memory(0x10000, fill=0), reset=False)
+        return emu.Cpu(emu.Memory(0x10000), reset=False)
 
     def test_an_address_mode_a_mnemonic_cannot_use_is_refused(self) -> None:
         with self.assertRaises(emu.UnsupportedError):
@@ -833,7 +834,7 @@ class HardwareInterruptTest(unittest.TestCase):
     """The three pins, in both modes, where the mode decides the stack depth."""
 
     def machine(self, emulation: bool, vector: int, target: int = 0x9000) -> Any:
-        memory = emu.Memory(0x1000000, fill=0)
+        memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory, reset=False)
         cpu.emulation = emulation
         if not emulation:
@@ -997,7 +998,7 @@ class CycleShapeTest(unittest.TestCase):
         at: int = 0x8000,
         **registers: Any,
     ) -> list[Any]:
-        memory = emu.Memory(0x1000000, fill=0)
+        memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory, reset=False)
         cpu.emulation = emulation
         if not emulation:
@@ -1058,7 +1059,7 @@ class CycleShapeTest(unittest.TestCase):
         self.assertEqual((held[3][1], held[3][2]), (None, "---r-mxl"))
 
     def test_and_carries_the_byte_it_read_in_emulation_mode(self) -> None:
-        memory = emu.Memory(0x1000000, fill=0)
+        memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory, reset=False)
         cpu.emulation = True
         cpu.pb, cpu.pc = 0x00, 0x8000
@@ -1121,7 +1122,7 @@ class CycleShapeTest(unittest.TestCase):
         self.assertEqual(len(cpu_trace), 3)
 
     def test_a_block_move_refetches_itself_for_every_byte(self) -> None:
-        memory = emu.Memory(0x1000000, fill=0)
+        memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory, reset=False)
         cpu.m8 = cpu.x8 = True
         cpu.pb, cpu.pc = 0x00, 0x8000
@@ -1135,7 +1136,7 @@ class CycleShapeTest(unittest.TestCase):
         self.assertEqual([one[2] for one in cpu.trace[7:10]], ["dp-r-mx-", "-p-r-mx-", "-p-r-mx-"])
 
     def test_and_spends_two_cycles_after_each_byte_it_writes(self) -> None:
-        memory = emu.Memory(0x1000000, fill=0)
+        memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory, reset=False)
         cpu.m8 = cpu.x8 = True
         cpu.pb, cpu.pc = 0x00, 0x8000
@@ -1149,7 +1150,7 @@ class CycleShapeTest(unittest.TestCase):
         self.assertEqual([one[2] for one in cpu.trace[-2:]], ["---r-mx-", "---r-mx-"])
 
     def test_a_move_cut_short_leaves_the_cycles_it_managed(self) -> None:
-        memory = emu.Memory(0x1000000, fill=0)
+        memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory, reset=False)
         cpu.m8 = cpu.x8 = True
         cpu.pb, cpu.pc = 0x00, 0x8000
@@ -1164,7 +1165,7 @@ class CycleShapeTest(unittest.TestCase):
         self.assertEqual(len(cpu.trace), 11)
 
     def test_and_stops_before_the_write_of_the_byte_it_could_not_finish(self) -> None:
-        memory = emu.Memory(0x1000000, fill=0)
+        memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory, reset=False)
         cpu.m8 = cpu.x8 = True
         cpu.pb, cpu.pc = 0x00, 0x8000

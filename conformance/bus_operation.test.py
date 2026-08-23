@@ -48,7 +48,7 @@ class Scene:
         self.named = named
 
     def run(self) -> tuple[list[tuple[int, int | None, str]], dict[str, int]]:
-        memory = Memory(0x1000000, fill=0)
+        memory = Memory(0x1000000)
         for offset, byte in enumerate(self.program):
             memory.write8(START + offset, byte)
         for address, value in self.seed.items():

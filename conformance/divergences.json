@@ -4,7 +4,8 @@
     "documentSays": "The manufacturer's sentence, verbatim.",
     "suiteSays": "What the recorded cycles show, with the case that shows it.",
     "whatThisProjectDoes": "The behaviour in the code today, and why.",
-    "whatWouldSettleIt": "The measurement that would end the disagreement."
+    "whatWouldSettleIt": "The measurement that would end the disagreement.",
+    "status": "open means a measurement on real silicon would still change what this project does. settled means the reasoning closes it and nothing further is needed. The open ones are collected in OPEN-QUESTIONS.md."
   },
   "divergences": [
     {
@@ -19,7 +20,8 @@
       },
       "whatThisProjectDoes": "Clears the program bank and leaves the data bank alone, in both modes. The suite is the only evidence with a case count behind it, and the same caveat section is wrong about the native vector addresses and about which bank holds the (a,x) pointer, so its precision is not what its specificity suggests.",
       "whatWouldSettleIt": "A program on a real part: set the data bank to something non-zero, drop into emulation mode, execute BRK, and have the handler push the data bank and read it back.",
-      "whyItMayNeverHaveMattered": "In emulation mode the data bank is not pushed, so a part that cleared it would give an interrupt handler no way to restore it. Software written for that part would have had to reload the bank itself, which is what software does anyway."
+      "whyItMayNeverHaveMattered": "In emulation mode the data bank is not pushed, so a part that cleared it would give an interrupt handler no way to restore it. Software written for that part would have had to reload the bank itself, which is what software does anyway.",
+      "status": "open"
     },
     {
       "subject": "whether a multi-byte pointer read out of the direct page stays inside the page, in emulation mode with the direct register page aligned",
@@ -69,7 +71,8 @@
       },
       "whatThisProjectDoes": "Follows the four measured cases exactly, and takes the document for the two the suite does not cover, which means (d) and (d),y wrap. The document's exception list is right about one of the four cases it covers, so it is not treated as a rule here, only as evidence where there is nothing else.",
       "whatWouldSettleIt": "Six short programs on a real part, one per mode, each with the direct register page aligned and a pointer at FF, reading back the byte the part fetched. Until then this project's behaviour for (d) and (d),y is a document reading rather than a measurement, and is marked as such.",
-      "whyItIsOddEitherWay": "No simple rule produces the measured set. Whatever the part does, it is not deciding by pointer width and it is not deciding by whether the mode is one the 6502 had."
+      "whyItIsOddEitherWay": "No simple rule produces the measured set. Whatever the part does, it is not deciding by pointer width and it is not deciding by whether the mode is one the 6502 had.",
+      "status": "open"
     },
     {
       "subject": "which address the NMOS 6502 puts on the bus during a taken branch",
@@ -100,7 +103,8 @@
       },
       "whatThisProjectDoes": "Follows the recording: a dead read at PC+2 on any taken branch, and a second at the low-byte-only sum when the page changes. Every one of the 2,440,000 non-halting cases in the suite agrees, including 40,000 branch cases, which the manual's reading would fail.",
       "whatWouldSettleIt": "Nothing needs settling about the behaviour. What is unsettled is whether the manual's two rows were transposed in print or describe an earlier part, and only a run on real silicon of that vintage would say.",
-      "whyItMatters": "A model built from the manual alone puts the wrong address on the bus on every taken branch, which is invisible in a state comparison and visible to any device that watches its own address lines."
+      "whyItMatters": "A model built from the manual alone puts the wrong address on the bus on every taken branch, which is invisible in a state comparison and visible to any device that watches its own address lines.",
+      "status": "open"
     },
     {
       "subject": "which address a CMOS 65C02 puts on the bus during its spare cycles, and how long three of its instructions take",
@@ -130,7 +134,8 @@
       },
       "whatThisProjectDoes": "Follows the caveats table where it speaks, which is everywhere the timing chart disagrees with it, and follows the recordings for the two counts above. Which means: the spare cycle of an indexed access re-reads the last byte of the instruction, a read-modify-write reads twice and writes once, an indirect jump spends its extra cycle on the address the older part's page-wrap bug would have used, decimal arithmetic costs a cycle, $5C takes four cycles rather than eight, and increment and decrement of an indexed absolute address always pay for indexing while the shifts and rotates pay only across a page.",
       "whatWouldSettleIt": "For the two counts, a logic analyser on a real part running $5C and running DEC $2000,X with an index that stays inside the page. Nothing else here needs settling: the document's own caveats table and the recordings agree.",
-      "whyTheTimingChartIsNotFollowed": "Because the same document contradicts it twice over, in Table 7-1 and in the recordings, and because a chart that gives a spare cycle the wrong address is the kind of error that survives review: nothing in a state comparison can see it."
+      "whyTheTimingChartIsNotFollowed": "Because the same document contradicts it twice over, in Table 7-1 and in the recordings, and because a chart that gives a spare cycle the wrong address is the kind of error that survives review: nothing in a state comparison can see it.",
+      "status": "open"
     },
     {
       "subject": "the address of the extra cycle a CMOS 65C02 spends on decimal arithmetic",
@@ -153,7 +158,8 @@
       },
       "whatThisProjectDoes": "Spends the extra cycle, and points it at the operand address rather than at the constant the recording carries. A decimal add on a 65c02 or a w65c02 takes three cycles here where the same add takes two on a 6502, which is the part the document settles. The address it drives is the one the part last had on the bus, because the document says an internal cycle's address may be invalid and the recording carries a placeholder rather than a measurement. conformance/cycles.py leaves that one cycle out of the comparison, narrowly and by opcode, and prints how many it left out.",
       "whatWouldSettleIt": "A logic analyser on a real W65C02S during a decimal add. Until then the extra cycle is real and its address is not evidence, and a model that reproduced 00007F would be reproducing the recorder rather than the part.",
-      "whyItIsRecordedNow": "So that nobody tries to derive 00007F from the state, and so that the one cycle the runner does not compare is a stated exception rather than a silence."
+      "whyItIsRecordedNow": "So that nobody tries to derive 00007F from the state, and so that the one cycle the runner does not compare is a stated exception rather than a silence.",
+      "status": "open"
     },
     {
       "subject": "the address on the bus during the discarded read of an indexed access",
@@ -173,7 +179,8 @@
       },
       "whatThisProjectDoes": "Drives the base high byte with the index added only to the low byte, which is the A.3.6 form. That is the reading the suite carries, the reading the footnote in the other four tables requires, and the reading under which a store to a hardware register does not touch a second register one page below the one it names.",
       "whatWouldSettleIt": "A program on a real part: point an indexed store at an address one byte below a page boundary so the index crosses it, put a memory-mapped register at the uncorrected address, and see whether the register is read.",
-      "whyItMatters": "This is the cycle that makes an indexed store to a hardware register dangerous. A reader who took the BAH + C form would model the discarded read as landing on the same address as the write, and would miss the spurious access one page below it that real programs have to work around."
+      "whyItMatters": "This is the cycle that makes an indexed store to a hardware register dangerous. A reader who took the BAH + C form would model the discarded read as landing on the same address as the write, and would miss the spurious access one page below it that real programs have to work around.",
+      "status": "open"
     },
     {
       "subject": "which cycle of a taken branch carries which address",
@@ -187,7 +194,8 @@
       },
       "whatThisProjectDoes": "Drives the counter on the third cycle and the partially corrected address on the fourth, so both addresses appear one row later than the table prints them and the corrected target never appears inside the branch at all.",
       "whatWouldSettleIt": "A program on a real part: place a branch so its target is on the next page, put a memory-mapped register at the partially corrected address, and see on which cycle it is read.",
-      "whyItMatters": "The table has one row for each of three cycles, so it reads as though the offset is on the bus a cycle before it is. Anything counting bus activity, a cycle-exact video timing model or a bus analyser trace, comes out a cycle early on every taken branch."
+      "whyItMatters": "The table has one row for each of three cycles, so it reads as though the offset is on the bus a cycle before it is. Anything counting bus activity, a cycle-exact video timing model or a bus analyser trace, comes out a cycle early on every taken branch.",
+      "status": "open"
     },
     {
       "subject": "the stack addresses of a pull, written as plain sums",
@@ -201,7 +209,8 @@
       },
       "whatThisProjectDoes": "Keeps every stack access inside page one, which is what the part does and what the body of the same manual says elsewhere. The sums in the appendix hold everywhere except across the page edge, so they are read as shorthand rather than as arithmetic.",
       "whatWouldSettleIt": "Nothing outstanding. The stack living in page one is stated in the body of the same document and is not in question; only the appendix's notation is loose.",
-      "whyItMatters": "A pull that starts near the top of the stack is exactly the case a program hits after a deep sequence of pushes, so a model built from the appendix alone would read four bytes from the wrong page at the moment it matters most."
+      "whyItMatters": "A pull that starts near the top of the stack is exactly the case a program hits after a deep sequence of pushes, so a model built from the appendix alone would read four bytes from the wrong page at the moment it matters most.",
+      "status": "settled"
     },
     {
       "subject": "the page-crossing cycle on the indirect indexed rows of AND and ORA",
@@ -220,7 +229,8 @@
       },
       "whatThisProjectDoes": "Takes the extra cycle on all eight, because the addressing mode is the same one and the cycle comes from re-reading at the corrected address rather than from the operation.",
       "whatWouldSettleIt": "Nothing outstanding. The two instructions share their addressing hardware with six that are printed correctly, and the same appendix marks their absolute indexed rows.",
-      "whyItMatters": "A timing budget built by adding up the printed counts comes out one cycle short every time one of these two crosses a page, which on a machine whose video timing is counted in cycles is the difference between a stable picture and a torn one."
+      "whyItMatters": "A timing budget built by adding up the printed counts comes out one cycle short every time one of these two crosses a page, which on a machine whose video timing is counted in cycles is the difference between a stable picture and a torn one.",
+      "status": "settled"
     },
     {
       "subject": "how many cycles the reserved opcode 5C spends on a CMOS part",
@@ -234,7 +244,8 @@
       },
       "whatThisProjectDoes": "Takes four, because that is the only shape any source states. The data sheet gives a count and no addresses, so following it would mean inventing four bus cycles nobody has written down, and inventing them is worse than recording that they are unknown. The other forty-three reserved opcodes match the same table exactly, which is why this one is treated as a single open question rather than as a reason to distrust the row.",
       "whatWouldSettleIt": "A logic analyser on a real W65C02S executing 5C, which would give both the count and the four addresses the data sheet does not print. Nothing short of that can be implemented, because a count alone is not a bus trace.",
-      "whyItMatters": "Four cycles of difference on an opcode no program deliberately executes matters only where a program runs off into unwritten memory, which is a crash either way. It is recorded because it is the one place in the reserved-opcode row where the part and the page disagree, and because a reader who trusts the row deserves to know which entry to check."
+      "whyItMatters": "Four cycles of difference on an opcode no program deliberately executes matters only where a program runs off into unwritten memory, which is a crash either way. It is recorded because it is the one place in the reserved-opcode row where the part and the page disagree, and because a reader who trusts the row deserves to know which entry to check.",
+      "status": "open"
     },
     {
       "subject": "which address the modify cycle and the push drive when the register is eight bits",
@@ -248,7 +259,8 @@
       },
       "whatThisProjectDoes": "Drives the last byte actually accessed, which is AA and S in the narrow form and AA+1 and S-1 in the wide one. The table has only the wide form of these five rows.",
       "whatWouldSettleIt": "Nothing outstanding. The narrow form follows from the rows above it: a cycle cannot sit on the byte after one that was never read.",
-      "whyItMatters": "Five rows of a table that is otherwise complete have no eight bit form, so a reader building a narrow register model from the page alone puts the modify cycle and the push one byte off. Four come out a byte high and the push a byte low, because the stack grows the other way."
+      "whyItMatters": "Five rows of a table that is otherwise complete have no eight bit form, so a reader building a narrow register model from the page alone puts the modify cycle and the push one byte off. Four come out a byte high and the push a byte low, because the stack grows the other way.",
+      "status": "settled"
     },
     {
       "subject": "whether the new program counter of an indexed indirect jump is a program address",
@@ -267,7 +279,9 @@
       },
       "whatThisProjectDoes": "Marks them a data address, following the recordings and the table's own treatment of the plain indirect jump. The table's other reading is defensible, since the pointer of the indexed form really does live in the program bank, but nothing else in the table draws that distinction and nothing recorded supports it.",
       "whatWouldSettleIt": "A logic analyser on the VPA and VDA pins of a real W65C816S executing JMP (a,x). Those pins exist precisely so a system can tell the two apart, so the answer is directly observable on hardware and on nothing less.",
-      "whyItMatters": "A system that qualifies its memory map with these pins, which is what they are for, would route those two fetches to program memory rather than to data memory. On a machine where the two are different devices that is the difference between a jump that works and one that does not."
+      "whyItMatters": "A system that qualifies its memory map with these pins, which is what they are for, would route those two fetches to program memory rather than to data memory. On a machine where the two are different devices that is the difference between a jump that works and one that does not.",
+      "andTheSamePublisherTransposesThemElsewhere": "Appendix C of Programming the 65816, which the same company holds the copyright to, prints the four qualifier states under headers in the opposite order from the data sheet's, so that a valid program address comes out as the Valid Data Address pin high and the Valid Program Address pin low. That is a transposition of exactly these two signals in this publisher's own documentation. It does not settle this entry, but it is the reason a single printed row is not enough to overturn thirty thousand recorded cases.",
+      "status": "open"
     }
   ]
 }

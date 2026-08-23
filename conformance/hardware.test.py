@@ -122,7 +122,7 @@ class ResetStateTest(unittest.TestCase):
     """That a reset leaves the part where the document says it leaves it."""
 
     def machine(self) -> Any:
-        return wdc65816.Cpu(Memory(0x1000000, fill=0), seed=99)
+        return wdc65816.Cpu(Memory(0x1000000), seed=99)
 
     def test_the_direct_register_and_both_banks_are_cleared(self) -> None:
         cpu = self.machine()
@@ -167,7 +167,7 @@ class InterruptEffectTest(unittest.TestCase):
     """That an interrupt does the two things to the status register it must."""
 
     def broken(self, emulation: bool) -> Any:
-        memory = Memory(0x1000000, fill=0)
+        memory = Memory(0x1000000)
         cpu = wdc65816.Cpu(memory, reset=False)
         cpu.emulation = emulation
         cpu.decimal = True
@@ -197,7 +197,7 @@ class TransferWidthTest(unittest.TestCase):
     """That the four always-wide transfers are wide whatever the accumulator is."""
 
     def machine(self) -> Any:
-        cpu = wdc65816.Cpu(Memory(0x1000000, fill=0), reset=False)
+        cpu = wdc65816.Cpu(Memory(0x1000000), reset=False)
         cpu.emulation = False
         cpu.m8 = True
         cpu.x8 = True
@@ -261,7 +261,7 @@ class HonestyTest(unittest.TestCase):
         self.assertEqual(("d, s" in early, "d, s" in late), (True, False))
 
     def test_a_stack_relative_read_leaves_the_emulation_stack_range(self) -> None:
-        memory = Memory(0x1000000, fill=0)
+        memory = Memory(0x1000000)
         memory.write8(0x000200, 0xA3)
         memory.write8(0x000201, 0xFF)
         cpu = wdc65816.Cpu(memory, reset=False)
