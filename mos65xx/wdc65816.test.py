@@ -425,7 +425,7 @@ class HaltTest(unittest.TestCase):
 
         cpu.reset()
 
-        self.assertEqual(cpu.cycles - before, emu.RESET_DELAY + 2)
+        self.assertEqual(cpu.cycles - before, emu.RESET_CYCLES)
 
     def test_every_cycle_reaches_a_watcher_including_the_internal_ones(self) -> None:
         memory = FlatMemory({0x008000: 0x0A})

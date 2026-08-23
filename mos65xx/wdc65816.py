@@ -96,12 +96,16 @@ Every line inactive, the read line included, which no ordinary cycle produces.
 
 RESET_VECTOR = 0x00FFFC
 
-RESET_DELAY = 6
-"""Cycles the part spends before it fetches the vector, per the 1976 MOS manual.
+RESET_CYCLES = 8
+"""How long a reset takes, counting the vector fetch.
 
 WDC's data sheet gives no count of its own for this part, and the core it
-describes is the same lineage, so the older figure stands until one does.
+describes is the same lineage, so the older MOS figure stands until one does:
+the part "will delay 6 cycles and then fetch the new program count vectors".
 """
+
+VECTOR_CYCLES = 2
+"""The two cycles of the vector fetch, which every part pays and none states apart."""
 
 
 class Cpu:
@@ -161,6 +165,7 @@ class Cpu:
         self.cycles = 0
         self.stopped = False
         self.waiting = False
+        self.reset_cycles = RESET_CYCLES
         self.power_on(seed)
 
     @property
@@ -248,7 +253,7 @@ class Cpu:
         the six it drives here. Six invented addresses would read as knowledge;
         a gap that OPEN-QUESTIONS.md names does not.
         """
-        for _ in range(RESET_DELAY):
+        for _ in range(self.reset_cycles - VECTOR_CYCLES):
             self.spend()
         self.s = 0x0100 | (self.s & 0xFF)
 

@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from typing import Any
 
+import mos65xx
 from mos65xx import SparseMemory, errors, mos65c02, mos6502, opcodes65c02
 
 
@@ -319,6 +320,24 @@ class WdcTest(unittest.TestCase):
         cpu.step()
 
         self.assertFalse(cpu.stopped)
+
+    def test_the_wdc_part_resets_in_the_seven_cycles_wdc_states(self) -> None:
+        cpu = mos65xx.Cpu("w65c02", SparseMemory())
+        before = cpu.cycles
+
+        cpu.reset()
+
+        self.assertEqual(cpu.cycles - before, 7)
+
+    def test_and_the_parts_whose_makers_said_nothing_keep_the_mos_figure(self) -> None:
+        spent = []
+        for name in ("6502", "65c02", "r65c02", "65816"):
+            cpu = mos65xx.Cpu(name, SparseMemory())
+            before = cpu.cycles
+            cpu.reset()
+            spent.append(cpu.cycles - before)
+
+        self.assertEqual(spent, [8, 8, 8, 8])
 
     def test_a_waiting_part_will_not_run_the_next_instruction(self) -> None:
         cpu, _ = machine([0xCB, 0xA9, 0x77], table=opcodes65c02.WDC)

@@ -410,7 +410,7 @@ class ClockTest(unittest.TestCase):
 
         cpu.reset()
 
-        self.assertEqual(cpu.cycles - before, mos6502.RESET_DELAY + 2)
+        self.assertEqual(cpu.cycles - before, mos6502.RESET_CYCLES)
 
     def test_a_bounded_run_gives_up_rather_than_hanging(self) -> None:
         cpu, _ = machine([0x4C, 0x00, 0x80])

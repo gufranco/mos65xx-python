@@ -17,7 +17,7 @@
 
 </div>
 
-**16** parts · **17,900,000** state cases and **17,870,080** cycle-exact cases, **0** failures · **825** tests · **100%** statement and branch coverage · no dependencies
+**16** parts · **17,900,000** state cases and **17,870,080** cycle-exact cases, **0** failures · **827** tests · **100%** statement and branch coverage · no dependencies
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -255,7 +255,7 @@ The suite commit is pinned so a build is reproducible, and a weekly job runs aga
 
 Where a document and the recordings disagree, both are kept. [`conformance/hardware.json`](conformance/hardware.json) holds every fact taken from a manufacturer's page with the sentence it came from; [`conformance/addressing-cycles.json`](conformance/addressing-cycles.json) and [`conformance/instruction-set.json`](conformance/instruction-set.json) hold Appendix A and Appendix B as printed; [`conformance/divergences.json`](conformance/divergences.json) holds every place two sources part, with what would settle it.
 
-**Fourteen questions remain** where being faithful is a claim rather than a measurement, and each names the measurement that would close it: [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md). Almost all would fall to one logic analyser on one real part running a dozen short programs. The parts are still made.
+**Fifteen questions remain** where being faithful is a claim rather than a measurement, and each names the measurement that would close it: [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md). Almost all would fall to one logic analyser on one real part running a dozen short programs. The parts are still made.
 
 ## Working on it
 

@@ -382,6 +382,22 @@
       "whyItMatters": "It is the one route to closing several open questions at once without buying hardware, and the parts it would answer for are the NMOS ones where the documents are oldest and the recordings least explained.",
       "status": "open",
       "severity": "unchecked"
+    },
+    {
+      "subject": "how long a reset takes, which two manufacturers give differently",
+      "documentSays": {
+        "document": "MCS6500 Hardware Manual, 1976, 1.4.1.2.11, and W65C02S Data Sheet, 3.11 Reset (RESB)",
+        "quote": "MOS: 'the microprocessor will delay 6 cycles and then fetch the new program count vectors'. WDC: 'When a positive edge is detected, there will be a reset sequence lasting seven clock cycles.'"
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests 65x02",
+        "measured": "Nothing. Every case begins with the part already running and its registers set by the test, so no recording in any published corpus covers a reset."
+      },
+      "whatThisProjectDoes": "Charges each part what its own manufacturer states. Eight on the NMOS parts, which is the six-cycle delay plus the two of the vector fetch, and seven on the W65C02S. Rockwell and Synertek state no count for their CMOS parts, so those keep the figure of the design they are built from rather than borrowing WDC's, and WDC states none for the sixteen bit parts, so those do the same. The figure is a property of the model rather than of the family.",
+      "whatWouldSettleIt": "Whether the two figures describe different silicon or one loose sentence. They are one cycle apart and neither manufacturer mentions the other's part. A logic capture of a reset on an NMOS 6502 and on a W65C02S would say whether the difference is real, and no published corpus carries a reset at all.",
+      "whyItMatters": "Only for a host counting cycles across a reset, which happens once at power on. It is one cycle, and it is one cycle this project would have got wrong on the WDC part by assuming a family shares a figure that only one of its manufacturers ever printed.",
+      "status": "open",
+      "severity": "unstated"
     }
   ]
 }

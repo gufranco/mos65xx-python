@@ -64,6 +64,7 @@ class Model:
         revision: str | None = None,
         narrows: str | None = None,
         pins: Iterable[str] = ("irq", "nmi", "rdy"),
+        reset_cycles: int = 8,
     ) -> None:
         self.name = name
         self.summary = summary
@@ -75,6 +76,16 @@ class Model:
         self.revision = revision
         self.narrows = narrows
         self.pins = tuple(pins)
+        self.reset_cycles = reset_cycles
+        """How long a reset takes on this part, counting the vector fetch.
+
+        Eight everywhere the manufacturer said so: "the microprocessor will
+        delay 6 cycles and then fetch the new program count vectors", which with
+        the two cycles of that fetch is eight. WDC states a different figure for
+        its own CMOS part, seven, and says nothing about the sixteen bit ones.
+        Rockwell and Synertek state nothing at all, so their parts keep the
+        figure of the design they are built from rather than borrowing WDC's.
+        """
 
     @property
     def address_mask(self) -> int:
@@ -95,6 +106,7 @@ def _build_6502(model: Model, memory: Any, **options: Any) -> Any:
     cpu.model = model.name
     cpu.address_mask = model.address_mask
     cpu.package_pins = model.pins
+    cpu.reset_cycles = model.reset_cycles
     return cpu
 
 
@@ -109,6 +121,7 @@ def _build_65c02(model: Model, memory: Any, **options: Any) -> Any:
     cpu.model = model.name
     cpu.address_mask = model.address_mask
     cpu.package_pins = model.pins
+    cpu.reset_cycles = model.reset_cycles
     return cpu
 
 
@@ -119,6 +132,7 @@ def _build_65816(model: Model, memory: Any, **options: Any) -> Any:
     cpu.model = model.name
     cpu.address_mask = model.address_mask
     cpu.package_pins = model.pins
+    cpu.reset_cycles = model.reset_cycles
     return cpu
 
 
@@ -308,6 +322,7 @@ _CATALOGUE = (
         core=_build_65c02,
         aliases=("wdc65c02", "w65c02s"),
         revision="wdc",
+        reset_cycles=7,
     ),
     Model(
         name="65816",

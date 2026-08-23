@@ -198,6 +198,16 @@ Source: W65C02S Data Sheet, 3.10 Ready (RDY).
 
 **What would settle it.** A logic capture of a real part running one of those opcodes with the interrupt line already low. An implementation is a lead here rather than an authority, and a weaker one than it looks: ares and bsnes share a lineage, so their agreement is one source rather than two, and neither ships the measurement behind the behaviour.
 
+### How long a reset takes, which two manufacturers give differently
+
+**The documents say.** MOS: the part "will delay 6 cycles and then fetch the new program count vectors", which with the two cycles of that fetch is eight. WDC: "When a positive edge is detected, there will be a reset sequence lasting seven clock cycles."
+
+**The recordings say.** Nothing. Every case in every published corpus begins with the part already running, so none covers a reset.
+
+**What this project does.** Charges each part what its own manufacturer states: eight on the NMOS parts, seven on the W65C02S. Rockwell and Synertek state no count for their CMOS parts and WDC states none for the sixteen bit ones, so both keep the figure of the design they are built from rather than borrowing one from a neighbour.
+
+**What would settle it.** Whether the two figures describe different silicon or one loose sentence. They are one cycle apart, neither manufacturer mentions the other's part, and a logic capture of a reset on each would say which.
+
 ## Where the evidence has not been run here
 
 ### The transistor level simulation that could settle most of the NMOS questions, and why it is not being used

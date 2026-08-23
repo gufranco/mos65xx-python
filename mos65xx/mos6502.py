@@ -47,8 +47,17 @@ from .opcodes6502 import MODE_SIZE, NMOS
 
 RESET_VECTOR = 0xFFFC
 
-RESET_DELAY = 6
-"""Cycles the part spends before it fetches the vector, per the 1976 manual."""
+RESET_CYCLES = 8
+"""How long a reset takes on an NMOS part, counting the vector fetch.
+
+The manual gives it as a delay plus the fetch: the part "will delay 6 cycles and
+then fetch the new program count vectors". WDC states seven for its own CMOS
+part, which is a different part and a different manufacturer, so the figure is a
+property of the model rather than of the family.
+"""
+
+VECTOR_CYCLES = 2
+"""The two cycles of the vector fetch, which every part pays and none states apart."""
 BREAK_VECTOR = 0xFFFE
 NMI_VECTOR = 0xFFFA
 IRQ_VECTOR = 0xFFFE
@@ -96,6 +105,7 @@ class Cpu:
         self.cycles = 0
         self.stopped = False
         self.jammed = False
+        self.reset_cycles = RESET_CYCLES
         self.model = "6502"
         self.address_mask = 0xFFFF
         self.package_pins: tuple[str, ...] = ("irq", "nmi", "rdy")
@@ -164,7 +174,7 @@ class Cpu:
         the six it drives here. Six invented addresses would read as knowledge;
         a gap that OPEN-QUESTIONS.md names does not.
         """
-        for _ in range(RESET_DELAY):
+        for _ in range(self.reset_cycles - VECTOR_CYCLES):
             self.spend()
         self.i = True
         self.stopped = False
