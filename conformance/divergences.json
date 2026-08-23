@@ -48,10 +48,7 @@
             "opcode": "E1",
             "test": "e1 e 8669",
             "pointerAt": "00F4FF",
-            "readsCycled": [
-              "00F4FF",
-              "00F500"
-            ],
+            "readsCycled": ["00F4FF", "00F500"],
             "verdict": "left the page, which the document says it should not"
           },
           {
@@ -59,11 +56,7 @@
             "opcode": "27",
             "test": "27 e 3341",
             "pointerAt": "002FFE",
-            "readsCycled": [
-              "002FFE",
-              "002FFF",
-              "003000"
-            ],
+            "readsCycled": ["002FFE", "002FFF", "003000"],
             "verdict": "left the page, which the document says it should"
           },
           {
@@ -71,11 +64,7 @@
             "opcode": "57",
             "test": "57 e 6432",
             "pointerAt": "0089FF",
-            "readsCycled": [
-              "0089FF",
-              "008900",
-              "008901"
-            ],
+            "readsCycled": ["0089FF", "008900", "008901"],
             "verdict": "wrapped inside the page, which the document says it should not"
           },
           {
@@ -83,10 +72,7 @@
             "opcode": "D4",
             "test": "the case at D=000C00 with an operand of FF",
             "pointerAt": "000CFF",
-            "readsCycled": [
-              "000CFF",
-              "000C00"
-            ],
+            "readsCycled": ["000CFF", "000C00"],
             "verdict": "wrapped inside the page, which the document says it should not"
           }
         ],
@@ -113,23 +99,14 @@
             "opcode": "10",
             "test": "10 b3 8d",
             "at": "0090CA",
-            "readsCycled": [
-              "0090CA",
-              "0090CB",
-              "0090CC"
-            ],
+            "readsCycled": ["0090CA", "0090CB", "0090CC"],
             "verdict": "third cycle at PC+2, and the branch went to 00907F"
           },
           {
             "opcode": "10",
             "test": "10 3c 3a",
             "at": "0077E1",
-            "readsCycled": [
-              "0077E1",
-              "0077E2",
-              "0077E3",
-              "00771F"
-            ],
+            "readsCycled": ["0077E1", "0077E2", "0077E3", "00771F"],
             "verdict": "third at PC+2, fourth at the low-byte-only sum, and the branch went to 00781F"
           }
         ]
@@ -186,11 +163,7 @@
           {
             "opcode": "69",
             "at": "00EC03",
-            "readsCycled": [
-              "00EC03",
-              "00EC04",
-              "00007F"
-            ],
+            "readsCycled": ["00EC03", "00EC04", "00007F"],
             "verdict": "a constant, and therefore not an address the part computed"
           }
         ]
