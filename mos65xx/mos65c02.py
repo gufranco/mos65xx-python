@@ -360,6 +360,12 @@ class Cpu(Nmos):
         return super().step()
 
     @override
+    def await_ready(self, write: bool = False) -> None:
+        """The CMOS parts halt on any cycle, with no exception for a write."""
+        self.stalls_on_write = True
+        super().await_ready(write)
+
+    @override
     def held(self) -> bool:
         """Either of the two states this part can put itself into deliberately."""
         return self.stopped or self.waiting

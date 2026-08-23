@@ -133,6 +133,9 @@ class Cpu:
         self._emulation = False
         self._s = 0x01FF
         self.cycle_budget: int | None = None
+        self.ready_line = True
+        """The ready line, high when the part may proceed. Low halts it where it stands."""
+
         self.irq_line = False
         """The request line, active when true. Level sensitive: held, not pulsed."""
 
@@ -385,6 +388,7 @@ class Cpu:
             self.on_cycle()
 
     def read8(self, address: int, data: bool = True, program: bool = False) -> int:
+        self.await_ready()
         found = self.memory.read8(address & self.address_mask) & 0xFF
         assert isinstance(found, int)
         if self.trace is not None:
@@ -395,6 +399,7 @@ class Cpu:
         return found
 
     def write8(self, address: int, value: int) -> None:
+        self.await_ready(write=True)
         self.memory.write8(address & self.address_mask, value & 0xFF)
         if self.trace is not None:
             self.trace.append(
@@ -1443,6 +1448,34 @@ class Cpu:
         self.pb = 0x00
         self.pc = self.vector16(vector)
         return True
+
+    def await_ready(self, write: bool = False) -> None:
+        """Spend cycles while the ready line is held low, which is what RDY does.
+
+        "A low input logic level on the Ready (RDY) will halt the microprocessor
+        in its current state." The part stops where it stands and the address
+        lines hold what they were driving, which is how slow memory is given time
+        to answer without slowing the clock.
+
+        This part has no exception for a write. The NMOS parts do, and the MOS
+        manual is explicit about it: "The RDY function will not stop the
+        processor in a cycle in which a WRITE operation is being performed."
+        Nothing in the W65C816S data sheet carves that out, so nothing here does,
+        and the `write` argument is accepted only so that one call reaches either
+        family. That is why this is shorter than the eight bit version rather
+        than carrying a branch it could never take.
+
+        A stall costs time and records nothing. The data sheet describes held
+        address lines rather than an access, and this trace records accesses, so
+        the cycle is charged and the bus picture is absent rather than invented.
+
+        A caller that holds the line low and never releases it will not get out
+        of here, which is exactly what a board that does the same gets. The cycle
+        hook fires on every stall, so a host driving the part by hand can release
+        the line from there, and a clock can release it between two cycles.
+        """
+        while not self.ready_line:
+            self.spend()
 
     def sample_pins(self) -> bool:
         """Read the interrupt lines the way the part reads them, and act on one.

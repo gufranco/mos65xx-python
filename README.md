@@ -119,6 +119,7 @@ Everything a caller touches, in one place. Nothing else is public.
 | `cpu.nmi()` | Pulls the line no flag defends against, and acts on it now | `True` if taken |
 | `cpu.irq_line` | The request line as a level. The data sheet is explicit that "no interrupt will occur if the interrupt source is cleared prior to interrupt recognition", so a request withdrawn before the instruction ends is not taken | `bool` |
 | `cpu.nmi_line` | The non-maskable line as a level. Edge sensitive, so the transition interrupts and holding it low afterwards does not interrupt again | `bool` |
+| `cpu.ready_line` | The ready line, high when the part may proceed. Held low it halts the part where it stands, which is how slow memory is given time without slowing the clock. The NMOS parts finish a write in progress and the CMOS parts do not, which the manuals state and which costs a different number of cycles on each | `bool` |
 | `cpu.abort()` | 65816 only. The rollback of the interrupted instruction is not modelled | `True` if taken |
 | `cpu.held()` | Whether the part can no longer start an instruction: jammed, stopped or waiting | `bool` |
 | `cpu.status()` / `cpu.set_status(byte)` | The status register as a byte. Setting a width bit narrows the register it governs | `int` / nothing |

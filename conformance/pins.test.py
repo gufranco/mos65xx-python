@@ -170,5 +170,79 @@ class SixteenBitPartTest(unittest.TestCase):
         self.assertNotEqual(cpu.pc, 0x7000)
 
 
+class ReadyLineTest(unittest.TestCase):
+    """That a low ready line halts the part, and that a write is the exception.
+
+    The exception belongs to the NMOS parts alone, and the MOS manual states it
+    outright: "The RDY function will not stop the processor in a cycle in which a
+    WRITE operation is being performed." The CMOS parts have no such carve-out,
+    so the same program costs a different number of cycles on each, which is what
+    these two tests measure.
+    """
+
+    def storing(self, model: str) -> Any:
+        space = mos65xx.Memory(image=bytes([0x85, 0x10]))
+        cpu = mos65xx.Cpu(model, space)
+        cpu.reset()
+        cpu.pc = 0x0000
+        cpu.a = 0x5A
+        return cpu
+
+    def cost_with_the_line_dropped_before_the_write(self, model: str) -> int:
+        cpu = self.storing(model)
+        seen = [0]
+
+        def hook() -> None:
+            seen[0] += 1
+            cpu.ready_line = seen[0] > 12 or seen[0] < 2
+
+        cpu.on_cycle = hook
+        return int(cpu.step())
+
+    def test_a_write_goes_through_on_an_nmos_part(self) -> None:
+        self.assertEqual(self.cost_with_the_line_dropped_before_the_write("6502"), 3)
+
+    def test_and_is_held_on_a_cmos_one(self) -> None:
+        self.assertGreater(self.cost_with_the_line_dropped_before_the_write("w65c02"), 3)
+
+    def test_the_sixteen_bit_part_holds_a_write_too(self) -> None:
+        space = mos65xx.Memory(image=bytes([0x85, 0x10]))
+        cpu = mos65xx.Cpu("65816", space)
+        cpu.reset()
+        cpu.pb, cpu.pc = 0x00, 0x0000
+        seen = [0]
+
+        def hook() -> None:
+            seen[0] += 1
+            cpu.ready_line = seen[0] > 12 or seen[0] < 2
+
+        cpu.on_cycle = hook
+
+        self.assertGreater(cpu.step(), 3)
+
+    def test_and_a_write_that_is_never_held_costs_nothing_extra(self) -> None:
+        space = mos65xx.Memory(image=bytes([0x85, 0x10]))
+        cpu = mos65xx.Cpu("65816", space)
+        cpu.reset()
+        cpu.pb, cpu.pc = 0x00, 0x0000
+
+        self.assertEqual(cpu.step(), 3)
+
+    def test_a_read_is_held_on_either(self) -> None:
+        cpu = mos65xx.Cpu("6502", mos65xx.Memory(image=bytes([0xEA] * 8)))
+        cpu.reset()
+        cpu.pc = 0x0000
+
+        with mos65xx.Clock(cpu) as clock:
+            clock.tick()
+            cpu.ready_line = False
+            clock.run_for(6)
+            stalled = cpu.pc
+            cpu.ready_line = True
+            clock.run_for(5)
+
+        self.assertEqual((stalled, cpu.pc), (0x0001, 0x0003))
+
+
 if __name__ == "__main__":
     unittest.main()

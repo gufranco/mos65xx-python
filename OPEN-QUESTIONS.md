@@ -252,8 +252,12 @@ Absent rather than unknown, and absent on purpose:
   has begun cannot be abandoned, because its changes are already in the
   registers. No published corpus covers an abort, so there is nothing to hold an
   implementation to.
-- **Bus arbitration and wait states.** A model with no bus master and no slow
-  memory has nothing to arbitrate.
+- **Bus arbitration.** A model with no second bus master has nothing to
+  arbitrate. Wait states are no longer in this list: `ready_line` halts the part
+  where it stands, and the NMOS exception for a write in progress is modelled
+  because the MOS manual states it. What a stalled part holds on its address
+  lines is absent for the same reason a halted one is, which the entry above
+  covers.
 - **Which cycle within an instruction the request line is latched on.** The
   lines are lines now: `irq_line` is level sensitive and `nmi_line` interrupts on
   its transition, and both are read where the data sheet puts recognition, after
