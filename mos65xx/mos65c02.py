@@ -375,7 +375,7 @@ class Cpu(Nmos):
         time is charged because the board's clock is still running; the held lines
         are not represented, which OPEN-QUESTIONS.md says plainly.
         """
-        self.cycles += 1
+        self.spend()
 
     def modify_bit(self, bit: int, set_it: bool) -> None:
         address = self.effective("zeroPage")

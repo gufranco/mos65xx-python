@@ -26,7 +26,8 @@ from __future__ import annotations
 from typing import Any
 
 from . import mos65c02, mos6502, opcodes65c02, opcodes6502
-from .errors import RunLimit, Stopped, UnsupportedError, Waiting
+from .clock import Clock
+from .errors import ClockClosed, RunLimit, Stopped, UnsupportedError, Waiting
 from .memory import Memory, SparseMemory, scramble
 from .models import MODELS, Model, NoSuchPin, UnknownModelError, describe
 from .opcodes65816 import (
@@ -88,6 +89,8 @@ __all__ = [
     "MODE_SIZE",
     "OPCODES",
     "UNSET_SEED",
+    "Clock",
+    "ClockClosed",
     "Cpu",
     "Cpu65816",
     "Memory",

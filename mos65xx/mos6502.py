@@ -100,6 +100,9 @@ class Cpu:
         self.address_mask = 0xFFFF
         self.package_pins: tuple[str, ...] = ("irq", "nmi", "rdy")
 
+        self.on_cycle: Callable[[], None] | None = None
+        """Called once per cycle, after that cycle's bus activity."""
+
         self.trace: list[tuple[int, int, str]] | None = None
 
         self.power_on(seed)
@@ -146,7 +149,8 @@ class Cpu:
         the six it drives here. Six invented addresses would read as knowledge;
         a gap that OPEN-QUESTIONS.md names does not.
         """
-        self.cycles += RESET_DELAY
+        for _ in range(RESET_DELAY):
+            self.spend()
         self.i = True
         self.stopped = False
         self.jammed = False
@@ -176,19 +180,35 @@ class Cpu:
         self.z = bool(value & FLAG_Z)
         self.c = bool(value & FLAG_C)
 
-    def read8(self, address: int) -> int:
+    def spend(self) -> None:
+        """Account for one cycle, and tell whoever is watching that it happened.
+
+        Every cycle this part runs passes through here and nowhere else. That is
+        deliberate: a counter kept in one place and a hook called from another
+        drift the moment somebody adds a cycle to only one of them, and a host
+        pacing against a clock would never find out.
+
+        `on_cycle` is what a board hangs off the pin. It is called once per
+        cycle, after that cycle's bus activity has happened, so what it observes
+        is a cycle the part has finished rather than one it is about to start.
+        """
         self.cycles += 1
+        if self.on_cycle is not None:
+            self.on_cycle()
+
+    def read8(self, address: int) -> int:
         found = self.memory.read8(address & 0xFFFF) & 0xFF
         assert isinstance(found, int)
         if self.trace is not None:
             self.trace.append((address & 0xFFFF, found, "read"))
+        self.spend()
         return found
 
     def write8(self, address: int, value: int) -> None:
-        self.cycles += 1
         self.memory.write8(address & 0xFFFF, value & 0xFF)
         if self.trace is not None:
             self.trace.append((address & 0xFFFF, value & 0xFF, "write"))
+        self.spend()
 
     def dead(self, address: int) -> None:
         """A cycle spent reading something the part will not use.

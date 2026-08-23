@@ -146,6 +146,20 @@ hold it to a real frequency.
   the board's clock has not stopped.
 - **`held()` answers whether a part has stopped advancing the program.** One
   name across the family for a question each part answers differently.
+- **Every cycle passes through one place.** A counter kept in one method and a
+  watcher called from another drift the first time somebody adds a cycle to only
+  one of them, and nothing catches it. One method spends the cycle, bumps the
+  count and calls `on_cycle`, and every path that costs a cycle goes through it,
+  including the ones that touch no memory.
+- **`Clock` suspends the part between any two cycles.** `step()` is the fast
+  path and runs whole instructions; `Clock.tick()` advances exactly one cycle and
+  stops, so a host can change what a read will answer part way through an
+  instruction. An instruction is an ordinary call stack and Python cannot suspend
+  one, so the clock runs the part on a thread and lets it block where the cycle
+  is spent. This is what ares and bsnes do, and it is what keeps every
+  instruction written the way it reads. It is much slower than `step()`, which is
+  the correct trade: one source of truth for the instruction, two ways to drive
+  it, and the accurate one is never the one that got dropped.
 - **Where `step()` cannot complete an instruction, `held_cycle()` produces one
   cycle of that state and `step()` raises.** `Stopped` when only a reset will
   restart the part, `Waiting` when an interrupt will. The Z80 needs neither: a

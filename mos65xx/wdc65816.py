@@ -133,6 +133,9 @@ class Cpu:
         self._emulation = False
         self._s = 0x01FF
         self.cycle_budget: int | None = None
+        self.on_cycle: Callable[[], None] | None = None
+        """Called once per cycle, after that cycle's bus activity."""
+
         self.trace: list[tuple[int | None, int | None, str]] | None = None
         """Every cycle this part drove, as address, value and the eight output lines.
 
@@ -233,7 +236,8 @@ class Cpu:
         the six it drives here. Six invented addresses would read as knowledge;
         a gap that OPEN-QUESTIONS.md names does not.
         """
-        self.cycles += RESET_DELAY
+        for _ in range(RESET_DELAY):
+            self.spend()
         self.s = 0x0100 | (self.s & 0xFF)
 
         self.d = 0x0000
@@ -339,9 +343,9 @@ class Cpu:
         A halted part is not a part that has stopped existing. Its host still has
         a clock, and this is what that clock finds on the bus each time it ticks.
         """
-        self.cycles += 1
         if self.trace is not None:
             self.trace.append((None, None, HALTED_PINS))
+        self.spend()
 
     def held(self) -> bool:
         """Whether the part can no longer begin an instruction on its own.
@@ -355,23 +359,39 @@ class Cpu:
         """One cycle of a part in that state, which here drives nothing at all."""
         self.halt_cycle()
 
-    def read8(self, address: int, data: bool = True, program: bool = False) -> int:
+    def spend(self) -> None:
+        """Account for one cycle, and tell whoever is watching that it happened.
+
+        Every cycle this part runs passes through here and nowhere else. That is
+        deliberate: a counter kept in one place and a hook called from another
+        drift the moment somebody adds a cycle to only one of them, and a host
+        pacing against a clock would never find out.
+
+        `on_cycle` is what a board hangs off the pin. It is called once per
+        cycle, after that cycle's bus activity has happened, so what it observes
+        is a cycle the part has finished rather than one it is about to start.
+        """
         self.cycles += 1
+        if self.on_cycle is not None:
+            self.on_cycle()
+
+    def read8(self, address: int, data: bool = True, program: bool = False) -> int:
         found = self.memory.read8(address & self.address_mask) & 0xFF
         assert isinstance(found, int)
         if self.trace is not None:
             self.trace.append(
                 (address & self.address_mask, found, self.pins(data, program, self.pulling, False))
             )
+        self.spend()
         return found
 
     def write8(self, address: int, value: int) -> None:
-        self.cycles += 1
         self.memory.write8(address & self.address_mask, value & 0xFF)
         if self.trace is not None:
             self.trace.append(
                 (address & self.address_mask, value & 0xFF, self.pins(True, False, False, True))
             )
+        self.spend()
 
     def internal(self, address: int, write: bool = False, value: int | None = None) -> None:
         """A cycle the part spends without asking memory for anything.
@@ -387,11 +407,11 @@ class Cpu:
         That is how a part compatible with one that writes twice avoids writing
         twice.
         """
-        self.cycles += 1
         if self.trace is not None:
             self.trace.append(
                 (address & self.address_mask, value, self.pins(False, False, False, write))
             )
+        self.spend()
 
     def opcode8(self) -> int:
         """Fetch an opcode, which is the one cycle with both address lines high."""

@@ -42,3 +42,11 @@ class RunLimit(Exception):
     runs until the power goes. The bound is a courtesy to whoever is driving, not
     a property of the silicon.
     """
+
+
+class ClockClosed(Exception):
+    """A clock that has been closed cannot be ticked again.
+
+    Nothing about the processor. The clock has let its worker go and handed the
+    part's hook back, so there is nothing left to advance.
+    """

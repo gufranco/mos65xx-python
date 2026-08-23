@@ -251,8 +251,10 @@ Absent rather than unknown, and absent on purpose:
   instruction, and this core finishes an instruction before it will take one.
 - **Bus arbitration and wait states.** A model with no bus master and no slow
   memory has nothing to arbitrate.
-- **A clock that drives the part rather than a host that counts.** `step()` runs
-  one whole instruction and reports the cycles it cost, and `run_for()` spends a
-  budget of them. Neither is a cycle-by-cycle entry point: nothing outside can
-  advance the part half an instruction and read a pin. That is why the line above
-  about pins under load reads as it does, and closing one would close the other.
+- **A pin asserted part way through an instruction.** `Clock` now advances the
+  part one cycle at a time and stops between any two, so a host can change what a
+  read will answer mid-instruction. What is still absent is the other half: the
+  part does not sample `irq`, `nmi` or `abort` at the cycle the data sheet says
+  it samples them. It takes them between instructions. Closing that needs the
+  core to announce the cycle where the latch happens, which is what ares calls
+  `lastCycle`, rather than any further work on the clock.

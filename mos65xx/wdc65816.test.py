@@ -427,6 +427,18 @@ class HaltTest(unittest.TestCase):
 
         self.assertEqual(cpu.cycles - before, emu.RESET_DELAY + 2)
 
+    def test_every_cycle_reaches_a_watcher_including_the_internal_ones(self) -> None:
+        memory = FlatMemory({0x008000: 0x0A})
+        cpu = emu.Cpu(memory)
+        cpu.reset()
+        cpu.pb, cpu.pc = 0x00, 0x8000
+        seen: list[int] = []
+        cpu.on_cycle = lambda: seen.append(1)
+
+        spent = cpu.step()
+
+        self.assertEqual(len(seen), spent)
+
     def test_a_waiting_part_will_not_run_the_next_instruction(self) -> None:
         memory = FlatMemory({0x008000: 0xCB, 0x008001: 0xEA})
         cpu = emu.Cpu(memory)
