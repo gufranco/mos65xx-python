@@ -53,7 +53,7 @@ class Scene:
             memory.write8(START + offset, byte)
         for address, value in self.seed.items():
             memory.write8(address, value)
-        cpu = core.Cpu(memory, reset=False)
+        cpu = core.Cpu(memory)
         cpu.emulation = False
         cpu.m8 = cpu.x8 = True
         cpu.pb, cpu.pc = 0x00, START & 0xFFFF

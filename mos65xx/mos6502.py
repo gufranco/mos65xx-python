@@ -86,7 +86,6 @@ class Cpu:
         self,
         memory: Any,
         seed: int = UNSET_SEED,
-        reset: bool = True,
         decimal: bool = True,
         table: Any = NMOS,
     ) -> None:
@@ -104,9 +103,6 @@ class Cpu:
         self.trace: list[tuple[int, int, str]] | None = None
 
         self.power_on(seed)
-
-        if reset:
-            self.reset(seed)
 
     def power_on(self, seed: int = UNSET_SEED) -> None:
         """The state the part is in when the rail comes up and nothing else has.

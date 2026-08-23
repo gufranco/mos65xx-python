@@ -86,7 +86,7 @@ class AppendixBusTest(unittest.TestCase):
             memory.write8(0x0200 + offset, byte)
         memory.write8(0x0010, 0xF0)
         memory.write8(0x0011, 0x12)
-        cpu = mos6502.Cpu(memory, reset=False)
+        cpu = mos6502.Cpu(memory)
         cpu.pc, cpu.s = 0x0200, 0x80
         cpu.set_status(0x24)
         cpu.a = cpu.x = cpu.y = 0
@@ -167,7 +167,7 @@ class DataBankOnInterruptTest(unittest.TestCase):
 
     def broken(self, emulation: bool) -> Any:
         memory = Memory(0x1000000)
-        cpu = wdc65816.Cpu(memory, reset=False)
+        cpu = wdc65816.Cpu(memory)
         cpu.emulation = emulation
         cpu.db = 0x7E
         cpu.pb, cpu.pc = 0x00, 0x8000
@@ -195,7 +195,7 @@ class PointerWrapTest(unittest.TestCase):
 
     def addresses(self, opcode: int) -> list[int]:
         memory = Watched()
-        cpu = wdc65816.Cpu(memory, reset=False)
+        cpu = wdc65816.Cpu(memory)
         cpu.emulation = True
         cpu.d = ALIGNED_PAGE
         cpu.x = cpu.y = 0x00
@@ -231,7 +231,7 @@ class PointerWrapTest(unittest.TestCase):
 
     def test_nothing_wraps_when_the_direct_register_is_not_page_aligned(self) -> None:
         memory = Watched()
-        cpu = wdc65816.Cpu(memory, reset=False)
+        cpu = wdc65816.Cpu(memory)
         cpu.emulation = True
         cpu.d = ALIGNED_PAGE | 0x01
         cpu.pb, cpu.pc = 0x00, 0x8000

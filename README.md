@@ -34,7 +34,7 @@ memory = SparseMemory()
 memory.write8(0x008000, 0xA9)
 memory.write8(0x008001, 0x42)
 
-cpu = Cpu("65816", memory, reset=False)
+cpu = Cpu("65816", memory)
 cpu.pb, cpu.pc = 0x00, 0x8000
 cpu.step()
 
@@ -133,13 +133,14 @@ Everything a caller touches, in one place. Nothing else is public.
 | `cpu.trace` | set it to a list and every bus cycle is appended: address, value, and on the 65816 eight output pins |
 | `cpu.package_pins` | which interrupt lines this package actually brings out |
 
-Options to `Cpu`: `seed=` fixes the undefined state, and `reset=False` hands back
-a part that has been powered and not yet reset. That is a real instant on a real
-board and it is modelled as one: every register holds rubbish derived from the
-seed, the program counter included, so stepping it executes rubbish from a
-rubbish address. It has spent no cycles, because nothing has driven RESET yet.
-The default performs the reset a board performs at power on, which costs the six
-delay cycles the manual names plus the two of the vector fetch. The eight-bit cores also take `decimal=False` for the Ricoh
+**A part arrives powered, not reset.** There is no option to skip that and no
+option to start clean, because no board offers one. Every register holds rubbish
+derived from the seed, the program counter included, so stepping it executes
+rubbish from a rubbish address, and nothing has been spent because nothing has
+driven RESET yet. Call `reset()` to get a machine that runs a program: it costs
+the six delay cycles the manual names plus the two of the vector fetch.
+
+Options to `Cpu`: `seed=` fixes the undefined state. The eight-bit cores also take `decimal=False` for the Ricoh
 part, whose decimal adder is not wired, and `table=` for the opcode set of a
 particular revision. Both are set for you by name, so `Cpu("2a03")` is the
 normal way to ask.
@@ -236,24 +237,24 @@ cpu = Cpu("65802", SparseMemory())
 16
 ```
 
-| Model | Address bits | Pins | Decimal | Notes |
+| Build it with | Address bits | Pins | Decimal | Notes |
 |:------|:------------:|:-----|:-------:|:------|
-| `6502` | 16 | IRQ, NMI, RDY | yes | MOS 6502. Aliases: `mos6502`, `nmos6502`, `6510`, `8500` |
-| `6503` | 12 | IRQ, NMI | yes | Four kilobytes, on-chip clock. Aliases: `mos6503` |
-| `6504` | 13 | IRQ | yes | Eight kilobytes, no non-maskable pin. Aliases: `mos6504` |
-| `6505` | 12 | IRQ, RDY | yes | Four kilobytes, ready line, no non-maskable pin. Aliases: `mos6505` |
-| `6506` | 12 | IRQ | yes | Four kilobytes, second clock output instead of ready. Aliases: `mos6506` |
-| `6507` | 13 | RDY | yes | The same die in a smaller package, no interrupt pins at all. Aliases: `mos6507` |
-| `6512` | 16 | IRQ, NMI, RDY | yes | The 6502 with the clock oscillator left off the die. Aliases: `mos6512` |
-| `6513` | 12 | IRQ, NMI | yes | The 6503 on an external clock. Aliases: `mos6513` |
-| `6514` | 13 | IRQ | yes | The 6504 on an external clock. Aliases: `mos6514` |
-| `6515` | 12 | IRQ, RDY | yes | The 6505 on an external clock. Aliases: `mos6515` |
-| `2a03` | 16 | IRQ, NMI, RDY | **no** | Ricoh 2A03 and 2A07. Aliases: `ricoh2a03`, `2a07`, `nes6502`, `famicom` |
-| `65c02` | 16 | IRQ, NMI, RDY | yes | The base CMOS design. Aliases: `synertek65c02`, `cmos6502` |
-| `r65c02` | 16 | IRQ, NMI, RDY | yes | Rockwell R65C02, adding thirty two single-bit instructions. Aliases: `rockwell65c02` |
-| `w65c02` | 16 | IRQ, NMI, RDY | yes | WDC W65C02S, adding stop and wait. Aliases: `wdc65c02`, `w65c02s` |
-| `65802` | 16 | IRQ, NMI, RDY | yes | WDC W65C802, the sixteen bit core in a 6502 pin out. Aliases: `w65c802`, `65c802` |
-| `65816` | 24 | IRQ, NMI, RDY | yes | WDC W65C816S. Aliases: `w65c816`, `w65c816s`, `65c816`, `65816s` |
+| `Cpu("6502")` | 16 | IRQ, NMI, RDY | yes | MOS 6502. Aliases: `mos6502`, `nmos6502`, `6510`, `8500` |
+| `Cpu("6503")` | 12 | IRQ, NMI | yes | Four kilobytes, on-chip clock. Aliases: `mos6503` |
+| `Cpu("6504")` | 13 | IRQ | yes | Eight kilobytes, no non-maskable pin. Aliases: `mos6504` |
+| `Cpu("6505")` | 12 | IRQ, RDY | yes | Four kilobytes, ready line, no non-maskable pin. Aliases: `mos6505` |
+| `Cpu("6506")` | 12 | IRQ | yes | Four kilobytes, second clock output instead of ready. Aliases: `mos6506` |
+| `Cpu("6507")` | 13 | RDY | yes | The same die in a smaller package, no interrupt pins at all. Aliases: `mos6507` |
+| `Cpu("6512")` | 16 | IRQ, NMI, RDY | yes | The 6502 with the clock oscillator left off the die. Aliases: `mos6512` |
+| `Cpu("6513")` | 12 | IRQ, NMI | yes | The 6503 on an external clock. Aliases: `mos6513` |
+| `Cpu("6514")` | 13 | IRQ | yes | The 6504 on an external clock. Aliases: `mos6514` |
+| `Cpu("6515")` | 12 | IRQ, RDY | yes | The 6505 on an external clock. Aliases: `mos6515` |
+| `Cpu("2a03")` | 16 | IRQ, NMI, RDY | **no** | Ricoh 2A03 and 2A07. Aliases: `ricoh2a03`, `2a07`, `ricoh2a07`, `nes6502`, `famicom` |
+| `Cpu("65c02")` | 16 | IRQ, NMI, RDY | yes | The base CMOS design. Aliases: `synertek65c02`, `cmos6502` |
+| `Cpu("r65c02")` | 16 | IRQ, NMI, RDY | yes | Rockwell R65C02, adding thirty two single-bit instructions. Aliases: `rockwell65c02` |
+| `Cpu("w65c02")` | 16 | IRQ, NMI, RDY | yes | WDC W65C02S, adding stop and wait. Aliases: `wdc65c02`, `w65c02s` |
+| `Cpu("65802")` | 16 | IRQ, NMI, RDY | yes | WDC W65C802, the sixteen bit core in a 6502 pin out. Aliases: `w65c802`, `65c802` |
+| `Cpu("65816")` | 24 | IRQ, NMI, RDY | yes | WDC W65C816S. Aliases: `w65c816`, `w65c816s`, `65c816`, `65816s` |
 
 Three of those differences are the kind that produce a bug rather than a compile error.
 
@@ -296,7 +297,7 @@ print(Memory(size=0x1000).data == bytearray(0x1000))
 cpu = Cpu("65816", Memory(size=0x1000000))
 print(hex(cpu.a), hex(cpu.x), hex(cpu.y))
 
-powered = Cpu("65816", Memory(size=0x1000000), reset=False)
+powered = Cpu("65816", Memory(size=0x1000000))
 print(hex(powered.pc), powered.cycles)
 ```
 

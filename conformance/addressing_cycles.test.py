@@ -120,7 +120,7 @@ class Scene:
             space.write8(self.pc + offset, byte)
         for address, value in self.seed.items():
             space.write8(address, value)
-        cpu = Cpu("6502", space, reset=False)
+        cpu = Cpu("6502", space)
         cpu.pc, cpu.s = self.pc, self.named.get("s", STACK)
         cpu.a, cpu.x, cpu.y = 0x5A, self.named.get("x", 0), self.named.get("y", 0)
         cpu.set_status(self.named.get("p", 0x24))
@@ -442,7 +442,7 @@ class StackWrapTest(unittest.TestCase):
     def pulled(self, stack: int) -> list[int]:
         space = SparseMemory()
         space.write8(START, 0x40)
-        cpu = Cpu("6502", space, reset=False)
+        cpu = Cpu("6502", space)
         cpu.pc, cpu.s = START, stack
         cpu.set_status(0x24)
         cpu.trace = []

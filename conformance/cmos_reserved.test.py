@@ -35,7 +35,7 @@ def run(opcode: int, model: str = "w65c02") -> tuple[int, int]:
     space = SparseMemory()
     for offset, byte in enumerate((opcode, 0x11, 0x22, 0xEA)):
         space.write8(START + offset, byte)
-    cpu = Cpu(model, space, reset=False)
+    cpu = Cpu(model, space)
     cpu.pc, cpu.s = START, 0x80
     cpu.set_status(0x24)
     cpu.trace = []
@@ -131,7 +131,7 @@ class DisputedTest(unittest.TestCase):
         space = SparseMemory()
         for offset, byte in enumerate((0x5C, 0x11, 0x22, 0xEA)):
             space.write8(START + offset, byte)
-        cpu = Cpu("w65c02", space, reset=False)
+        cpu = Cpu("w65c02", space)
         cpu.pc, cpu.s = START, 0x80
         cpu.set_status(0x24)
         cpu.trace = []

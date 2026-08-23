@@ -68,13 +68,16 @@ or quick to run.
   answers zero turns that defect into a passing test.
 - **Power on scrambles; reset defines.** The two are separate events and the
   model keeps them separate. Construction puts every register in the state the
-  rail coming up leaves it, the program counter included, so a part built with
-  `reset=False` executes rubbish from a rubbish address exactly as the silicon
-  would. `reset()` then sets only what a reset actually defines and leaves
-  everything else holding what it held, because a reset does not write random
-  values into the accumulator. A core that scrambles inside `reset()` has
-  conflated the two, and a core that zeroes when asked to skip the reset has
-  quietly shipped the clean start the rule above forbids.
+  rail coming up leaves it, the program counter included, so a newly built part
+  executes rubbish from a rubbish address exactly as the silicon would.
+  `reset()` then sets only what a reset actually defines and leaves everything
+  else holding what it held, because a reset does not write random values into
+  the accumulator. A core that scrambles inside `reset()` has conflated the two.
+- **A caller resets the part; the constructor never does.** There is no option
+  to arrive reset and none to arrive cleared, because no board offers either. A
+  processor is powered and then held in reset by something outside it, and a
+  model that does the reset on the caller's behalf has hidden an event that
+  costs cycles and drives pins.
 - **A reset costs what the manufacturer says it costs.** It is a real event on a
   real bus, so its cycles are charged and appear in the tally.
 - **Bugs are features.** A part's defects are modelled, not corrected. A core
@@ -171,6 +174,7 @@ something its own documentation does not call it.
 | Test layout | `<module>.test.py` beside the module it covers |
 | Test shape | Arrange, blank line, one act, blank line, assert. No section labels |
 | Coverage | 100% statements and branches, enforced |
+| Models in the readme | Every part the package accepts is shown being built, as `Cpu("name")`, with every alias it answers to named beside it. A part nobody can find is a part nobody uses, and the check is for the call rather than the bare name because the call is what a reader came for. Enforced by `conformance/family.test.py` |
 | Types | `mypy` at strict, plus every optional error class |
 | Commits | Conventional Commits, subject under 50 characters |
 | Corpora | Fetched and pinned by commit, never vendored |

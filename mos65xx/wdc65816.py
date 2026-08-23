@@ -125,7 +125,6 @@ class Cpu:
         self,
         memory: Any,
         seed: int = UNSET_SEED,
-        reset: bool = True,
     ) -> None:
         self.memory = memory
         self.model = "65816"
@@ -148,8 +147,6 @@ class Cpu:
         self.stopped = False
         self.waiting = False
         self.power_on(seed)
-        if reset:
-            self.reset(seed)
 
     @property
     def emulation(self) -> bool:

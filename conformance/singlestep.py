@@ -79,7 +79,7 @@ def machine_for(initial: Mapping[str, Any], model: str = DEFAULT_MODEL) -> Any:
     for address, value in initial["ram"]:
         memory.write8(address, value)
 
-    cpu = Cpu(model, memory, reset=False)
+    cpu = Cpu(model, memory)
     if "e" in initial:
         cpu.emulation = bool(initial["e"])
     cpu.set_status(initial["p"])

@@ -17,7 +17,7 @@ def machine(
     memory = SparseMemory(seed=1)
     for offset, value in enumerate(program):
         memory.write8(at + offset, value)
-    cpu = mos6502.Cpu(memory, decimal=decimal, reset=False)
+    cpu = mos6502.Cpu(memory, decimal=decimal)
     cpu.set_status(0x24)
     cpu.a = cpu.x = cpu.y = 0x00
     cpu.s = 0xFD
@@ -34,6 +34,7 @@ class ResetTest(unittest.TestCase):
         memory.write8(0xFFFD, 0x12)
 
         cpu = mos6502.Cpu(memory)
+        cpu.reset()
 
         self.assertEqual(cpu.pc, 0x1234)
 
@@ -41,7 +42,9 @@ class ResetTest(unittest.TestCase):
         memory = SparseMemory(seed=3)
 
         first = mos6502.Cpu(memory, seed=7)
+        first.reset()
         second = mos6502.Cpu(memory, seed=8)
+        second.reset()
 
         self.assertNotEqual((first.a, first.x, first.y), (second.a, second.x, second.y))
 
@@ -49,7 +52,9 @@ class ResetTest(unittest.TestCase):
         memory = SparseMemory(seed=3)
 
         first = mos6502.Cpu(memory, seed=9)
+        first.reset()
         second = mos6502.Cpu(memory, seed=9)
+        second.reset()
 
         self.assertEqual((first.a, first.x, first.y), (second.a, second.x, second.y))
 
@@ -433,7 +438,7 @@ class EveryOpcodeTest(unittest.TestCase):
 
     def machine(self, opcode: int, state: Any) -> Any:
         memory = SparseMemory(seed=opcode)
-        cpu = mos6502.Cpu(memory, reset=False, decimal=state["decimal"])
+        cpu = mos6502.Cpu(memory, decimal=state["decimal"])
         cpu.set_status(0x24)
         cpu.d, cpu.c = state["d"], state["c"]
         cpu.a, cpu.x, cpu.y = 0x9C, 0x5A, 0xA5

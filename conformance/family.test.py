@@ -71,7 +71,7 @@ def a_running_part() -> Part:
     Left in scrambled memory a part reaches a halting opcode within a few dozen
     instructions, which is correct behaviour and useless for testing a limit.
     """
-    part = mos65xx.Cpu("65816", mos65xx.Memory(image=bytes([0xEA] * 256)), reset=False)
+    part = mos65xx.Cpu("65816", mos65xx.Memory(image=bytes([0xEA] * 256)))
     part.pb = 0x00
     part.pc = 0x0000
     checked: Part = part
@@ -148,6 +148,35 @@ class SharedFileTest(unittest.TestCase):
         missing = [row for row in promised if not (ROOT / row).exists()]
 
         self.assertEqual(missing, [])
+
+
+class DocumentedModelTest(unittest.TestCase):
+    """That the readme shows how to build every part the package accepts.
+
+    A model nobody can find in the readme is a model nobody uses. The check is
+    for the constructor call rather than the bare name, because a name in prose
+    tells a reader the part exists and a call tells them how to reach it, and the
+    second is what they came for.
+    """
+
+    def test_every_model_has_a_worked_construction(self) -> None:
+        readme = (ROOT / "README.md").read_text()
+
+        undocumented = [name for name in mos65xx.MODELS if f'Cpu("{name}")' not in readme]
+
+        self.assertEqual(undocumented, [])
+
+    def test_and_every_alias_is_named_beside_it(self) -> None:
+        readme = (ROOT / "README.md").read_text()
+
+        unnamed = [
+            alias
+            for model in mos65xx.MODELS.values()
+            for alias in model.aliases
+            if alias not in readme
+        ]
+
+        self.assertEqual(unnamed, [])
 
 
 if __name__ == "__main__":

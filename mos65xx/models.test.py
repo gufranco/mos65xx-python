@@ -78,12 +78,12 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(cpu.read8(0x7E0012), 0x5A)
 
     def test_options_reach_the_processor_that_gets_built(self) -> None:
-        cpu = mos65xx.Cpu("65816", self.memory(), reset=False)
+        cpu = mos65xx.Cpu("65816", self.memory())
 
         self.assertEqual(cpu.cycles, 0)
 
     def test_a_part_that_was_never_reset_does_not_come_up_cleared(self) -> None:
-        cpu = mos65xx.Cpu("65816", self.memory(), reset=False)
+        cpu = mos65xx.Cpu("65816", self.memory())
 
         self.assertNotEqual((cpu.a, cpu.x, cpu.y, cpu.pc, cpu.d), (0, 0, 0, 0, 0))
 
@@ -132,6 +132,7 @@ class NarrowingTest(unittest.TestCase):
         for offset, byte in enumerate(code):
             space.write8(at + offset, byte)
         cpu = models.describe(name).build(space)
+        cpu.reset()
         cpu.pc = at
         cpu.trace = []
         for _ in range(4):

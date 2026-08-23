@@ -19,7 +19,7 @@ def machine(
     memory = SparseMemory(seed=1)
     for offset, value in enumerate(program):
         memory.write8(at + offset, value)
-    cpu = mos65c02.Cpu(memory, reset=False, table=table)
+    cpu = mos65c02.Cpu(memory, table=table)
     cpu.set_status(0x24)
     cpu.a = cpu.x = cpu.y = 0x00
     cpu.s = 0xFD
@@ -379,7 +379,7 @@ class EveryOpcodeTest(unittest.TestCase):
         for name, table in opcodes65c02.TABLES.items():
             for opcode in range(256):
                 memory = SparseMemory(seed=opcode)
-                cpu = mos65c02.Cpu(memory, reset=False, table=table)
+                cpu = mos65c02.Cpu(memory, table=table)
                 cpu.set_status(0x24)
                 cpu.a, cpu.x, cpu.y, cpu.s, cpu.pc = 0x9C, 0x5A, 0xA5, 0xFD, 0x8000
                 memory.write8(0x8000, opcode)
@@ -598,7 +598,9 @@ class ResetTest(unittest.TestCase):
         memory = SparseMemory(seed=seed)
         memory.write8(0xFFFC, 0x00)
         memory.write8(0xFFFD, 0x80)
-        return mos65c02.Cpu(memory, seed=seed)
+        cpu = mos65c02.Cpu(memory, seed=seed)
+        cpu.reset(seed)
+        return cpu
 
     def test_decimal_mode_is_off_afterwards(self) -> None:
         self.assertFalse(self.machine(3).d)
@@ -611,7 +613,12 @@ class ResetTest(unittest.TestCase):
         memory.write8(0xFFFC, 0x00)
         memory.write8(0xFFFD, 0x80)
 
-        self.assertTrue(any(mos6502.Cpu(memory, seed=seed).d for seed in range(24)))
+        def reset_part(seed: int) -> Any:
+            cpu = mos6502.Cpu(memory, seed=seed)
+            cpu.reset(seed)
+            return cpu
+
+        self.assertTrue(any(reset_part(seed).d for seed in range(24)))
 
     def test_interrupts_are_disabled_afterwards(self) -> None:
         self.assertTrue(self.machine(3).i)

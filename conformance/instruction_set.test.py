@@ -96,7 +96,7 @@ def machine(opcode: int, mode: str, crossing: bool, seed: int) -> core.Cpu:
     space.write8(POINTER + 1, BASE)
     for address in range(0x1200, 0x1400):
         space.write8(address, generator.randrange(256))
-    cpu = core.Cpu(space, reset=False)
+    cpu = core.Cpu(space)
     cpu.pc, cpu.s = start, 0x80
     cpu.a, cpu.x, cpu.y = generator.randrange(256), 0x20, 0x20
     cpu.set_status(generator.randrange(256))
