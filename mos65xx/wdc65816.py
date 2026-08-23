@@ -213,6 +213,11 @@ class Cpu:
         self.waiting = False
 
     def status(self) -> int:
+        """The status byte as anything reading it would see.
+
+        In emulation mode the two width bits read as the break and unused bits
+        of a 6502, because that is what the register is in that mode.
+        """
         value = 0
         value |= FLAG_N if self.n else 0
         value |= FLAG_V if self.v else 0
@@ -225,6 +230,16 @@ class Cpu:
         return value
 
     def set_status(self, value: int) -> None:
+        """Take a status byte, keeping only the bits the register actually has.
+
+        Setting a width bit narrows the register it governs, and the two widths
+        do not behave alike. Narrowing the index registers truncates them, so the
+        high byte of X and Y is gone and widening again does not bring it back.
+        Narrowing the accumulator hides its high byte rather than discarding it:
+        the byte stays in the register as B, XBA swaps the halves, and widening
+        again reveals it. Emulation mode forces both widths regardless of what
+        the byte asked for.
+        """
         self.n = bool(value & FLAG_N)
         self.v = bool(value & FLAG_V)
         self.decimal = bool(value & FLAG_D)
@@ -288,6 +303,18 @@ class Cpu:
         self.cycles += 1
         if self.trace is not None:
             self.trace.append((None, None, HALTED_PINS))
+
+    def held(self) -> bool:
+        """Whether the part can no longer begin an instruction on its own.
+
+        Either of the two states it can put itself into deliberately. Only a
+        reset ends the first; an interrupt ends the second.
+        """
+        return self.stopped or self.waiting
+
+    def held_cycle(self) -> None:
+        """One cycle of a part in that state, which here drives nothing at all."""
+        self.halt_cycle()
 
     def read8(self, address: int, data: bool = True, program: bool = False) -> int:
         self.cycles += 1
@@ -739,6 +766,12 @@ class Cpu:
         return self.cycles - started
 
     def call(self, address: int) -> Cpu:
+        """Run from an address until the routine it names returns.
+
+        Counts the calls it passes so a routine that calls another comes back
+        here rather than at the inner return, and takes a full twenty four bit
+        address because on this part the bank is part of where a routine lives.
+        """
         self.pb = (address >> 16) & 0xFF
         self.pc = address & 0xFFFF
         depth = 0
@@ -771,8 +804,8 @@ class Cpu:
         """
         spent = 0
         while spent < cycles:
-            if self.stopped or self.waiting:
-                self.halt_cycle()
+            if self.held():
+                self.held_cycle()
                 spent += 1
             else:
                 spent += self.step()
@@ -1343,9 +1376,25 @@ class Cpu:
         return True
 
     def irq(self) -> bool:
+        """Pull the interrupt request line, and say whether the part took it.
+
+        The line is level sensitive and the disable flag decides, so a request
+        that arrives with interrupts disabled is not remembered: it is simply not
+        taken, and a caller holding the line low will have it taken later when the
+        flag clears. False means the request is still outstanding. It also
+        releases a part that is waiting on WAI, which is what that instruction is
+        for.
+        """
         return self.interrupt("irq")
 
     def nmi(self) -> bool:
+        """Pull the non-maskable line, which no flag defends against.
+
+        The real pin is edge sensitive, so it is the transition that interrupts
+        and holding the line low afterwards does nothing. A caller models that by
+        calling this once per transition. It returns False only when the part has
+        been stopped, because a part with no clock takes nothing.
+        """
         return self.interrupt("nmi")
 
     def abort(self) -> bool:

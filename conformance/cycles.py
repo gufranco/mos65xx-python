@@ -141,15 +141,8 @@ def check(test: Mapping[str, Any], model: str = DEFAULT_MODEL) -> list[Cycle] | 
         cpu.trace = []
         cpu.step()
         want = len(recorded(test))
-        while len(cpu.trace) < want:
-            if getattr(cpu, "jammed", False):
-                cpu.jam_cycle()
-            elif (getattr(cpu, "stopped", False) or getattr(cpu, "waiting", False)) and hasattr(
-                cpu, "halt_cycle"
-            ):
-                cpu.halt_cycle()
-            else:
-                break
+        while cpu.held() and len(cpu.trace) < want:
+            cpu.held_cycle()
     except Unsupported:
         raise
     except Exception as error:  # noqa: BLE001

@@ -65,72 +65,16 @@ Another was decimal subtraction on the CMOS parts. Both parts produce the same d
 
 **Nothing starts clean, and nothing can be asked to.** Memory holds a reproducible scrambled pattern and there is no parameter that clears it. A reset sets only what the hardware itself defines and leaves the accumulator, the index registers and the low byte of the stack pointer holding what they held.
 
-<table>
-<tr>
-<td width="50%" valign="top">
-
-### Every opcode, no gaps
-
-All 256 are implemented. The 65816 defines all of them: it has no undocumented instructions, and `$42 WDM` is reserved rather than illegal and behaves as a two byte no operation.
-
-</td>
-<td width="50%" valign="top">
-
-### Undefined state stays undefined
-
-`SparseMemory` derives an unwritten byte from its address, so an unwritten read is arbitrary, reproducible, and not zero, at no allocation cost.
-
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-
-### One family, one interface
-
-The model is a constructor argument. Differences in address bus width, instruction set and silicon defects live in the model rather than in a separate project.
-
-</td>
-<td width="50%" valign="top">
-
-### The oracle is pinned, and watched
-
-The suite commit is pinned so a build is reproducible. A weekly job runs against whatever upstream holds now and opens a pull request or an issue.
-
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-
-### Interruptible block moves
-
-`MVN` and `MVP` are the one instruction meant to be interrupted. Given a cycle budget they copy what fits, rewind onto their own opcode, and resume exactly where they stopped.
-
-</td>
-<td width="50%" valign="top">
-
-### No dependencies
-
-Pure Python, standard library only. The release tooling is the sole `node_modules`, and it never ships.
-
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-
-### The pins, not just the opcodes
-
-`irq()`, `nmi()` and, on the 65816, `abort()` take the interrupt the way the pin does: the return address is the next instruction, the pushed status says which pin it was, and emulation mode pushes one byte fewer. A request refused by the disable flag still ends a wait.
-
-</td>
-<td width="50%" valign="top">
-
-### Read from the datasheets
-
-Every hardware fact this project relies on is in [`conformance/hardware.json`](conformance/hardware.json) with the sentence it was read from, every cycle of every NMOS addressing mode is in [`conformance/addressing-cycles.json`](conformance/addressing-cycles.json) as Appendix A prints it, and all 151 documented opcodes are in [`conformance/instruction-set.json`](conformance/instruction-set.json) as Appendix B prints them. Where a manufacturer's document and the recorded cycles disagree, [`conformance/divergences.json`](conformance/divergences.json) carries both and says what would settle it.
-
-</td>
-</tr>
-</table>
+| | |
+|:--|:--|
+| **Every opcode, no gaps** | All 256 are implemented. The 65816 defines all of them: it has no undocumented instructions, and `$42 WDM` is reserved rather than illegal and behaves as a two byte no operation. |
+| **Undefined state stays undefined** | `SparseMemory` derives an unwritten byte from its address, so an unwritten read is arbitrary, reproducible, and not zero, at no allocation cost. |
+| **One family, one interface** | The model is a constructor argument. Differences in address bus width, instruction set and silicon defects live in the model rather than in a separate project. |
+| **The oracle is pinned, and watched** | The suite commit is pinned so a build is reproducible. A weekly job runs against whatever upstream holds now and opens a pull request or an issue. |
+| **Interruptible block moves** | `MVN` and `MVP` are the one instruction meant to be interrupted. Given a cycle budget they copy what fits, rewind onto their own opcode, and resume exactly where they stopped. |
+| **The pins, not just the opcodes** | `irq()`, `nmi()` and, on the 65816, `abort()` take the interrupt the way the pin does: the return address is the next instruction, the pushed status says which pin it was, and emulation mode pushes one byte fewer. A request refused by the disable flag still ends a wait. |
+| **Read from the datasheets** | Every hardware fact is in [`conformance/hardware.json`](conformance/hardware.json) with the sentence it came from, every cycle of every NMOS addressing mode in [`conformance/addressing-cycles.json`](conformance/addressing-cycles.json) as Appendix A prints it, and all 151 documented opcodes in [`conformance/instruction-set.json`](conformance/instruction-set.json) as Appendix B prints them. Where a document and the recordings disagree, [`conformance/divergences.json`](conformance/divergences.json) carries both and what would settle it. |
+| **No dependencies** | Pure Python, standard library only. The release tooling is the sole `node_modules`, and it never ships. |
 
 ## Quick start
 
@@ -158,6 +102,55 @@ Ran 150 tests in 24.9s
 
 OK
 ```
+
+## The whole interface
+
+Everything a caller touches, in one place. Nothing else is public.
+
+| Call | Does | Returns |
+|:--|:--|:--|
+| `Cpu(model="65816", memory=None, **options)` | Builds a part. Memory of its own if none is given, scrambled rather than cleared | a `Cpu` |
+| `cpu.step()` | Runs one instruction | cycles it cost |
+| `cpu.run_for(cycles)` | Runs whole instructions until at least that many cycles have passed. Keeps clocking a part that has halted | cycles actually spent, usually a little over |
+| `cpu.run_until(predicate, limit=None)` | Steps while `predicate(cpu)` is false. `limit` bounds the instructions and raises `RunLimit` | the `Cpu` |
+| `cpu.call(address)` | Runs from an address until the routine there returns | the `Cpu` |
+| `cpu.reset(seed=...)` | Drives RESET. The cycle tally survives, because a clock does not rewind | nothing |
+| `cpu.irq()` | Pulls the level-sensitive line. Refused, not remembered, while the disable flag is set | `True` if taken |
+| `cpu.nmi()` | Pulls the line no flag defends against | `True` if taken |
+| `cpu.abort()` | 65816 only. The rollback of the interrupted instruction is not modelled | `True` if taken |
+| `cpu.held()` | Whether the part can no longer start an instruction: jammed, stopped or waiting | `bool` |
+| `cpu.status()` / `cpu.set_status(byte)` | The status register as a byte. Setting a width bit narrows the register it governs | `int` / nothing |
+| `disassemble(data, offset, address, count)` | Reads bytes without a machine to run them in | `Instruction` objects with `.text` |
+| `describe(model)` | The part behind a name, before building one | a `Model` |
+
+| Attribute | Is |
+|:--|:--|
+| `cpu.cycles` | cycles since construction, across resets |
+| `cpu.steps` | instructions since the last reset |
+| `cpu.a`, `.x`, `.y`, `.s`, `.pc` | the registers, on every part. The 65816 adds `.db`, `.pb`, `.d`, `.m8`, `.x8`, `.emulation` |
+| `cpu.n`, `.v`, `.z`, `.c` | the flags that mean the same thing on every part, one attribute each rather than bits to mask out |
+| `cpu.stopped`, `.waiting`, `.jammed` | the three ways a part stops running, which are not one state. Only a reset ends the first, an interrupt ends the second, and the third is an NMOS part hung by an undocumented opcode |
+| `cpu.trace` | set it to a list and every bus cycle is appended: address, value, and on the 65816 eight output pins |
+| `cpu.package_pins` | which interrupt lines this package actually brings out |
+
+Options to `Cpu`: `reset=False` to skip the reset sequence, `seed=` to fix the
+undefined state. The eight-bit cores also take `decimal=False` for the Ricoh
+part, whose decimal adder is not wired, and `table=` for the opcode set of a
+particular revision. Both are set for you by name, so `Cpu("2a03")` is the
+normal way to ask.
+
+**Two attribute names mean different things on different parts**, because both
+are idiomatic for the part they belong to and renaming either would make that
+part read wrongly.
+
+| Name | On an eight-bit part | On the 65816 |
+|:--|:--|:--|
+| `.d` | the decimal flag, a `bool` | the direct page register, a 16-bit `int` |
+| `.decimal` | whether this part has a decimal adder wired at all, fixed per model | the decimal flag, a `bool` |
+| `.i` / `.irq_disable` | `.i` | `.irq_disable` |
+
+Code meant to run against both should reach for `status()` and `set_status()`,
+which are the same byte on every part in the family.
 
 ## Running at a real speed
 
@@ -500,7 +493,9 @@ python3 conformance/singlestep.py ~/.cache/conformance-suites/wdc65c02/wdc65c02/
 #   2540000 agreed, 0 did not
 ```
 
-The WDC suite is twenty thousand cases short of the others because two of its instructions stop the processor, and a suite that runs one instruction and compares the result has nothing to compare when the processor does not come back.
+The WDC suite is twenty thousand cases short of the others because its files for
+STP and WAI are empty. The 65816 suite does carry those two, forty thousand cases
+of them, which is how what a halted part drives came to be known here at all.
 
 The suite is several gigabytes, so [`conformance/fetch.py`](conformance/fetch.py) takes a partial clone that skips blob history and a sparse checkout of only the directories [`conformance/suites.json`](conformance/suites.json) names.
 
@@ -515,6 +510,60 @@ Each case gives a full initial state, the bytes in memory, and the state one ins
 | Weekly | All cases against whatever upstream holds now | Opens a pull request if it passes, an issue naming the opcodes if it does not |
 
 A pinned oracle keeps a build reproducible and stops an upstream edit from turning this repository red with no commit of its own to explain it. It is also how a repository stops noticing that the thing judging it has moved. [`.github/workflows/suite-watch.yml`](.github/workflows/suite-watch.yml) closes that gap without ever moving the pin on its own.
+
+### Cycle by cycle, not just cycle counts
+
+A model can spend the right number of cycles reading the wrong addresses, so the
+count alone settles nothing. Every eight-bit part in this family drives an address
+in every cycle it runs, including the ones it spends thinking, so the recorded
+list of accesses is timing and side effects at once. The 65816 does not: it lowers
+both address lines instead, and the recordings carry those cycles with no value
+and the state of eight output pins.
+
+[`conformance/cycles.py`](conformance/cycles.py) compares all of it, address by
+address, value by value, read against write, pin by pin, in order. **17,870,080
+cases agree**, across every opcode of all eight parts whose bus has been measured.
+
+The spare cycles are in, and they differ by part. The NMOS parts put a half-formed
+address on the bus while they work out a carry, write twice in a read-modify-write,
+and read the pointer of an indirect jump wrongly at a page end. The CMOS parts
+re-read the last byte of the instruction instead, read twice and write once, spend
+an indirect jump's extra cycle on the address the older part's bug would have used,
+and turn two whole columns of the opcode matrix into one-cycle no-operations.
+Decimal arithmetic costs them a cycle it does not cost the NMOS part.
+
+On the 65816 the pins catch what an address cannot. Memory lock goes low for the
+last three cycles of a read-modify-write, or five when the accumulator is wide.
+The two width bits and the emulation bit appear on every cycle, so a mode change is
+visible mid-instruction: a return from interrupt pulls a new status byte and the
+cycles that follow still carry the old widths. And the modify cycle of a
+read-modify-write is an internal cycle in native mode and a write in emulation
+mode, driving the byte it just read at an address nothing answers, which is how a
+part compatible with one that writes twice avoids writing twice.
+
+The instructions that halt a part are compared too. A jammed NMOS part reads
+$FFFF, then $FFFE twice, and drives $FFFF from there, in all 120,000 recorded
+cases without one exception. A 65816 given STP or WAI spends three cycles and then
+drives no address at all with every output line inactive, in all 40,000. Only the
+length of that tail is unbounded; the shape is fixed, so a model is clocked out to
+the recorded length and compared over the whole of it.
+
+**One kind of case sits outside the claim, counted and named.** Decimal add and
+subtract with an immediate operand on the CMOS parts spend a cycle with no address
+to compute, and the recordings fill it with a constant no register produces: about
+10,000 cases per CMOS suite. That is a recorder's placeholder rather than a
+measurement, so a case differing only there is counted apart instead of being
+called a disagreement.
+
+### What is not settled here
+
+`irq()`, `nmi()` and `abort()` perform the documented sequence, and no published
+suite covers a hardware interrupt on these parts, so they rest on the data sheet
+rather than on a recording. The abort pin's rollback of the instruction it
+interrupts is not modelled at all, and the code says so where it lives. Neither
+core can be clocked a cycle at a time, which is why a pin cannot be asserted part
+way through an instruction. [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md) carries the
+rest, each with what would settle it.
 
 ## Project structure
 
@@ -643,14 +692,10 @@ The ones worth borrowing from are embedded in emulators and shaped by the machin
 
 </details>
 
-## License
-
-[MIT](LICENSE)
-
 ## What is still open
 
-Nine questions remain where being faithful to the silicon is a claim rather than
-a measurement, and each one names the measurement that would close it. They are
+Twelve questions remain where being faithful to the silicon is a claim rather
+than a measurement, and each one names the measurement that would close it. They are
 in [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md), kept in step with
 [`conformance/divergences.json`](conformance/divergences.json) by a test, so the
 file cannot quietly become a claim that this project knows more than it does.
@@ -667,8 +712,10 @@ listed here so a reader can fetch the same file and check the same page.
 Each row carries the page count and the first sixteen characters of the file's
 SHA-256. Vendor links move, and a link that has rotted into a different revision
 is easy to follow without noticing: the digest is what tells you whether the file
-you fetched is the file these records were read from. The full digests are
-checked locally by the manifest that manages them.
+you fetched is the file these records were read from. Sixteen characters is short
+enough to compare by eye and long enough that no two documents here collide;
+compute the full digest with `shasum -a 256 <file>` on macOS or Linux, or
+`certutil -hashfile <file> SHA256` on Windows.
 
 Every one of these is copyrighted by its publisher and is not redistributable, so
 none of them is in this repository. WDC's notice is explicit about it, reserving
@@ -690,79 +737,13 @@ page they came from, which is fair use and is what makes the records checkable.
 | [The Western Design Center, Inc., *W65C816S 8/16-bit Microprocessor Data Sheet*](https://6502.org/documents/datasheets/wdc/wdc_w65c816s_jul_1994.pdf) | 1994-07 | 72 | `823c2f286a97102f…` |
 | [The Western Design Center, Inc., *W65C816S Datasheet*](https://westerndesigncenter.com/wdc/documentation/w65c816s.pdf) | 2024-03-13 | 55 | `b9177e1b045d2c8a…` |
 
-The two coprocessor parts this family covers have no document of their own. What
-stands in for one is recorded under `partsWithNoDocument` in the manifest, and
-the reasoning is in [`conformance/divergences.json`](conformance/divergences.json).
+Two parts in this family have no data sheet of their own. Ricoh never published
+one for the **2A03**, so the MOS documents above cover the core it is built from
+and the suite records the part separately because its decimal adder is not wired.
+WDC's **W65C802** is the 65816 core in a forty pin package with sixteen address
+lines brought out, and none of the three W65C816S revisions above mentions it, so
+the 65816 documents cover the core and only the packaging is undocumented.
 
-## What is settled, and what is not
+## License
 
-**Settled: what every instruction does to state.** The SingleStepTests corpora,
-pinned by commit, check registers, flags and every byte of memory an instruction
-touched, across every opcode including the undocumented ones no datasheet
-describes. That is as strong as instruction-level evidence for these parts gets.
-
-**Read, not inferred: what the manufacturers printed.** The W65C816S data sheet
-and the MCS6500 family hardware manual were read end to end, and every fact this
-project takes from them is in [`conformance/hardware.json`](conformance/hardware.json)
-with its sentence. That reading found a defect, a missing feature, a vector table
-that is wrong in the datasheet itself, and two places where the document and the
-recorded cycles disagree. The disagreements are in
-[`conformance/divergences.json`](conformance/divergences.json), measured, with
-what would settle them.
-
-**Not settled by anything here: the pins under load.** `irq()`, `nmi()` and
-`abort()` perform the documented sequence, and no published suite covers a
-hardware interrupt on these parts, so they rest on the datasheet rather than on a
-recording. The abort pin's rollback of the instruction it interrupts is not
-modelled at all, and the code says so where it lives.
-
-**Settled: every cycle of every part, not just their number.** The eight-bit parts
-put an address on the bus in every cycle they run, including the ones they spend
-thinking, so the recorded list of accesses is timing and side effects at once. The
-65816 does not: it lowers both address lines instead, and the recordings carry
-those cycles with no value and the state of eight output pins.
-`conformance/cycles.py` compares all of it, address by address, value by value,
-read against write, pin by pin, in order. **17,870,080 cases agree**, across every
-opcode of all eight parts.
-
-The spare cycles are in, and they are not the same on every part. The NMOS parts
-put a half-formed address on the bus while they work out a carry, write twice in
-a read-modify-write, and read the pointer of an indirect jump wrongly at a page
-end. The CMOS parts re-read the last byte of the instruction instead, read twice
-and write once, spend an indirect jump's extra cycle on the address the older
-part's bug would have used, and turn two whole columns of the opcode matrix into
-one-cycle no-operations. Decimal arithmetic costs them a cycle it does not cost
-the NMOS part.
-
-A cycle count alone would not have caught any of that. A model can spend the right
-number of cycles reading the wrong addresses, and the documents disagree with the
-recordings about exactly that in five places, each one recorded in
-[`conformance/divergences.json`](conformance/divergences.json) with the case that
-shows it.
-
-On the 65816 the pins are part of the comparison, and they catch things an address
-would not. Memory lock goes low for the last three cycles of a read-modify-write,
-or five when the accumulator is wide. The two width bits and the emulation bit
-appear on every cycle, so a mode change is visible in the middle of an
-instruction: a return from interrupt pulls a new status byte and the cycles that
-follow still carry the old widths. And the modify cycle of a read-modify-write is
-an internal cycle in native mode and a write in emulation mode, driving the byte
-it just read at an address nothing answers, which is how a part compatible with
-one that writes twice avoids writing twice.
-
-**One kind of case sits outside the claim, counted and named.** Decimal add and
-subtract with an immediate operand on the CMOS parts spend a cycle with no address
-to compute, and the recordings fill it with a constant that no register produces:
-about 10,000 cases per CMOS suite. That is a recorder's placeholder rather than a
-measurement, so a case differing only there is counted apart instead of being
-called a disagreement.
-
-The instructions that halt the part used to sit outside it too, on the grounds
-that what a halted part drives for the rest of a recording is a property of the
-recording's length rather than of the instruction. Only the length is. The shape
-is fixed and the recordings pin it down: a jammed NMOS part reads $FFFF, then
-$FFFE twice, and drives $FFFF from there, in all 120,000 recorded cases without
-one exception; a 65816 given STP or WAI spends three cycles and then drives no
-address at all with every output line inactive, in all 40,000. Both are modelled
-and both are compared over the whole recording, which brought 280,000 cases into
-the claim and left nothing excluded as a halt.
+[MIT](LICENSE)
