@@ -12,13 +12,17 @@ of cycles by reading the wrong address fails.
 
     python3 conformance/cycles.py 65x02/6502/v1 --model 6502
 
-Two things are outside the comparison and both are named in the output. A halted
-part is one: a jam opcode stops the processor, and what a stopped part puts on the
-bus for the rest of a recording is a property of that recording's length rather
-than of the instruction. The 65816 is the other: its recordings carry pin states
-and cycles with no memory access at all, which this core does not yet emit, so the
-runner refuses every model it has not been held to rather than reporting an
-agreement it cannot establish. Which parts those are is in VERIFIED below.
+One thing is outside the comparison and it is named in the output: a cycle whose
+recorded address is a placeholder rather than a measurement. Nothing else is
+skipped. The instructions that halt the part used to be, on the grounds that what
+a halted part puts on the bus is a property of the recording's length rather than
+of the instruction. Only the length is. The shape is fixed, and the recordings
+pin it down, so a model is clocked out to the recorded length and compared over
+all of it.
+
+A model this runner has not been held to is refused rather than reported on,
+because an agreement it cannot establish is worse than no answer. Which parts
+those are is in VERIFIED below.
 """
 
 from __future__ import annotations
@@ -38,18 +42,9 @@ from conformance.singlestep import (  # noqa: E402
     machine_for,
     suite_files,
 )
-from mos65xx import OPCODES, UnknownModelError, describe  # noqa: E402
+from mos65xx import UnknownModelError, describe  # noqa: E402
 
 EXAMPLE_LIMIT = 3
-
-HALTS = frozenset({"jam", "stp", "wai"})
-"""The mnemonics whose whole behaviour is to stop, which no cycle list bounds.
-
-One of them is the undocumented opcode that hangs an NMOS part. The other two are
-the deliberate ones the CMOS and 65816 parts added, and the recordings show what a
-waiting part looks like: cycles with no address, no value and every line inactive,
-for as long as the recording happens to run.
-"""
 
 PLACEHOLDER_OPCODES = frozenset({0x69, 0xE9})
 """Add and subtract with an immediate operand, on the CMOS parts.
@@ -106,17 +101,6 @@ def opcode_of(initial: Mapping[str, Any]) -> int | None:
     return None if found is None else int(found)
 
 
-def halted(test: Mapping[str, Any], model: str) -> bool:
-    """Whether this case runs an opcode whose whole behaviour is to stop."""
-    opcode = opcode_of(test["initial"])
-    if opcode is None:
-        return False
-    cpu, _ = machine_for(test["initial"], model)
-    table = getattr(cpu, "table", OPCODES)
-    mnemonic: str = table[opcode][0]
-    return mnemonic in HALTS
-
-
 def only_placeholder(test: Mapping[str, Any], seen: Sequence[Cycle]) -> bool:
     """Whether the one cycle that differs is the one with no address to compute.
 
@@ -142,6 +126,11 @@ def check(test: Mapping[str, Any], model: str = DEFAULT_MODEL) -> list[Cycle] | 
 
     None means they agree. A list means they do not, and it is the model's own
     sequence, which is what a reader needs beside the recorded one.
+
+    An instruction that halts the part never finishes, so one step does not fill
+    a recording. The part is clocked on to the recorded length instead, which is
+    fair rather than generous: what it drives in those cycles is fixed, and a
+    model that drove anything else would differ here rather than pass.
     """
     try:
         cpu, _ = machine_for(test["initial"], model)
@@ -151,6 +140,16 @@ def check(test: Mapping[str, Any], model: str = DEFAULT_MODEL) -> list[Cycle] | 
             cpu.cycle_budget = len(test.get("cycles", ())) or None
         cpu.trace = []
         cpu.step()
+        want = len(recorded(test))
+        while len(cpu.trace) < want:
+            if getattr(cpu, "jammed", False):
+                cpu.jam_cycle()
+            elif (getattr(cpu, "stopped", False) or getattr(cpu, "waiting", False)) and hasattr(
+                cpu, "halt_cycle"
+            ):
+                cpu.halt_cycle()
+            else:
+                break
     except Unsupported:
         raise
     except Exception as error:  # noqa: BLE001
@@ -164,16 +163,13 @@ def run_tests(
 ) -> tuple[int, int, int, list[Example]]:
     """How many agreed, how many did not, how many were left out, and examples.
 
-    Two kinds are left out and they are counted together: a case whose opcode
-    halts the part, and a case that differs only at a cycle whose recorded
-    address is a placeholder. Both are reported rather than hidden.
+    One kind is left out: a case that differs only at a cycle whose recorded
+    address is a placeholder rather than a measurement. It is reported rather
+    than hidden.
     """
     agreed = differed = skipped = 0
     examples: list[Example] = []
     for test in tests:
-        if halted(test, model):
-            skipped += 1
-            continue
         seen = check(test, model)
         if seen is None:
             agreed += 1
@@ -275,8 +271,7 @@ def main(argv: Sequence[str]) -> int:
     if empty:
         print(f"  {len(empty)} files hold no cases: {' '.join(empty)}")
     print(
-        f"  {agreed} agreed cycle for cycle, {differed} did not, "
-        f"{skipped} left out as halts or placeholders"
+        f"  {agreed} agreed cycle for cycle, {differed} did not, {skipped} left out as placeholders"
     )
     for name, count, examples in broken[:EXAMPLE_LIMIT]:
         print(f"    {name}: {count} differed")

@@ -40,16 +40,21 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from .errors import RunLimit, Stopped, UnsupportedError
 from .memory import UNSET_SEED, scramble
 from .models import NoSuchPin
 from .opcodes6502 import MODE_SIZE, NMOS
-
-STEP_LIMIT = 2_000_000
 
 RESET_VECTOR = 0xFFFC
 BREAK_VECTOR = 0xFFFE
 NMI_VECTOR = 0xFFFA
 IRQ_VECTOR = 0xFFFE
+
+JAM_HIGH = 0xFFFF
+"""The address a hung part settles on, which is the top of the interrupt vector."""
+
+JAM_LOW = 0xFFFE
+"""The other half of that vector, which a hung part reads twice on the way in."""
 """The same address the break instruction uses: one vector serves both."""
 
 STACK_PAGE = 0x0100
@@ -71,36 +76,24 @@ MODIFY = "modify"
 """What an access is for, which decides what indexing costs."""
 
 
-class StepLimit(Exception):
-    pass
-
-
-class UnsupportedError(Exception):
-    pass
-
-
-class Stopped(Exception):
-    pass
-
-
 class Cpu:
     """One 6502, holding whatever it held until something writes to it."""
 
     def __init__(
         self,
         memory: Any,
-        step_limit: int = STEP_LIMIT,
         seed: int = UNSET_SEED,
         reset: bool = True,
         decimal: bool = True,
         table: Any = NMOS,
     ) -> None:
         self.memory = memory
-        self.step_limit = step_limit
         self.decimal = decimal
         self.table = table
         self.steps = 0
+        self.cycles = 0
         self.stopped = False
+        self.jammed = False
         self.model = "6502"
         self.address_mask = 0xFFFF
         self.package_pins: tuple[str, ...] = ("irq", "nmi", "rdy")
@@ -129,6 +122,7 @@ class Cpu:
         self.set_status(undefined[4])
         self.i = True
         self.stopped = False
+        self.jammed = False
         self.steps = 0
         self.pc = self.read16(RESET_VECTOR)
         return self
@@ -156,6 +150,7 @@ class Cpu:
         self.c = bool(value & FLAG_C)
 
     def read8(self, address: int) -> int:
+        self.cycles += 1
         found = self.memory.read8(address & 0xFFFF) & 0xFF
         assert isinstance(found, int)
         if self.trace is not None:
@@ -163,6 +158,7 @@ class Cpu:
         return found
 
     def write8(self, address: int, value: int) -> None:
+        self.cycles += 1
         self.memory.write8(address & 0xFFFF, value & 0xFF)
         if self.trace is not None:
             self.trace.append((address & 0xFFFF, value & 0xFF, "write"))
@@ -394,12 +390,18 @@ class Cpu:
             self.dead(uncorrected)
         self.pc = target
 
-    def step(self) -> None:
+    def step(self) -> int:
+        """Run one instruction, and report the cycles it took.
+
+        The count is what a caller needs to keep a host in step with a real
+        clock. A part at 1.023 MHz spends 1,023,000 cycles a second, so a host
+        that adds up what each instruction returns knows exactly how far ahead
+        of the wall it has run.
+        """
+        started = self.cycles
         if self.stopped:
             raise Stopped("the processor has been stopped")
         self.steps += 1
-        if self.steps > self.step_limit:
-            raise StepLimit(f"stopped after {self.steps} steps at ${self.pc:04X}")
         opcode = self.fetch8()
         mnemonic, mode = self.table[opcode]
         if self.idles_after_opcode(opcode, mnemonic, mode):
@@ -408,10 +410,46 @@ class Cpu:
         if handler is None:
             raise UnsupportedError(f"{mnemonic} is not implemented")
         handler(mode)
+        return self.cycles - started
 
-    def run_until(self, predicate: Callable[[Cpu], bool]) -> Cpu:
+    def run_for(self, cycles: int) -> int:
+        """Run whole instructions until at least this many cycles have passed.
+
+        Returns what was actually spent, which is almost never the number asked
+        for: an instruction is not divisible, so the last one usually carries the
+        count past the budget. A host pacing against a clock carries the excess
+        into the next call rather than discarding it, which is what keeps a long
+        run from drifting.
+
+        A hung part still costs its host every cycle. Once a jam opcode has run
+        no further instruction ever completes, but the clock does not stop and
+        neither does this: it goes on driving $FFFF a cycle at a time and returns
+        the budget it spent, because that is what a board with a jammed processor
+        in it actually does.
+        """
+        spent = 0
+        while spent < cycles:
+            if self.held():
+                self.held_cycle()
+                spent += 1
+            else:
+                spent += self.step()
+        return spent
+
+    def run_until(self, predicate: Callable[[Cpu], bool], limit: int | None = None) -> Cpu:
+        """Step until the predicate holds.
+
+        `limit` bounds the number of instructions and raises when it is reached.
+        Without one this runs as long as the part would, which for a program
+        that never satisfies the predicate is forever. That is what the silicon
+        does, so it is what happens here unless a caller asks for otherwise.
+        """
+        taken = 0
         while not predicate(self):
             self.step()
+            taken += 1
+            if limit is not None and taken >= limit:
+                raise RunLimit(f"gave up after {taken} instructions at ${self.pc:04X}")
         return self
 
     def call(self, address: int) -> Cpu:
@@ -750,7 +788,47 @@ class Cpu:
             self.operand(mode)
 
     def op_jam(self, mode: str) -> None:
+        """Hang the part, which is not the same as stopping it.
+
+        Nothing documents these opcodes, so the authority here is the recorded
+        corpus, and it is unanimous: 120,000 recordings across all twelve of them
+        agree cycle for cycle with no variation at all. After the opcode and the
+        byte behind it the part reads $FFFF, then $FFFE twice, and from there
+        drives $FFFF for as long as it is clocked.
+
+        Those are the interrupt vector, so what the part is doing looks like a
+        BRK that never finished: it began fetching a handler and stalled with the
+        address bus held high. It is still a running processor. The clock still
+        ticks, the bus still cycles, and a device watching $FFFF still sees reads
+        arrive. Only RESET ends it.
+
+        That is why this sets a state of its own rather than reusing `stopped`. A
+        part told to STP genuinely halts and drives nothing, while a jammed part
+        drives $FFFF forever, and a host pacing against a real clock has to keep
+        spending cycles on it rather than being handed an exception.
+        """
+        self.read8(JAM_HIGH)
+        self.read8(JAM_LOW)
+        self.read8(JAM_LOW)
+        self.jammed = True
         self.stopped = True
+
+    def jam_cycle(self) -> None:
+        """One cycle of a hung part, which is a read of $FFFF it does nothing with."""
+        self.read8(JAM_HIGH)
+
+    def held(self) -> bool:
+        """Whether the part can no longer begin an instruction on its own.
+
+        A question rather than an attribute because the parts answer it
+        differently. This one can only be hung, by an opcode nobody documented.
+        The CMOS parts added two instructions that hold deliberately.
+        """
+        return self.jammed
+
+    def held_cycle(self) -> None:
+        """One cycle of a part in that state, which for this one is a read of $FFFF."""
+        self.jam_cycle()
 
     def op_slo(self, mode: str) -> None:
         _, value = self.read_modify_write(mode, "slo", self.shift_left)

@@ -16,6 +16,7 @@ def load_module() -> Any:
 
 
 emu = load_module()
+errors = importlib.import_module("mos65xx.errors")
 
 NATIVE_16 = 0x00
 NATIVE_8 = emu.FLAG_M | emu.FLAG_X
@@ -409,13 +410,72 @@ class HaltTest(unittest.TestCase):
         with self.assertRaises(emu.Stopped):
             cpu.step()
 
-    def test_a_runaway_program_stops_at_the_step_limit(self) -> None:
+    def test_a_waiting_part_will_not_run_the_next_instruction(self) -> None:
+        memory = FlatMemory({0x008000: 0xCB, 0x008001: 0xEA})
+        cpu = emu.Cpu(memory)
+        cpu.pb, cpu.pc = 0x00, 0x8000
+        cpu.step()
+
+        with self.assertRaises(errors.Waiting):
+            cpu.step()
+
+    def test_a_halted_part_drives_no_address_and_no_line(self) -> None:
+        memory = FlatMemory({0x008000: 0xDB})
+        cpu = emu.Cpu(memory)
+        cpu.pb, cpu.pc = 0x00, 0x8000
+        cpu.step()
+        cpu.trace = []
+
+        cpu.run_for(3)
+
+        self.assertEqual(cpu.trace, [(None, None, emu.HALTED_PINS)] * 3)
+
+    def test_a_halted_part_costs_time_even_with_nothing_recording(self) -> None:
+        memory = FlatMemory({0x008000: 0xDB})
+        cpu = emu.Cpu(memory)
+        cpu.pb, cpu.pc = 0x00, 0x8000
+        cpu.step()
+        before = cpu.cycles
+
+        spent = cpu.run_for(12)
+
+        self.assertEqual((spent, cpu.cycles - before), (12, 12))
+
+    def test_a_waiting_part_is_clocked_on_rather_than_refusing(self) -> None:
+        memory = FlatMemory({0x008000: 0xCB})
+        cpu = emu.Cpu(memory)
+        cpu.pb, cpu.pc = 0x00, 0x8000
+        cpu.step()
+
+        spent = cpu.run_for(7)
+
+        self.assertEqual(spent, 7)
+
+    def test_a_runaway_program_gives_up_when_the_caller_asks_for_a_bound(self) -> None:
         memory = FlatMemory({0x008000: 0x80, 0x008001: 0xFE})
-        cpu = emu.Cpu(memory, step_limit=100)
+        cpu = emu.Cpu(memory)
         cpu.pb, cpu.pc = 0x00, 0x8000
 
-        with self.assertRaises(emu.StepLimit):
-            cpu.run_until(lambda machine: False)
+        with self.assertRaises(emu.RunLimit):
+            cpu.run_until(lambda machine: False, limit=100)
+
+    def test_a_step_reports_the_cycles_that_instruction_took(self) -> None:
+        memory = FlatMemory({0x008000: 0xEA})
+        cpu = emu.Cpu(memory)
+        cpu.pb, cpu.pc = 0x00, 0x8000
+
+        cycles = cpu.step()
+
+        self.assertEqual(cycles, 2)
+
+    def test_a_budget_runs_whole_instructions_and_reports_what_was_spent(self) -> None:
+        memory = FlatMemory(dict.fromkeys(range(0x008000, 0x008010), 0xEA))
+        cpu = emu.Cpu(memory)
+        cpu.pb, cpu.pc = 0x00, 0x8000
+
+        spent = cpu.run_for(5)
+
+        self.assertEqual(spent, 6)
 
 
 class MemoryFillTest(unittest.TestCase):

@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from typing import Any
 
-from mos65xx import SparseMemory, mos65c02, mos6502, opcodes65c02
+from mos65xx import SparseMemory, errors, mos65c02, mos6502, opcodes65c02
 
 
 def machine(
@@ -319,6 +319,51 @@ class WdcTest(unittest.TestCase):
         cpu.step()
 
         self.assertFalse(cpu.stopped)
+
+    def test_a_waiting_part_will_not_run_the_next_instruction(self) -> None:
+        cpu, _ = machine([0xCB, 0xA9, 0x77], table=opcodes65c02.WDC)
+        cpu.step()
+
+        with self.assertRaises(errors.Waiting):
+            cpu.step()
+
+    def test_a_waiting_part_is_held_rather_than_finished(self) -> None:
+        cpu, _ = machine([0xCB], table=opcodes65c02.WDC)
+
+        cpu.step()
+
+        self.assertTrue(cpu.held())
+
+    def test_a_stopped_part_is_held_too(self) -> None:
+        cpu, _ = machine([0xDB], table=opcodes65c02.WDC)
+
+        cpu.step()
+
+        self.assertTrue(cpu.held())
+
+    def test_a_running_part_is_not_held(self) -> None:
+        cpu, _ = machine([0xEA], table=opcodes65c02.WDC)
+
+        cpu.step()
+
+        self.assertFalse(cpu.held())
+
+    def test_a_held_part_still_spends_its_hosts_cycles(self) -> None:
+        cpu, _ = machine([0xCB], table=opcodes65c02.WDC)
+        cpu.step()
+        before = cpu.cycles
+
+        spent = cpu.run_for(20)
+
+        self.assertEqual((spent, cpu.cycles - before), (20, 20))
+
+    def test_an_interrupt_releases_a_waiting_part(self) -> None:
+        cpu, _ = machine([0xCB], table=opcodes65c02.WDC)
+        cpu.step()
+
+        cpu.irq()
+
+        self.assertFalse(cpu.waiting)
 
     def test_the_earlier_parts_do_nothing_with_the_same_bytes(self) -> None:
         cpu, _ = machine([0xDB, 0x00], table=opcodes65c02.ROCKWELL)

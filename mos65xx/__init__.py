@@ -26,8 +26,9 @@ from __future__ import annotations
 from typing import Any
 
 from . import mos65c02, mos6502, opcodes65c02, opcodes6502
+from .errors import RunLimit, Stopped, UnsupportedError, Waiting
 from .memory import Memory, SparseMemory, scramble
-from .models import MODELS, NoSuchPin, UnknownModelError, describe
+from .models import MODELS, Model, NoSuchPin, UnknownModelError, describe
 from .opcodes65816 import (
     FLAG_DEPENDENT,
     MODE_SIZE,
@@ -50,11 +51,7 @@ from .wdc65816 import (
     FLAG_V,
     FLAG_X,
     FLAG_Z,
-    STEP_LIMIT,
     UNSET_SEED,
-    StepLimit,
-    Stopped,
-    UnsupportedError,
 )
 from .wdc65816 import Cpu as Cpu65816
 
@@ -90,18 +87,19 @@ __all__ = [
     "MODELS",
     "MODE_SIZE",
     "OPCODES",
-    "STEP_LIMIT",
     "UNSET_SEED",
     "Cpu",
     "Cpu65816",
     "Memory",
+    "Model",
     "NoSuchPin",
+    "RunLimit",
     "SparseMemory",
-    "StepLimit",
     "Stopped",
     "Truncated",
     "UnknownModelError",
     "UnsupportedError",
+    "Waiting",
     "__version__",
     "apply_flags",
     "branch_target",

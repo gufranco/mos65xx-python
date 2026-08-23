@@ -17,20 +17,17 @@ from collections.abc import Callable
 from typing import Any
 
 from . import opcodes65816 as wdc65816
+from .errors import RunLimit, Stopped, UnsupportedError, Waiting
 from .memory import ADDRESS_MASK, UNSET_SEED, Memory, SparseMemory, scramble
-
-STEP_LIMIT = 2_000_000
 
 OPCODES = wdc65816.OPCODES
 
 __all__ = [
     "OPCODES",
-    "STEP_LIMIT",
     "UNSET_SEED",
     "Cpu",
     "Memory",
     "SparseMemory",
-    "StepLimit",
     "Stopped",
     "UnsupportedError",
     "scramble",
@@ -90,16 +87,11 @@ BANK_ZERO_MODES = frozenset({"direct", "directX", "directY", "stack"})
 """Modes whose address is in bank zero and wraps inside it."""
 
 
-class StepLimit(Exception):
-    pass
+HALTED_PINS = "--------"
+"""What the eight output lines read once STP or WAI has taken effect.
 
-
-class UnsupportedError(Exception):
-    pass
-
-
-class Stopped(Exception):
-    pass
+Every line inactive, the read line included, which no ordinary cycle produces.
+"""
 
 
 RESET_VECTOR = 0x00FFFC
@@ -125,22 +117,27 @@ class Cpu:
     def __init__(
         self,
         memory: Any,
-        step_limit: int = STEP_LIMIT,
         seed: int = UNSET_SEED,
         reset: bool = True,
     ) -> None:
         self.memory = memory
-        self.step_limit = step_limit
         self.model = "65816"
         self.address_mask = ADDRESS_MASK
         self.package_pins: tuple[str, ...] = ("irq", "nmi", "rdy")
         self._emulation = False
         self._s = 0x01FF
         self.cycle_budget: int | None = None
-        self.trace: list[tuple[int, int | None, str]] | None = None
+        self.trace: list[tuple[int | None, int | None, str]] | None = None
+        """Every cycle this part drove, as address, value and the eight output lines.
+
+        The address is None for the cycles after STP or WAI has taken effect,
+        because a halted part drives no address at all. That is what the
+        recordings carry and what the pin string reads as: eight dashes.
+        """
         self.locked = False
         self.pulling = False
         self.steps = 0
+        self.cycles = 0
         self.stopped = False
         self.waiting = False
         if reset:
@@ -275,7 +272,25 @@ class Cpu:
             )
         )
 
+    def halt_cycle(self) -> None:
+        """One cycle of a part that has shut itself down, which drives nothing.
+
+        STP and WAI both cost three cycles to take effect, and the recordings
+        agree with the manufacturer on that. What they add is what the fourth
+        cycle looks like: no address at all, no value, and every one of the eight
+        output lines inactive, including the read line. All 40,000 recorded cases
+        show it, in both modes, with no variation beyond the width bits the part
+        started with.
+
+        A halted part is not a part that has stopped existing. Its host still has
+        a clock, and this is what that clock finds on the bus each time it ticks.
+        """
+        self.cycles += 1
+        if self.trace is not None:
+            self.trace.append((None, None, HALTED_PINS))
+
     def read8(self, address: int, data: bool = True, program: bool = False) -> int:
+        self.cycles += 1
         found = self.memory.read8(address & self.address_mask) & 0xFF
         assert isinstance(found, int)
         if self.trace is not None:
@@ -285,6 +300,7 @@ class Cpu:
         return found
 
     def write8(self, address: int, value: int) -> None:
+        self.cycles += 1
         self.memory.write8(address & self.address_mask, value & 0xFF)
         if self.trace is not None:
             self.trace.append(
@@ -305,6 +321,7 @@ class Cpu:
         That is how a part compatible with one that writes twice avoids writing
         twice.
         """
+        self.cycles += 1
         if self.trace is not None:
             self.trace.append(
                 (address & self.address_mask, value, self.pins(False, False, False, write))
@@ -697,12 +714,20 @@ class Cpu:
         self.c = register >= value
         self.set_nz((register - value) & mask, wide)
 
-    def step(self) -> None:
+    def step(self) -> int:
+        """Run one instruction, and report the cycles it took.
+
+        The count is what a caller needs to keep a host in step with a real
+        clock. A part at 3.58 MHz spends 3,580,000 cycles a second, so a host
+        that adds up what each instruction returns knows exactly how far ahead
+        of the wall it has run.
+        """
+        started = self.cycles
         if self.stopped:
             raise Stopped("the processor has been stopped")
+        if self.waiting:
+            raise Waiting("the processor is waiting for an interrupt")
         self.steps += 1
-        if self.steps > self.step_limit:
-            raise StepLimit(f"stopped after {self.steps} steps at ${self.pb:02X}:{self.pc:04X}")
         opcode = self.opcode8()
         mnemonic, mode = OPCODES[opcode]
         if not wdc65816.MODE_SIZE[mode]:
@@ -711,6 +736,7 @@ class Cpu:
         if handler is None:
             raise UnsupportedError(f"{mnemonic} is not implemented")
         handler(mode)
+        return self.cycles - started
 
     def call(self, address: int) -> Cpu:
         self.pb = (address >> 16) & 0xFF
@@ -726,9 +752,46 @@ class Cpu:
                 depth += 1
             self.step()
 
-    def run_until(self, predicate: Callable[[Cpu], bool]) -> Cpu:
+    def run_for(self, cycles: int) -> int:
+        """Run whole instructions until at least this many cycles have passed.
+
+        Returns what was actually spent, which is almost never the number asked
+        for: an instruction is not divisible, so the last one usually carries the
+        count past the budget. A host pacing against a clock carries the excess
+        into the next call rather than discarding it, which is what keeps a long
+        run from drifting.
+
+        A part that has shut itself down still costs its host every cycle. STP
+        and WAI stop the processor, not the board it sits on, so this goes on
+        producing halted cycles rather than raising: the clock outside is still
+        running, and a host pacing against it has to spend that time somewhere.
+        A part waiting on WAI resumes as soon as it is offered an interrupt it
+        can take, so a host that keeps clocking it is doing the right thing and a
+        host that stopped would hang the machine.
+        """
+        spent = 0
+        while spent < cycles:
+            if self.stopped or self.waiting:
+                self.halt_cycle()
+                spent += 1
+            else:
+                spent += self.step()
+        return spent
+
+    def run_until(self, predicate: Callable[[Cpu], bool], limit: int | None = None) -> Cpu:
+        """Step until the predicate holds.
+
+        `limit` bounds the number of instructions and raises when it is reached.
+        Without one this runs as long as the part would, which for a program
+        that never satisfies the predicate is forever. That is what the silicon
+        does, so it is what happens here unless a caller asks for otherwise.
+        """
+        taken = 0
         while not predicate(self):
             self.step()
+            taken += 1
+            if limit is not None and taken >= limit:
+                raise RunLimit(f"gave up after {taken} instructions at ${self.pc:04X}")
         return self
 
     def op_lda(self, mode: str) -> None:

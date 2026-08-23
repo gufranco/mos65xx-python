@@ -4,7 +4,7 @@ What this project does not know for certain, and what it would take to find out.
 
 Everything here is a place where being faithful to the silicon is still a claim
 rather than a measurement. The list is short because most of the surface is
-settled: 17,900,000 recorded state cases and 17,590,080 recorded bus cycles agree
+settled: 17,900,000 recorded state cases and 17,870,080 recorded bus cycles agree
 with this model exactly, and every figure taken from a manufacturer's page is
 checked against a run rather than restated. What remains is the residue that
 neither a document nor a recording can close.
@@ -37,6 +37,14 @@ A manufacturer printed one thing and every recorded case shows another. These ar
 **The document says.** In the Emulation mode, the PBR and DBR registers are cleared to 00 when a hardware interrupt, BRK or COP is executed. In this case, previous contents of the PBR are not automatically saved.
 
 Source: W65C816S Data Sheet, 8.11.2.
+
+**And the same publisher's book does not repeat it.** 6502, 65C02, and Emulation Mode (e = 1): The program counter is incremented by two, then pushed onto the stack; the status register, with the b break flag set, is pushed onto the stack; the interrupt disable flag is set; and the program counter is loaded from the interrupt vector at $FFFE-FFFF.
+
+Source: Programming the 65816, the BRK entry, printed page 338.
+
+*Why that matters.* A step by step account of the same instruction in the same mode, by the same publisher, listing each thing the instruction does. The data bank register is not among them. Its native mode paragraph does name a bank register being cleared, the program bank, so the omission in the emulation paragraph is not the book being brief about banks in general.
+
+*How much it settles.* Not outright. Silence in a programmer's account is weaker than a statement, and the book is describing what a programmer must know rather than enumerating every register the sequence touches. But it is a second rung one source that declines to repeat the caveat, which leaves the caveat as the only place the claim appears against 30,000 recorded cases and one other publication.
 
 **The recordings say.** All 10,000 emulation BRK tests, all 10,000 emulation COP tests and all 10,000 native BRK tests leave the data bank register exactly as they found it. 9,960 of the emulation BRK tests start with a non-zero data bank, so the cases that would show a clear are present and none of them shows one. The program bank is zero afterwards in all 30,000, which is the half of the sentence both sources agree on.
 
@@ -144,6 +152,42 @@ Source: W65C02S Data Sheet, Table 6-5 note 6, with 8.5 of the W65C816S data shee
 
 **What would settle it.** A logic analyser on a real W65C02S during a decimal add. Until then the extra cycle is real and its address is not evidence, and a model that reproduced 00007F would be reproducing the recorder rather than the part.
 
+### How many cycles a reset costs before the vector fetch
+
+**The document says.** "When the line goes high, the microprocessor will delay 6 cycles and then fetch the new program count vectors from specific locations in memory (PCL from location FFFC and PCH from location FFFD)."
+
+Source: MCS6500 Microcomputer Family Hardware Manual, 1976, 1.4.1.2.11 RES--Reset.
+
+**The recordings say.** Nothing. Every case in every suite begins with the part already running and its registers set by the test, so no recording covers a reset. This is the manufacturer's statement standing alone, and it is not in doubt; it is simply not something the corpus can confirm.
+
+**What this project does.** Charges two cycles, which is the vector fetch and nothing else. A host pacing against a real clock is undercharged by six cycles for every reset it issues. The count itself is not the open part.
+
+**What would settle it.** What the part drives on the bus during those six cycles. Every cycle of this processor is a bus cycle, so it is driving an address, and no source on hand names it. Six invented addresses would look like knowledge and be nothing of the kind, so the timing is left short and named here instead.
+
+### How many cycles STP and WAI cost on a W65C02
+
+**The document says.** "Uses 3 cycles to shut the processor down; additional cycles are required by reset to restart it."
+
+Source: Programming the 65816, including the 6502, 65C02 and 65802, WDC, instruction tables for STP and WAI.
+
+**The recordings say.** Nothing. The suite files for DB and CB hold no cases, because a part that halts its own clock produces nothing to record.
+
+**What this project does.** Charges three cycles on the 65816, which is what the book states, and two on the W65C02. The book's own tables mark both instructions as reaching the 65802 and 65816 and not the 65C02, so its three-cycle note is not a claim about the W65C02, and the cycle-count column of the W65C02S data sheet is a graphic that did not survive text extraction.
+
+**What would settle it.** That column, read from the page rather than from an extraction, or any recording of a real W65C02 executing DB or CB.
+
+### What a halted W65C02 holds on its address lines
+
+**The document says.** "A negative transition to the low state prior to the falling edge of PHI2 will halt the microprocessor with the output address lines reflecting the current address being fetched. ... This condition will remain through a subsequent PHI2 in which the ready signal is low. The WAI instruction pulls RDY low signaling the WAit-for-Interrupt condition."
+
+Source: W65C02S Data Sheet, 3.10 Ready (RDY).
+
+**The recordings say.** Nothing for this part: the suite files for CB and DB hold no cases. The 65816 suite does carry 40,000, and for that part they show something different, no address at all and every output line inactive, which is what this project models there.
+
+**What this project does.** Charges the time and records no bus activity. A part held this way is holding an address rather than fetching one, and this project's trace records accesses rather than the state of lines, so it has no way to write down "the address bus still reads $8001 and nothing is happening". The cycle count is right; the bus picture is absent rather than wrong.
+
+**What would settle it.** Not evidence but a decision, and a large one: a trace that recorded line states rather than accesses could express a held bus, and would change what every other cycle in this project means. Separately, a recording of a real W65C02 during WAI would say which address it settles on, which the data sheet leaves as "the current address being fetched".
+
 ## Where the evidence has not been run here
 
 Not unknown to the world, unverified in this repository.
@@ -186,3 +230,8 @@ Absent rather than unknown, and absent on purpose:
   instruction, and this core finishes an instruction before it will take one.
 - **Bus arbitration and wait states.** A model with no bus master and no slow
   memory has nothing to arbitrate.
+- **A clock that drives the part rather than a host that counts.** `step()` runs
+  one whole instruction and reports the cycles it cost, and `run_for()` spends a
+  budget of them. Neither is a cycle-by-cycle entry point: nothing outside can
+  advance the part half an instruction and read a pin. That is why the line above
+  about pins under load reads as it does, and closing one would close the other.

@@ -29,6 +29,7 @@ from mos65xx import UnknownModelError  # noqa: E402
 LDA_ZERO_PAGE = 0xA5
 INC_ZERO_PAGE = 0xE6
 JAM = 0x02
+STP = 0xDB
 
 
 def a_case(
@@ -120,19 +121,50 @@ class ComparisonTest(unittest.TestCase):
 
 
 class HaltTest(unittest.TestCase):
-    """That a halted part is left out rather than counted either way."""
+    """That an instruction which halts the part is compared rather than skipped."""
 
-    def test_a_jam_opcode_is_recognised_as_a_halt(self) -> None:
-        self.assertTrue(cycles.halted(a_case({0x8000: JAM}, []), "6502"))
+    def test_a_jam_is_compared_against_the_whole_recording(self) -> None:
+        jam = a_case(
+            {0x8000: JAM, 0x8001: 0xA1, 0xFFFE: 0x34, 0xFFFF: 0x12},
+            [
+                [0x8000, JAM, "read"],
+                [0x8001, 0xA1, "read"],
+                [0xFFFF, 0x12, "read"],
+                [0xFFFE, 0x34, "read"],
+                [0xFFFE, 0x34, "read"],
+                [0xFFFF, 0x12, "read"],
+                [0xFFFF, 0x12, "read"],
+            ],
+        )
 
-    def test_an_ordinary_opcode_is_not(self) -> None:
-        self.assertFalse(cycles.halted(LOADING, "6502"))
+        self.assertIsNone(cycles.check(jam, "6502"))
 
-    def test_a_case_whose_opcode_byte_is_absent_is_not_treated_as_a_halt(self) -> None:
-        self.assertFalse(cycles.halted(a_case({0x9000: JAM}, []), "6502"))
+    def test_a_stopped_part_is_clocked_out_to_the_recorded_length(self) -> None:
+        stopped = a_case(
+            {0x8000: STP},
+            [
+                [0x8000, STP, "dp-remx-"],
+                [0x8001, None, "---remx-"],
+                [0x8001, None, "---remx-"],
+                [None, None, "--------"],
+                [None, None, "--------"],
+            ],
+            e=1,
+            p=0x34,
+        )
 
-    def test_a_part_with_no_opcode_table_is_not_treated_as_a_halt(self) -> None:
-        self.assertFalse(cycles.halted(a_case({0x8000: JAM}, []), "65816"))
+        self.assertIsNone(cycles.check(stopped, "65816"))
+
+    def test_a_model_that_cannot_fill_a_recording_stops_rather_than_looping(self) -> None:
+        short = a_case(
+            {0x8000: LDA_ZERO_PAGE, 0x8001: 0x40, 0x0040: 0x7B},
+            [*LOADING["cycles"], [0x0040, 0x7B, "read"]],
+        )
+
+        held = cycles.check(short, "6502")
+
+        assert held is not None
+        self.assertEqual(len(held), 3)
 
     def test_a_part_that_does_not_record_its_bus_is_refused_by_the_comparison(self) -> None:
         class Deaf:
@@ -143,13 +175,6 @@ class HaltTest(unittest.TestCase):
             self.assertRaises(cycles.Unsupported),
         ):
             cycles.check(LOADING, "6502")
-
-    def test_halts_are_counted_apart_from_agreements(self) -> None:
-        agreed, differed, skipped, _ = cycles.run_tests(
-            [LOADING, a_case({0x8000: JAM}, [])], "6502"
-        )
-
-        self.assertEqual((agreed, differed, skipped), (1, 0, 1))
 
 
 class RefusalTest(unittest.TestCase):

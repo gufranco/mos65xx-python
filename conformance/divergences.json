@@ -23,7 +23,14 @@
       "whatWouldSettleIt": "A program on a real part: set the data bank to something non-zero, drop into emulation mode, execute BRK, and have the handler push the data bank and read it back.",
       "whyItMayNeverHaveMattered": "In emulation mode the data bank is not pushed, so a part that cleared it would give an interrupt handler no way to restore it. Software written for that part would have had to reload the bank itself, which is what software does anyway.",
       "status": "open",
-      "severity": "contradiction"
+      "severity": "contradiction",
+      "andTheSamePublishersBookDoesNotRepeatIt": {
+        "rung": 1,
+        "source": "Programming the 65816, the BRK entry, printed page 338",
+        "quote": "6502, 65C02, and Emulation Mode (e = 1): The program counter is incremented by two, then pushed onto the stack; the status register, with the b break flag set, is pushed onto the stack; the interrupt disable flag is set; and the program counter is loaded from the interrupt vector at $FFFE-FFFF.",
+        "why": "A step by step account of the same instruction in the same mode, by the same publisher, listing each thing the instruction does. The data bank register is not among them. Its native mode paragraph does name a bank register being cleared, the program bank, so the omission in the emulation paragraph is not the book being brief about banks in general.",
+        "howMuchItSettles": "Not outright. Silence in a programmer's account is weaker than a statement, and the book is describing what a programmer must know rather than enumerating every register the sequence touches. But it is a second rung one source that declines to repeat the caveat, which leaves the caveat as the only place the claim appears against 30,000 recorded cases and one other publication."
+      }
     },
     {
       "subject": "whether a multi-byte pointer read out of the direct page stays inside the page, in emulation mode with the direct register page aligned",
@@ -41,7 +48,10 @@
             "opcode": "E1",
             "test": "e1 e 8669",
             "pointerAt": "00F4FF",
-            "readsCycled": ["00F4FF", "00F500"],
+            "readsCycled": [
+              "00F4FF",
+              "00F500"
+            ],
             "verdict": "left the page, which the document says it should not"
           },
           {
@@ -49,7 +59,11 @@
             "opcode": "27",
             "test": "27 e 3341",
             "pointerAt": "002FFE",
-            "readsCycled": ["002FFE", "002FFF", "003000"],
+            "readsCycled": [
+              "002FFE",
+              "002FFF",
+              "003000"
+            ],
             "verdict": "left the page, which the document says it should"
           },
           {
@@ -57,7 +71,11 @@
             "opcode": "57",
             "test": "57 e 6432",
             "pointerAt": "0089FF",
-            "readsCycled": ["0089FF", "008900", "008901"],
+            "readsCycled": [
+              "0089FF",
+              "008900",
+              "008901"
+            ],
             "verdict": "wrapped inside the page, which the document says it should not"
           },
           {
@@ -65,7 +83,10 @@
             "opcode": "D4",
             "test": "the case at D=000C00 with an operand of FF",
             "pointerAt": "000CFF",
-            "readsCycled": ["000CFF", "000C00"],
+            "readsCycled": [
+              "000CFF",
+              "000C00"
+            ],
             "verdict": "wrapped inside the page, which the document says it should not"
           }
         ],
@@ -92,14 +113,23 @@
             "opcode": "10",
             "test": "10 b3 8d",
             "at": "0090CA",
-            "readsCycled": ["0090CA", "0090CB", "0090CC"],
+            "readsCycled": [
+              "0090CA",
+              "0090CB",
+              "0090CC"
+            ],
             "verdict": "third cycle at PC+2, and the branch went to 00907F"
           },
           {
             "opcode": "10",
             "test": "10 3c 3a",
             "at": "0077E1",
-            "readsCycled": ["0077E1", "0077E2", "0077E3", "00771F"],
+            "readsCycled": [
+              "0077E1",
+              "0077E2",
+              "0077E3",
+              "00771F"
+            ],
             "verdict": "third at PC+2, fourth at the low-byte-only sum, and the branch went to 00781F"
           }
         ]
@@ -156,7 +186,11 @@
           {
             "opcode": "69",
             "at": "00EC03",
-            "readsCycled": ["00EC03", "00EC04", "00007F"],
+            "readsCycled": [
+              "00EC03",
+              "00EC04",
+              "00007F"
+            ],
             "verdict": "a constant, and therefore not an address the part computed"
           }
         ]
@@ -295,6 +329,54 @@
       "andTheSamePublisherTransposesThemElsewhere": "Appendix C of Programming the 65816, which the same company holds the copyright to, prints the four qualifier states under headers in the opposite order from the data sheet's, so that a valid program address comes out as the Valid Data Address pin high and the Valid Program Address pin low. That is a transposition of exactly these two signals in this publisher's own documentation. It does not settle this entry, but it is the reason a single printed row is not enough to overturn thirty thousand recorded cases.",
       "status": "open",
       "severity": "documentContradiction"
+    },
+    {
+      "subject": "how many cycles a reset costs before the vector fetch",
+      "documentSays": {
+        "document": "MCS6500 Microcomputer Family Hardware Manual, 1976, 1.4.1.2.11 RES--Reset",
+        "quote": "When the line goes high, the microprocessor will delay 6 cycles and then fetch the new program count vectors from specific locations in memory (PCL from location FFFC and PCH from location FFFD)."
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests 65x02 6502 v1",
+        "measured": "Nothing. Every case in every suite starts with the part already running and the registers set by the test, so no recording covers a reset at all. This is the manufacturer's statement standing alone."
+      },
+      "whatThisProjectDoes": "Charges two cycles, which is the vector fetch and nothing else. The six delay cycles the manual names are not spent, so a host pacing against a real clock is undercharged by six cycles for every reset it issues.",
+      "whatWouldSettleIt": "A recording of the reset sequence, which no published corpus carries. The count is not in question, because the manufacturer states it plainly; what is missing is what the part drives on the bus during those six cycles. Every cycle of this part is a bus cycle, so it is driving something, and inventing six addresses to fill the gap would be worse than leaving the timing short and saying so.",
+      "whyItMatters": "Only for a host that counts cycles across a reset. A reset happens once at power on and rarely after, so six cycles is a small absolute error, but it is an error the project can name exactly rather than one it has failed to notice.",
+      "status": "open",
+      "severity": "unstated"
+    },
+    {
+      "subject": "how many cycles STP and WAI cost on a W65C02",
+      "documentSays": {
+        "document": "Programming the 65816, including the 6502, 65C02 and 65802, WDC, instruction tables for STP and WAI",
+        "quote": "Uses 3 cycles to shut the processor down; additional cycles are required by reset to restart it"
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests 65x02 wdc65c02 v1",
+        "measured": "Nothing. The files for DB and CB hold no cases at all, because a part that stops its own clock produces no recording to compare against."
+      },
+      "whatThisProjectDoes": "Charges three cycles on the 65816, matching the book, and two on the W65C02. The book's tables mark both instructions as available to the 65802 and 65816 and not to the 65C02, so its three-cycle note is not a statement about the W65C02, and the W65C02S data sheet gives no cycle count for either instruction in the text available here.",
+      "whatWouldSettleIt": "The cycle-count column of the W65C02S data sheet's operation table, which is a graphic in the copy on hand and did not survive text extraction, or any recording of a W65C02 executing DB or CB.",
+      "whyItMatters": "A part told to STP halts its own clock, so the count is the last thing a host is charged before time stops for that processor. It is one cycle either way and it is the kind of gap that stays invisible until somebody counts.",
+      "status": "open",
+      "severity": "unstated"
+    },
+    {
+      "subject": "what a halted W65C02 holds on its address lines",
+      "documentSays": {
+        "document": "W65C02S Data Sheet, 3.10 Ready (RDY)",
+        "quote": "A negative transition to the low state prior to the falling edge of PHI2 will halt the microprocessor with the output address lines reflecting the current address being fetched. This assumes the processor setup time is met. This condition will remain through a subsequent PHI2 in which the ready signal is low. The WAI instruction pulls RDY low signaling the WAit-for-Interrupt condition, thus RDY is a bi-directional pin."
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests 65x02 wdc65c02 v1",
+        "measured": "Nothing. The files for CB and DB hold no cases. The 65816 suite does carry 40,000, and they show something different for that part: no address at all and every output line inactive, which is what this project models there."
+      },
+      "whatThisProjectDoes": "Charges the time and records no bus activity. A W65C02 held this way is holding an address rather than fetching one, and this project's trace records accesses rather than the state of lines, so it has no way to say 'the address bus still reads $8001 and nothing is happening'. The cycle count is right and the bus picture is absent rather than wrong.",
+      "whatWouldSettleIt": "Not evidence but a decision: a trace that recorded line states rather than accesses could express a held bus, and would change what every other cycle in this project means. Recordings of a real W65C02 during WAI would say which address it settles on, which the data sheet leaves as 'the current address being fetched'.",
+      "whyItMatters": "A device watching the address bus of a waiting part sees a held address, not a quiet bus. Anything decoding that address, a chip select that stays asserted, behaves differently from anything decoding nothing.",
+      "status": "open",
+      "severity": "unstated"
     }
   ]
 }

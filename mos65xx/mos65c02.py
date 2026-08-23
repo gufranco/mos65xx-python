@@ -33,6 +33,7 @@ from __future__ import annotations
 
 from typing import Any, override
 
+from .errors import Waiting
 from .mos6502 import MODIFY, READ, STACK_PAGE, WRITE
 from .mos6502 import Cpu as Nmos
 from .opcodes65c02 import CMOS
@@ -350,6 +351,31 @@ class Cpu(Nmos):
 
     def op_wai(self, mode: str) -> None:
         self.waiting = True
+
+    @override
+    def step(self) -> int:
+        """Run one instruction, unless the part is holding and cannot start one."""
+        if self.waiting:
+            raise Waiting("the processor is waiting for an interrupt")
+        return super().step()
+
+    @override
+    def held(self) -> bool:
+        """Either of the two states this part can put itself into deliberately."""
+        return self.stopped or self.waiting
+
+    @override
+    def held_cycle(self) -> None:
+        """One cycle of a part that has halted itself, which costs time and no bus.
+
+        The data sheet says what the lines do: a part halted this way holds "the
+        output address lines reflecting the current address being fetched", and
+        stays there. It is holding an address rather than fetching one, so there
+        is no access to record, and this project's trace records accesses. The
+        time is charged because the board's clock is still running; the held lines
+        are not represented, which OPEN-QUESTIONS.md says plainly.
+        """
+        self.cycles += 1
 
     def modify_bit(self, bit: int, set_it: bool) -> None:
         address = self.effective("zeroPage")

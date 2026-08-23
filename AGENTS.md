@@ -44,7 +44,7 @@ gets.
 
 **Settled: cycles.** [`conformance/cycles.py`](conformance/cycles.py) compares
 every bus cycle of every case against the recorded one, address by address and
-line by line, across all six parts. 17,590,080 comparisons, no failures. The
+line by line, across all eight parts. 17,870,080 comparisons, no failures. The
 65816 comparison includes the two address qualifiers, the vector pull and memory
 lock, because the corpus carries them.
 
@@ -82,7 +82,7 @@ Every part is held to the bus, not only to state:
 python3 conformance/cycles.py <suite>/65816/v1 --model 65816
 ```
 
-17,590,080 cases agree, across all eight parts. On the eight-bit parts every cycle
+17,870,080 cases agree, across all eight parts. On the eight-bit parts every cycle
 is a bus cycle, so the comparison covers timing and side effects at once. On the
 65816 it also covers eight output pins per cycle, and cycles where the part drives
 no valid address at all.
@@ -191,6 +191,7 @@ mos65xx/
   opcodes*.py    one opcode table and disassembler per part
   memory.py      flat and sparse memories that start filled, never cleared
   models.py      the family, by name and alias
+  errors.py      the halt states, one definition shared by every core
 conformance/
   suites.json    which corpora, at which commit
   fetch.py       getting them

@@ -8,7 +8,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from mos65xx import SparseMemory, mos6502, opcodes6502
+from mos65xx import SparseMemory, errors, mos6502, opcodes6502
 
 
 def machine(
@@ -275,8 +275,44 @@ class UndocumentedTest(unittest.TestCase):
         cpu, _ = machine([0x02])
         cpu.step()
 
-        with self.assertRaises(mos6502.Stopped):
+        with self.assertRaises(errors.Stopped):
             cpu.step()
+
+    def test_a_jam_reads_the_interrupt_vector_on_its_way_to_hanging(self) -> None:
+        cpu, _ = machine([0x02, 0xA1])
+        cpu.trace = []
+
+        cpu.step()
+
+        self.assertEqual(
+            [address for address, _, _ in cpu.trace],
+            [0x8000, 0x8001, 0xFFFF, 0xFFFE, 0xFFFE],
+        )
+
+    def test_a_hung_part_goes_on_driving_the_top_of_that_vector(self) -> None:
+        cpu, _ = machine([0x02, 0xA1])
+        cpu.step()
+        cpu.trace = []
+
+        cpu.run_for(6)
+
+        self.assertEqual([address for address, _, _ in cpu.trace], [0xFFFF] * 6)
+
+    def test_a_hung_part_still_spends_its_hosts_cycles(self) -> None:
+        cpu, _ = machine([0x02, 0xA1])
+        cpu.step()
+
+        spent = cpu.run_for(1000)
+
+        self.assertEqual(spent, 1000)
+
+    def test_a_reset_is_the_only_thing_that_ends_a_jam(self) -> None:
+        cpu, _ = machine([0x02, 0xA1])
+        cpu.step()
+
+        cpu.reset()
+
+        self.assertFalse(cpu.jammed)
 
 
 class BranchTest(unittest.TestCase):
@@ -329,13 +365,53 @@ class InterruptTest(unittest.TestCase):
         self.assertEqual(memory.read8(0x01FC), 0x02)
 
 
-class LimitTest(unittest.TestCase):
-    def test_a_run_that_never_ends_is_stopped_rather_than_hanging(self) -> None:
-        cpu, _ = machine([0x4C, 0x00, 0x80])
-        cpu.step_limit = 100
+class ClockTest(unittest.TestCase):
+    def test_a_step_reports_the_cycles_that_instruction_took(self) -> None:
+        cpu, _ = machine([0xEA])
 
-        with self.assertRaises(mos6502.StepLimit):
-            cpu.run_until(lambda _: False)
+        cycles = cpu.step()
+
+        self.assertEqual(cycles, 2)
+
+    def test_the_tally_adds_up_across_instructions(self) -> None:
+        cpu, _ = machine([0xEA, 0xEA, 0xEA])
+        started = cpu.cycles
+
+        cpu.step()
+        cpu.step()
+        cpu.step()
+
+        self.assertEqual(cpu.cycles - started, 6)
+
+    def test_a_budget_runs_whole_instructions_and_reports_what_was_spent(self) -> None:
+        cpu, _ = machine([0xEA] * 8)
+
+        spent = cpu.run_for(5)
+
+        self.assertEqual(spent, 6)
+
+    def test_the_tally_survives_a_reset_because_a_clock_does_not_rewind(self) -> None:
+        cpu, _ = machine([0xEA])
+        cpu.step()
+        before = cpu.cycles
+
+        cpu.reset()
+
+        self.assertGreaterEqual(cpu.cycles, before)
+
+    def test_a_bounded_run_gives_up_rather_than_hanging(self) -> None:
+        cpu, _ = machine([0x4C, 0x00, 0x80])
+
+        with self.assertRaises(errors.RunLimit):
+            cpu.run_until(lambda _: False, limit=100)
+
+    def test_a_bounded_run_that_reaches_its_condition_does_not_raise(self) -> None:
+        cpu, _ = machine([0xEA, 0xEA])
+        target = cpu.pc + 2
+
+        cpu.run_until(lambda part: part.pc == target, limit=50)
+
+        self.assertEqual(cpu.pc, target)
 
 
 class EveryOpcodeTest(unittest.TestCase):
@@ -378,14 +454,14 @@ class EveryOpcodeTest(unittest.TestCase):
     def test_a_mode_no_instruction_uses_is_refused_rather_than_guessed(self) -> None:
         cpu, _ = machine([0xEA])
 
-        with self.assertRaises(mos6502.UnsupportedError):
+        with self.assertRaises(errors.UnsupportedError):
             cpu.effective("nonsense")
 
     def test_an_opcode_with_no_handler_is_refused_rather_than_skipped(self) -> None:
         cpu, _ = machine([0x00])
         cpu.table = tuple([("nonsense", "implied")] * 256)
 
-        with self.assertRaises(mos6502.UnsupportedError):
+        with self.assertRaises(errors.UnsupportedError):
             cpu.step()
 
 

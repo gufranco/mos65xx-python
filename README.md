@@ -24,7 +24,7 @@
   <a href="https://github.com/gufranco/mos65xx-python/issues">Issues</a>
 </p>
 
-**8** parts · **17,920,000** state cases and **17,590,080** cycle-exact cases, **0** failures · **256** opcodes each · **526** tests · **100%** statement and branch coverage
+**8** parts · **17,920,000** state cases and **17,870,080** cycle-exact cases, **0** failures · **256** opcodes each · **778** tests · **100%** statement and branch coverage
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -54,7 +54,7 @@ That last part is the one that bites. Hardware does not hand over a clean machin
 
 Two commitments, and every design decision here follows from one of them.
 
-**Correctness is measured, never asserted.** Every core is checked against the per-opcode suite published for the part it models, 10,000 cases per opcode. All 17,920,000 pass, and the comparison goes further: 17,590,080 cases match the recorded bus activity cycle for cycle, address by address, and on the 65816 pin by pin. When a core and the suite disagreed, the suite was right every time, thirteen times running, including on things no datasheet states plainly. Page wrapping, for one, is not uniform across addressing modes: indirect indexed by Y wraps inside its page and indexed indirect by X does not, and that is not a rule anybody would guess.
+**Correctness is measured, never asserted.** Every core is checked against the per-opcode suite published for the part it models, 10,000 cases per opcode. All 17,920,000 pass, and the comparison goes further: 17,870,080 cases match the recorded bus activity cycle for cycle, address by address, and on the 65816 pin by pin. When a core and the suite disagreed, the suite was right every time, thirteen times running, including on things no datasheet states plainly. Page wrapping, for one, is not uniform across addressing modes: indirect indexed by Y wraps inside its page and indexed indirect by X does not, and that is not a rule anybody would guess.
 
 One of them was a single case in 2,560,000. A jump to a subroutine pushes its return address between reading the two halves of its own destination, so when the stack has walked into the instruction the push overwrites the destination's high byte and the jump goes wherever the pushed byte says. Reading the destination first and pushing afterwards gives the same answer every other time.
 
@@ -153,6 +153,46 @@ python3 mos65xx/wdc65816.test.py
 
 # OK
 ```
+
+## Running at a real speed
+
+A part does not run at "as fast as the host manages". It runs at whatever its
+crystal says, and every instruction costs a known number of cycles. `step()`
+returns what the instruction it ran cost, `cycles` is the running total, and
+`run_for()` spends a budget of them so a host can hold the part to a real clock.
+
+```python
+import time
+
+from mos65xx import Cpu
+
+HERTZ = 1_789_773
+SLICE = 0.02
+
+cpu = Cpu("2a03")
+per_slice = round(HERTZ * SLICE)
+owed = 0
+
+for _ in range(5):
+    began = time.perf_counter()
+    owed += per_slice
+    owed -= cpu.run_for(owed)
+    time.sleep(max(0.0, SLICE - (time.perf_counter() - began)))
+
+print(cpu.cycles)
+```
+
+An instruction is not divisible, so `run_for()` almost always overshoots its
+budget slightly and returns what it really spent. Carrying that overshoot into
+the next slice, rather than throwing it away, is what stops a long run drifting
+away from the wall clock.
+
+A part that has halted still costs its host every cycle, so `run_for()` keeps
+spending rather than raising. A jammed NMOS part goes on driving $FFFF, and a
+65816 that has run STP or WAI produces cycles with no address and every output
+line inactive, which is what the recordings show. `step()` raises instead, since
+no further instruction will complete: `Stopped` for a part that needs a reset,
+`Waiting` for one an interrupt will release.
 
 ## Reading without running
 
@@ -457,6 +497,7 @@ A pinned oracle keeps a build reproducible and stops an upstream edit from turni
 mos65xx/
   __init__.py         the family, and the model chosen at construction
   models.py           what each part is: address bus, instruction set, defects
+  errors.py           the states no instruction gets a part out of, defined once
   memory.py           memory that holds what it held
   wdc65816.py         the 65816 core
   opcodes65816.py     the opcode table and a disassembler
@@ -655,7 +696,7 @@ thinking, so the recorded list of accesses is timing and side effects at once. T
 65816 does not: it lowers both address lines instead, and the recordings carry
 those cycles with no value and the state of eight output pins.
 `conformance/cycles.py` compares all of it, address by address, value by value,
-read against write, pin by pin, in order. **17,590,080 cases agree**, across every
+read against write, pin by pin, in order. **17,870,080 cases agree**, across every
 opcode of all eight parts.
 
 The spare cycles are in, and they are not the same on every part. The NMOS parts
