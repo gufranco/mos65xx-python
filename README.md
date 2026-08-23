@@ -17,7 +17,7 @@
 
 </div>
 
-**16** parts · **17,900,000** state cases and **17,870,080** cycle-exact cases, **0** failures · **824** tests · **100%** statement and branch coverage · no dependencies
+**16** parts · **17,900,000** state cases and **17,870,080** cycle-exact cases, **0** failures · **825** tests · **100%** statement and branch coverage · no dependencies
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -190,7 +190,7 @@ NoSuchPin: the 6507 has no irq pin; it brings out rdy
 
 And decimal mode is a property of the part: the Ricoh variant has the adder unwired, so the flag can be set and changes nothing.
 
-All 256 opcodes are implemented on every part, undocumented ones included. A hundred and fifty one of the 6502's were never documented, programs used them anyway, and a core that treats them as undefined is wrong for the machines that shipped.
+All 256 opcodes are implemented on every part, undocumented ones included. MOS documented a hundred and fifty one of them; the other hundred and five it never mentioned, programs used them anyway, and a core that treats them as undefined is wrong for the machines that shipped.
 
 ## Reading without running
 

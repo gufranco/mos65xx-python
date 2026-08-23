@@ -360,5 +360,26 @@ class FlagTest(unittest.TestCase):
         self.assertEqual(changing, {"changes", "from stack", "bit 7 of memory", "bit 6 of memory"})
 
 
+class ReadmeCountTest(unittest.TestCase):
+    """That the readme's split between documented and undocumented is the record's.
+
+    It was inverted for a long time, calling a hundred and fifty one the number
+    MOS never documented when that is the number it did. Both figures are in the
+    appendix record, so neither has to be remembered.
+    """
+
+    def test_the_readme_reports_the_split_the_appendix_gives(self) -> None:
+        record = json.loads((ROOT / "conformance" / "instruction-set.json").read_text())
+        documented = sum(len(one["modes"]) for one in record["instructions"].values())
+        readme = (ROOT / "README.md").read_text()
+
+        stated = ("hundred and fifty one", "hundred and five")
+
+        self.assertEqual(
+            (documented, 256 - documented, all(word in readme for word in stated)),
+            (151, 105, True),
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
