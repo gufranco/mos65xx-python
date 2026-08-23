@@ -16,8 +16,18 @@ round to.
 
 ## How to use this in another repository
 
-Copy this file in unchanged and follow it. It is meant to be identical
-everywhere, so a rule that needs changing is changed here first and then in every
+Copy this file in unchanged and follow it. The published copies live in the two
+reference repositories above and are byte-identical to each other, so any copy
+can be checked against one of them:
+
+```bash
+WORK=$(mktemp -d)
+git clone --depth=1 https://github.com/gufranco/zilog-z80-python.git "$WORK/reference"
+diff "$WORK/reference/FAMILY.md" FAMILY.md
+```
+
+Everything above the repository's own closing section is shared and must match. A
+rule that needs changing is changed in both references first and then in every
 copy, in the same task. A copy that has drifted is worse than no copy, because a
 reader trusts it.
 
