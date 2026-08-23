@@ -377,6 +377,38 @@
       "whyItMatters": "A device watching the address bus of a waiting part sees a held address, not a quiet bus. Anything decoding that address, a chip select that stays asserted, behaves differently from anything decoding nothing.",
       "status": "open",
       "severity": "unstated"
+    },
+    {
+      "subject": "whether a two cycle opcode turns its internal cycle into a bus read when an interrupt is pending",
+      "documentSays": {
+        "document": "W65C816S Data Sheet",
+        "quote": "Nothing. The data sheet does not describe what an internal cycle does differently while an interrupt is waiting to be taken."
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests 65x02 65816 v1",
+        "measured": "Nothing. Every case runs one instruction with no pin asserted, so no recording in any published corpus covers an instruction executed while an interrupt is pending."
+      },
+      "whatThisProjectDoes": "Spends an ordinary internal cycle, with no dependence on whether an interrupt is waiting. Two widely used implementations do something else: ares and bsnes replace that cycle with a read of the program counter, without incrementing it, for a named list of two cycle opcodes covering the flag instructions, the register transfers, the increments and decrements, the shifts and rotates, NOP and XCE.",
+      "whatWouldSettleIt": "A logic capture of a real part executing one of those opcodes with the interrupt line already low. An implementation is a lead rather than an authority here: ares and bsnes share one lineage, so their agreement is one source and not two, and neither ships the measurement behind the behaviour.",
+      "whyItMatters": "A device watching the bus sees a read that this model does not perform, at the exact moment an interrupt is being taken. It changes nothing a program can compute, and everything a cycle for cycle comparison against real hardware would show.",
+      "status": "open",
+      "severity": "unstated"
+    },
+    {
+      "subject": "the transistor level simulation that could settle most of the NMOS questions, and why it is not being used",
+      "documentSays": {
+        "document": "not applicable",
+        "quote": "Nothing. This is about a source rather than about the part."
+      },
+      "suiteSays": {
+        "corpus": "visual6502",
+        "measured": "A transistor level simulation of the 6502 die is public and has been used as an oracle by others: MAME's NMOS 6502 opcode definitions carry the note 'Verified with visual6502'. It answers the questions a data sheet drawn at cycle resolution and a recording written one row per cycle cannot, which is what a discarded read puts on the bus and which cycle of a branch carries which address."
+      },
+      "whatThisProjectDoes": "Neither. Nothing here has been run against it. Every entry above that says a logic capture would settle it still says so, and this would be the nearest thing to one that needs no bench.",
+      "whatWouldSettleIt": "Running it. The same work is already recorded for the Z80 in the other repository of this family, where a port of the Z80Explorer netlist resolver was written and does not converge. Whether the 6502 simulation is easier to drive is unknown here, because it has not been tried.",
+      "whyItMatters": "It is the one route to closing several open questions at once without buying hardware, and the parts it would answer for are the NMOS ones where the documents are oldest and the recordings least explained.",
+      "status": "open",
+      "severity": "unchecked"
     }
   ]
 }

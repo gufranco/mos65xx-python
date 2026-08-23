@@ -704,7 +704,7 @@ The ones worth borrowing from are embedded in emulators and shaped by the machin
 
 ## What is still open
 
-Twelve questions remain where being faithful to the silicon is a claim rather
+Fourteen questions remain where being faithful to the silicon is a claim rather
 than a measurement, and each one names the measurement that would close it. They are
 in [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md), kept in step with
 [`conformance/divergences.json`](conformance/divergences.json) by a test, so the

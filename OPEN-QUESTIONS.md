@@ -188,7 +188,28 @@ Source: W65C02S Data Sheet, 3.10 Ready (RDY).
 
 **What would settle it.** Not evidence but a decision, and a large one: a trace that recorded line states rather than accesses could express a held bus, and would change what every other cycle in this project means. Separately, a recording of a real W65C02 during WAI would say which address it settles on, which the data sheet leaves as "the current address being fetched".
 
+### Whether a two cycle opcode turns its internal cycle into a bus read when an interrupt is pending
+
+**The document says.** Nothing. The W65C816S data sheet does not describe an internal cycle behaving differently while an interrupt waits to be taken.
+
+**The recordings say.** Nothing either. Every case in every published corpus runs one instruction with no pin asserted, so nothing covers an instruction executed while an interrupt is pending.
+
+**What this project does.** Spends an ordinary internal cycle, whatever the interrupt line is doing. Two widely used implementations do something else: ares and bsnes replace that cycle with a read of the program counter, without incrementing it, for a named list of two cycle opcodes, the flag instructions, the register transfers, the increments and decrements, the shifts and rotates, NOP and XCE.
+
+**What would settle it.** A logic capture of a real part running one of those opcodes with the interrupt line already low. An implementation is a lead here rather than an authority, and a weaker one than it looks: ares and bsnes share a lineage, so their agreement is one source rather than two, and neither ships the measurement behind the behaviour.
+
 ## Where the evidence has not been run here
+
+### The transistor level simulation that could settle most of the NMOS questions, and why it is not being used
+
+**The document says.** Nothing. This is about a source rather than about the part.
+
+**What exists.** A transistor level simulation of the 6502 die is public, and others use it as an oracle: MAME's NMOS 6502 opcode definitions carry the note "Verified with visual6502". It answers what a data sheet drawn at cycle resolution and a recording written one row per cycle cannot, which is what a discarded read puts on the bus and which cycle of a taken branch carries which address.
+
+**What this project does.** Neither. Nothing here has been run against it, so every entry above that says a logic capture would settle it still says so, even though this would be the nearest thing to one that needs no bench.
+
+**What would settle it.** Running it. The same work is recorded for the Z80 in the other repository of this family, where a port of the Z80Explorer netlist resolver was written and does not converge. Whether this simulation is easier to drive is unknown here, because it has not been tried.
+
 
 Not unknown to the world, unverified in this repository.
 
