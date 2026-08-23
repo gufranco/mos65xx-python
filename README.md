@@ -68,7 +68,7 @@ Another was decimal subtraction on the CMOS parts. Both parts produce the same d
 | | |
 |:--|:--|
 | **Every opcode, no gaps** | All 256 are implemented. The 65816 defines all of them: it has no undocumented instructions, and `$42 WDM` is reserved rather than illegal and behaves as a two byte no operation. |
-| **Undefined state stays undefined** | `SparseMemory` derives an unwritten byte from its address, so an unwritten read is arbitrary, reproducible, and not zero, at no allocation cost. |
+| **Undefined state stays undefined** | `SparseMemory` derives an unwritten byte from its address, so an unwritten read is arbitrary, reproducible, and not zero, at no allocation cost. Registers are scrambled at power on rather than at reset, because a reset does not write random values into the accumulator; it leaves it holding what it held. |
 | **One family, one interface** | The model is a constructor argument. Differences in address bus width, instruction set and silicon defects live in the model rather than in a separate project. |
 | **The oracle is pinned, and watched** | The suite commit is pinned so a build is reproducible. A weekly job runs against whatever upstream holds now and opens a pull request or an issue. |
 | **Interruptible block moves** | `MVN` and `MVP` are the one instruction meant to be interrupted. Given a cycle budget they copy what fits, rewind onto their own opcode, and resume exactly where they stopped. |
@@ -133,8 +133,13 @@ Everything a caller touches, in one place. Nothing else is public.
 | `cpu.trace` | set it to a list and every bus cycle is appended: address, value, and on the 65816 eight output pins |
 | `cpu.package_pins` | which interrupt lines this package actually brings out |
 
-Options to `Cpu`: `reset=False` to skip the reset sequence, `seed=` to fix the
-undefined state. The eight-bit cores also take `decimal=False` for the Ricoh
+Options to `Cpu`: `seed=` fixes the undefined state, and `reset=False` hands back
+a part that has been powered and not yet reset. That is a real instant on a real
+board and it is modelled as one: every register holds rubbish derived from the
+seed, the program counter included, so stepping it executes rubbish from a
+rubbish address. It has spent no cycles, because nothing has driven RESET yet.
+The default performs the reset a board performs at power on, which costs the six
+delay cycles the manual names plus the two of the vector fetch. The eight-bit cores also take `decimal=False` for the Ricoh
 part, whose decimal adder is not wired, and `table=` for the opcode set of a
 particular revision. Both are set for you by name, so `Cpu("2a03")` is the
 normal way to ask.
@@ -290,13 +295,17 @@ print(Memory(size=0x1000).data == bytearray(0x1000))
 
 cpu = Cpu("65816", Memory(size=0x1000000))
 print(hex(cpu.a), hex(cpu.x), hex(cpu.y))
+
+powered = Cpu("65816", Memory(size=0x1000000), reset=False)
+print(hex(powered.pc), powered.cycles)
 ```
 
 ```
 0x1d
 True
 False
-0x6ceb 0xef 0xd8
+0x6ceb 0xef 0xd1
+0xd8ef 0
 ```
 
 A byte derived from the address, the same byte every time, and not zero. No

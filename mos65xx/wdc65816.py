@@ -96,6 +96,13 @@ Every line inactive, the read line included, which no ordinary cycle produces.
 
 RESET_VECTOR = 0x00FFFC
 
+RESET_DELAY = 6
+"""Cycles the part spends before it fetches the vector, per the 1976 MOS manual.
+
+WDC's data sheet gives no count of its own for this part, and the core it
+describes is the same lineage, so the older figure stands until one does.
+"""
+
 
 class Cpu:
     """A 65816 in the state a reset leaves it, not in a state chosen for tidiness.
@@ -140,19 +147,9 @@ class Cpu:
         self.cycles = 0
         self.stopped = False
         self.waiting = False
+        self.power_on(seed)
         if reset:
             self.reset(seed)
-        else:
-            self.a = self.x = self.y = 0x0000
-            self.s = 0x01FF
-            self.d = 0x0000
-            self.db = self.pb = 0x00
-            self.pc = 0x0000
-            self.n = self.v = self.z = self.c = False
-            self.m8 = self.x8 = True
-            self.decimal = False
-            self.irq_disable = True
-            self.emulation = False
 
     @property
     def emulation(self) -> bool:
@@ -184,13 +181,63 @@ class Cpu:
         value &= 0xFFFF
         self._s = 0x0100 | (value & 0xFF) if self._emulation else value
 
-    def reset(self, seed: int = UNSET_SEED) -> None:
-        """Put the processor where a reset puts it, undefined parts included."""
-        undefined = scramble(8, seed)
+    def power_on(self, seed: int = UNSET_SEED) -> None:
+        """The state the part is in when the rail comes up and nothing else has.
+
+        Every register holds a value derived from the seed, the program counter
+        included, because a part that has been powered and not yet reset has no
+        idea where it is. A caller that steps one executes rubbish from a rubbish
+        address, which is what the silicon does.
+
+        This is where the scrambling belongs. A reset defines what it defines and
+        randomises nothing.
+        """
+        undefined = scramble(10, seed)
         self.a = undefined[0] | (undefined[1] << 8)
-        self.x = undefined[2]
-        self.y = undefined[3]
-        self.s = 0x0100 | undefined[4]
+        self.x = undefined[2] | (undefined[3] << 8)
+        self.y = undefined[4] | (undefined[5] << 8)
+        self.s = undefined[6] | (undefined[7] << 8)
+        self.d = undefined[8] | (undefined[9] << 8)
+        self.db = undefined[0]
+        self.pb = undefined[1]
+        self.pc = undefined[2] | (undefined[3] << 8)
+        self.n = bool(undefined[5] & 0x80)
+        self.v = bool(undefined[5] & 0x40)
+        self.z = bool(undefined[5] & 0x02)
+        self.c = bool(undefined[5] & 0x01)
+        self.decimal = bool(undefined[6] & 0x08)
+        self.irq_disable = bool(undefined[6] & 0x04)
+        self.emulation = bool(undefined[7] & 0x01)
+        self.m8 = bool(undefined[8] & 0x20) or self.emulation
+        self.x8 = bool(undefined[8] & 0x10) or self.emulation
+
+    def reset(self, seed: int = UNSET_SEED) -> None:
+        """Put the processor where a reset puts it, and nowhere else.
+
+        A reset defines less than a model usually assumes. It forces emulation
+        mode, which forces the accumulator and index registers to eight bits,
+        clears decimal, sets the interrupt disable, zeroes the direct page and
+        both bank registers, forces the high byte of the stack pointer to $01,
+        and loads the program counter from the reset vector.
+
+        It says nothing about the accumulator, the index registers, or the low
+        byte of the stack pointer, and those keep what they were already holding
+        rather than being randomised here. Power on is what randomises them.
+
+        `seed` is accepted and unused, kept so the signature matches the rest of
+        the family and so a caller that seeded the part can name the seed again
+        without it being an error.
+
+        The manual gives the timing plainly: the part "will delay 6 cycles and
+        then fetch the new program count vectors". Those six are charged, so a
+        host pacing against a real clock is not six cycles ahead of the wall
+        after every reset. They appear in `cycles` and not in `trace`, because
+        every cycle of this part drives an address and no source on hand names
+        the six it drives here. Six invented addresses would read as knowledge;
+        a gap that OPEN-QUESTIONS.md names does not.
+        """
+        self.cycles += RESET_DELAY
+        self.s = 0x0100 | (self.s & 0xFF)
 
         self.d = 0x0000
         self.db = 0x00
@@ -201,11 +248,6 @@ class Cpu:
         self.x8 = True
         self.decimal = False
         self.irq_disable = True
-
-        self.n = bool(undefined[5] & 0x80)
-        self.v = bool(undefined[5] & 0x40)
-        self.z = bool(undefined[5] & 0x02)
-        self.c = bool(undefined[5] & 0x01)
 
         self.pc = self.read16(RESET_VECTOR)
         self.steps = 0

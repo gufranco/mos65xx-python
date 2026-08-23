@@ -152,7 +152,7 @@ Source: W65C02S Data Sheet, Table 6-5 note 6, with 8.5 of the W65C816S data shee
 
 **What would settle it.** A logic analyser on a real W65C02S during a decimal add. Until then the extra cycle is real and its address is not evidence, and a model that reproduced 00007F would be reproducing the recorder rather than the part.
 
-### How many cycles a reset costs before the vector fetch
+### What a reset drives on the bus during its six delay cycles
 
 **The document says.** "When the line goes high, the microprocessor will delay 6 cycles and then fetch the new program count vectors from specific locations in memory (PCL from location FFFC and PCH from location FFFD)."
 
@@ -160,9 +160,9 @@ Source: MCS6500 Microcomputer Family Hardware Manual, 1976, 1.4.1.2.11 RES--Rese
 
 **The recordings say.** Nothing. Every case in every suite begins with the part already running and its registers set by the test, so no recording covers a reset. This is the manufacturer's statement standing alone, and it is not in doubt; it is simply not something the corpus can confirm.
 
-**What this project does.** Charges two cycles, which is the vector fetch and nothing else. A host pacing against a real clock is undercharged by six cycles for every reset it issues. The count itself is not the open part.
+**What this project does.** Charges all eight: the six the manual names and the two of the vector fetch. They appear in `cycles`, so a host pacing against a real clock is no longer six cycles ahead of the wall after every reset. They do not appear in `trace`.
 
-**What would settle it.** What the part drives on the bus during those six cycles. Every cycle of this processor is a bus cycle, so it is driving an address, and no source on hand names it. Six invented addresses would look like knowledge and be nothing of the kind, so the timing is left short and named here instead.
+**What would settle it.** The address on the bus during those six cycles. Every cycle of this processor is a bus cycle, so it is driving one, and no source on hand names it. Six invented addresses would look like knowledge and be nothing of the kind, so this is the one place in the project where `cycles` counts more than `trace` records, and it is named here rather than hidden.
 
 ### How many cycles STP and WAI cost on a W65C02
 

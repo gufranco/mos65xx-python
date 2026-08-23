@@ -44,6 +44,11 @@ def run(
     for offset, byte in enumerate(code):
         memory.cells[base + offset] = byte
     cpu = emu.Cpu(memory, reset=False)
+    cpu.a = cpu.x = cpu.y = 0x0000
+    cpu.s = 0x01FF
+    cpu.d = 0x0000
+    cpu.db = 0x00
+    cpu.emulation = False
     cpu.set_status(status)
     for name, value in registers.items():
         setattr(cpu, name, value)
@@ -324,6 +329,8 @@ class BlockMoveTest(unittest.TestCase):
         memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory, reset=False)
         cpu.emulation = False
+        cpu.d = cpu.db = 0x00
+        cpu.emulation = False
         cpu.m8 = cpu.x8 = False
         cpu.pb, cpu.pc = 0x00, 0x8000
         cpu.a, cpu.x, cpu.y = 0x00FF, 0x0000, 0x1000
@@ -338,6 +345,8 @@ class BlockMoveTest(unittest.TestCase):
     def test_a_move_interrupted_partway_keeps_the_bytes_it_copied(self) -> None:
         memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory, reset=False)
+        cpu.emulation = False
+        cpu.d = cpu.db = 0x00
         cpu.emulation = False
         cpu.m8 = cpu.x8 = False
         cpu.pb, cpu.pc = 0x00, 0x8000
@@ -409,6 +418,14 @@ class HaltTest(unittest.TestCase):
 
         with self.assertRaises(emu.Stopped):
             cpu.step()
+
+    def test_a_reset_costs_the_six_cycles_the_manual_names_plus_the_vector(self) -> None:
+        cpu = emu.Cpu(FlatMemory())
+        before = cpu.cycles
+
+        cpu.reset()
+
+        self.assertEqual(cpu.cycles - before, emu.RESET_DELAY + 2)
 
     def test_a_waiting_part_will_not_run_the_next_instruction(self) -> None:
         memory = FlatMemory({0x008000: 0xCB, 0x008001: 0xEA})
@@ -557,11 +574,24 @@ class ResetTest(unittest.TestCase):
     def test_the_undefined_registers_are_reproducible_from_a_seed(self) -> None:
         self.assertEqual(self.machine(seed=7).a, self.machine(seed=7).a)
 
-    def test_asking_for_no_reset_gives_a_stated_starting_point(self) -> None:
+    def test_asking_for_no_reset_gives_a_part_that_was_only_powered(self) -> None:
         cpu = emu.Cpu(emu.Memory(0x10000), reset=False)
 
-        self.assertFalse(cpu.emulation)
-        self.assertEqual((cpu.a, cpu.x, cpu.y), (0, 0, 0))
+        self.assertNotEqual((cpu.a, cpu.x, cpu.y, cpu.pc, cpu.d), (0, 0, 0, 0, 0))
+
+    def test_and_that_part_has_not_spent_a_cycle(self) -> None:
+        cpu = emu.Cpu(emu.Memory(0x10000), reset=False)
+
+        self.assertEqual(cpu.cycles, 0)
+
+    def test_the_same_seed_powers_up_the_same_way_twice(self) -> None:
+        first = emu.Cpu(emu.Memory(0x10000), seed=7, reset=False)
+        second = emu.Cpu(emu.Memory(0x10000), seed=7, reset=False)
+
+        self.assertEqual(
+            (first.a, first.x, first.y, first.pc, first.d),
+            (second.a, second.x, second.y, second.pc, second.d),
+        )
 
 
 class EveryOpcodeTest(unittest.TestCase):
@@ -575,6 +605,8 @@ class EveryOpcodeTest(unittest.TestCase):
     def machine(self, opcode: int, state: Any) -> Any:
         memory = emu.Memory(0x1000000, seed=opcode)
         cpu = emu.Cpu(memory, reset=False)
+        cpu.emulation = False
+        cpu.d = cpu.db = 0x00
         for name, value in state.items():
             setattr(cpu, name, value)
         cpu.pb, cpu.pc = 0x00, 0x8000
@@ -641,6 +673,8 @@ class BankZeroWordTest(unittest.TestCase):
     def machine(self, code: Sequence[int]) -> Any:
         memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory, reset=False)
+        cpu.emulation = False
+        cpu.d = cpu.db = 0x00
         cpu.m8 = cpu.x8 = False
         cpu.d = 0xFFF0
         cpu.pb, cpu.pc = 0x00, 0x8000
@@ -729,6 +763,8 @@ class DirectPagePointerWrapTest(unittest.TestCase):
 
         memory = Watched()
         cpu = emu.Cpu(memory, reset=False)
+        cpu.emulation = False
+        cpu.d = cpu.db = 0x00
         cpu.emulation = True
         cpu.d = 0x0C00
         cpu.pb, cpu.pc = 0x00, 0x8000
@@ -768,6 +804,8 @@ class DirectPagePointerWrapTest(unittest.TestCase):
 
         memory = Watched()
         cpu = emu.Cpu(memory, reset=False)
+        cpu.emulation = False
+        cpu.d = cpu.db = 0x00
         cpu.emulation = True
         cpu.d = 0x0C01
         cpu.pb, cpu.pc = 0x00, 0x8000
@@ -783,6 +821,8 @@ class SoftwareInterruptTest(unittest.TestCase):
     def machine(self, opcode: int, emulation: bool) -> Any:
         memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory, reset=False)
+        cpu.emulation = False
+        cpu.d = cpu.db = 0x00
         cpu.emulation = emulation
         if not emulation:
             cpu.m8 = cpu.x8 = False
@@ -896,6 +936,8 @@ class HardwareInterruptTest(unittest.TestCase):
     def machine(self, emulation: bool, vector: int, target: int = 0x9000) -> Any:
         memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory, reset=False)
+        cpu.emulation = False
+        cpu.d = cpu.db = 0x00
         cpu.emulation = emulation
         if not emulation:
             cpu.m8 = cpu.x8 = False
@@ -1060,11 +1102,16 @@ class CycleShapeTest(unittest.TestCase):
     ) -> list[Any]:
         memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory, reset=False)
+        cpu.emulation = False
+        cpu.d = cpu.db = 0x00
         cpu.emulation = emulation
         if not emulation:
             cpu.m8 = cpu.x8 = True
         cpu.pb, cpu.pc = 0x00, at
         cpu.s = 0x01FF
+        cpu.a = cpu.x = cpu.y = 0x0000
+        cpu.d = 0x0000
+        cpu.db = 0x00
         for name, value in registers.items():
             setattr(cpu, name, value)
         for offset, byte in enumerate(code):
@@ -1121,6 +1168,8 @@ class CycleShapeTest(unittest.TestCase):
     def test_and_carries_the_byte_it_read_in_emulation_mode(self) -> None:
         memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory, reset=False)
+        cpu.emulation = False
+        cpu.d = cpu.db = 0x00
         cpu.emulation = True
         cpu.pb, cpu.pc = 0x00, 0x8000
         memory.write8(0x008000, 0x06)
@@ -1184,6 +1233,8 @@ class CycleShapeTest(unittest.TestCase):
     def test_a_block_move_refetches_itself_for_every_byte(self) -> None:
         memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory, reset=False)
+        cpu.emulation = False
+        cpu.d = cpu.db = 0x00
         cpu.m8 = cpu.x8 = True
         cpu.pb, cpu.pc = 0x00, 0x8000
         cpu.a, cpu.x, cpu.y = 0x0001, 0x0000, 0x0100
@@ -1198,6 +1249,8 @@ class CycleShapeTest(unittest.TestCase):
     def test_and_spends_two_cycles_after_each_byte_it_writes(self) -> None:
         memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory, reset=False)
+        cpu.emulation = False
+        cpu.d = cpu.db = 0x00
         cpu.m8 = cpu.x8 = True
         cpu.pb, cpu.pc = 0x00, 0x8000
         cpu.a, cpu.x, cpu.y = 0x0000, 0x0000, 0x0100
@@ -1212,6 +1265,8 @@ class CycleShapeTest(unittest.TestCase):
     def test_a_move_cut_short_leaves_the_cycles_it_managed(self) -> None:
         memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory, reset=False)
+        cpu.emulation = False
+        cpu.d = cpu.db = 0x00
         cpu.m8 = cpu.x8 = True
         cpu.pb, cpu.pc = 0x00, 0x8000
         cpu.a, cpu.x, cpu.y = 0x00FF, 0x0000, 0x0100
@@ -1227,6 +1282,8 @@ class CycleShapeTest(unittest.TestCase):
     def test_and_stops_before_the_write_of_the_byte_it_could_not_finish(self) -> None:
         memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory, reset=False)
+        cpu.emulation = False
+        cpu.d = cpu.db = 0x00
         cpu.m8 = cpu.x8 = True
         cpu.pb, cpu.pc = 0x00, 0x8000
         cpu.a, cpu.x, cpu.y = 0x00FF, 0x0000, 0x0100

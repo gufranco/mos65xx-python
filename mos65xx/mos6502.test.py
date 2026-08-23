@@ -399,6 +399,14 @@ class ClockTest(unittest.TestCase):
 
         self.assertGreaterEqual(cpu.cycles, before)
 
+    def test_a_reset_costs_the_six_cycles_the_manual_names_plus_the_vector(self) -> None:
+        cpu, _ = machine([0xEA])
+        before = cpu.cycles
+
+        cpu.reset()
+
+        self.assertEqual(cpu.cycles - before, mos6502.RESET_DELAY + 2)
+
     def test_a_bounded_run_gives_up_rather_than_hanging(self) -> None:
         cpu, _ = machine([0x4C, 0x00, 0x80])
 

@@ -151,6 +151,9 @@ class HaltTest(unittest.TestCase):
             ],
             e=1,
             p=0x34,
+            d=0x0000,
+            dbr=0x00,
+            pbr=0x00,
         )
 
         self.assertIsNone(cycles.check(stopped, "65816"))

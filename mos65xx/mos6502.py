@@ -46,6 +46,9 @@ from .models import NoSuchPin
 from .opcodes6502 import MODE_SIZE, NMOS
 
 RESET_VECTOR = 0xFFFC
+
+RESET_DELAY = 6
+"""Cycles the part spends before it fetches the vector, per the 1976 manual."""
 BREAK_VECTOR = 0xFFFE
 NMI_VECTOR = 0xFFFA
 IRQ_VECTOR = 0xFFFE
@@ -100,26 +103,54 @@ class Cpu:
 
         self.trace: list[tuple[int, int, str]] | None = None
 
-        self.a = self.x = self.y = 0x00
-        self.s = 0xFD
-        self.pc = 0x0000
-        self.n = self.v = self.d = self.z = self.c = self.b = False
-        self.i = True
+        self.power_on(seed)
 
         if reset:
             self.reset(seed)
+
+    def power_on(self, seed: int = UNSET_SEED) -> None:
+        """The state the part is in when the rail comes up and nothing else has.
+
+        Every register holds a byte derived from the seed. Not zero, and not the
+        0xFD that emulators write into the stack pointer, which is a value a 6502
+        reaches only after a reset has already run and is therefore a claim about
+        a reset rather than about power on.
+
+        This is where the scrambling belongs. A part that has been powered and
+        not yet reset holds rubbish, and a caller that steps it executes rubbish
+        from a rubbish address, which is what the silicon does.
+        """
+        undefined = scramble(7, seed)
+        self.a, self.x, self.y = undefined[0], undefined[1], undefined[2]
+        self.s = undefined[3]
+        self.set_status(undefined[4])
+        self.pc = undefined[5] | (undefined[6] << 8)
 
     def reset(self, seed: int = UNSET_SEED) -> Cpu:
         """What a reset actually defines, and nothing beyond it.
 
         The vector decides where execution starts and the interrupt disable is
-        set. Everything else keeps whatever the silicon powered up holding, so it
-        is scrambled from a seed rather than cleared.
+        set. Everything else keeps whatever it was already holding, because a
+        reset does not write into the accumulator. The manual is careful to say
+        only that the state afterwards is unknown: "It should be assumed that any
+        time the reset line has been pulled low and then high, the internal
+        states of the machine are unknown and all registers must be
+        re-initialized." Unknown is not the same as randomised, and the part that
+        does the randomising here is power on.
+
+        `seed` is accepted and unused. It is kept because a caller that resets a
+        part it built with a seed reasonably expects to name one, and because
+        removing it would change a signature the family shares.
+
+        The manual gives the timing plainly: the part "will delay 6 cycles and
+        then fetch the new program count vectors". Those six are charged, so a
+        host pacing against a real clock is not six cycles ahead of the wall
+        after every reset. They appear in `cycles` and not in `trace`, because
+        every cycle of this part drives an address and no source on hand names
+        the six it drives here. Six invented addresses would read as knowledge;
+        a gap that OPEN-QUESTIONS.md names does not.
         """
-        undefined = scramble(6, seed)
-        self.a, self.x, self.y = undefined[0], undefined[1], undefined[2]
-        self.s = undefined[3]
-        self.set_status(undefined[4])
+        self.cycles += RESET_DELAY
         self.i = True
         self.stopped = False
         self.jammed = False

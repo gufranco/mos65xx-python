@@ -331,7 +331,7 @@
       "severity": "documentContradiction"
     },
     {
-      "subject": "how many cycles a reset costs before the vector fetch",
+      "subject": "what a reset drives on the bus during its six delay cycles",
       "documentSays": {
         "document": "MCS6500 Microcomputer Family Hardware Manual, 1976, 1.4.1.2.11 RES--Reset",
         "quote": "When the line goes high, the microprocessor will delay 6 cycles and then fetch the new program count vectors from specific locations in memory (PCL from location FFFC and PCH from location FFFD)."
@@ -340,9 +340,9 @@
         "corpus": "SingleStepTests 65x02 6502 v1",
         "measured": "Nothing. Every case in every suite starts with the part already running and the registers set by the test, so no recording covers a reset at all. This is the manufacturer's statement standing alone."
       },
-      "whatThisProjectDoes": "Charges two cycles, which is the vector fetch and nothing else. The six delay cycles the manual names are not spent, so a host pacing against a real clock is undercharged by six cycles for every reset it issues.",
-      "whatWouldSettleIt": "A recording of the reset sequence, which no published corpus carries. The count is not in question, because the manufacturer states it plainly; what is missing is what the part drives on the bus during those six cycles. Every cycle of this part is a bus cycle, so it is driving something, and inventing six addresses to fill the gap would be worse than leaving the timing short and saying so.",
-      "whyItMatters": "Only for a host that counts cycles across a reset. A reset happens once at power on and rarely after, so six cycles is a small absolute error, but it is an error the project can name exactly rather than one it has failed to notice.",
+      "whatThisProjectDoes": "Charges all eight cycles: the six the manual names and the two of the vector fetch. They appear in `cycles`, so a host pacing against a real clock is not six cycles ahead of the wall after every reset. They do not appear in `trace`, because every cycle of this part drives an address and no source on hand names the six driven here.",
+      "whatWouldSettleIt": "A recording of the reset sequence, which no published corpus carries. The count is not in question and is now modelled; what is missing is the address on the bus during those six cycles. Six invented addresses would read as knowledge, so the gap is left visible as the one place where `cycles` counts more than `trace` records.",
+      "whyItMatters": "A device that decodes the address bus sees six accesses this model cannot describe. The timing a host pays is now right; the picture of what the bus carried is absent rather than wrong, and those are different failures.",
       "status": "open",
       "severity": "unstated"
     },

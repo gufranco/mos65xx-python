@@ -10,6 +10,31 @@ round to.
 | [mos65xx-python](https://github.com/gufranco/mos65xx-python) | The 65xx family: sixteen parts, from the 6502 to the 65816 |
 | [zilog-z80-python](https://github.com/gufranco/zilog-z80-python) | The Z80: three parts, NMOS and CMOS |
 
+## The rule above every other rule
+
+**Fidelity wins every decision.** Not most of them, and not the ones where the
+cost is small. Every one.
+
+When fidelity pulls against speed, against a nicer interface, against a smaller
+diff, against a simpler implementation, against a shorter test run, against
+finishing today: fidelity wins, and the cost is paid and reported rather than
+negotiated. Everything below this line is an application of it, and any rule
+below that appears to conflict with it is being read wrongly.
+
+Two consequences that come up constantly, so they are written down rather than
+rediscovered:
+
+- **A shortcut that is invisible in tests is still wrong.** Nothing in a suite
+  fails when a discarded read is skipped or an instruction runs in one step
+  instead of the cycles it takes. That is what makes the trade tempting and what
+  makes it damaging.
+- **Slower is an acceptable outcome. Less accurate never is.** A performance
+  problem is fixable afterwards by anyone. An accuracy shortcut has to be undone
+  by doing the work a second time, and until it is, every result built on it is
+  suspect.
+
+This is the model every other repository in the workspace inherits.
+
 ## The authority ladder
 
 Every factual question is answered by the highest rung that has an answer, and a
@@ -32,15 +57,26 @@ When rungs one and three disagree and rung two is silent, the answer is
 it, and from there into `OPEN-QUESTIONS.md`. Picking the more convenient source
 and moving on is the one thing neither repository does.
 
-## Fidelity over convenience
+## What that rule looks like in practice
 
-The purpose is a model of a processor, not an emulator that is pleasant to use.
-Where the two pull apart, the processor wins.
+The purpose is a model of a processor, not an emulator that is pleasant to use
+or quick to run.
 
 - **Nothing starts cleared.** Memory and registers hold a reproducible scrambled
   pattern. There is no parameter that zeroes them and there will not be one: a
   read of a byte nothing wrote is a defect on real silicon, and memory that
   answers zero turns that defect into a passing test.
+- **Power on scrambles; reset defines.** The two are separate events and the
+  model keeps them separate. Construction puts every register in the state the
+  rail coming up leaves it, the program counter included, so a part built with
+  `reset=False` executes rubbish from a rubbish address exactly as the silicon
+  would. `reset()` then sets only what a reset actually defines and leaves
+  everything else holding what it held, because a reset does not write random
+  values into the accumulator. A core that scrambles inside `reset()` has
+  conflated the two, and a core that zeroes when asked to skip the reset has
+  quietly shipped the clean start the rule above forbids.
+- **A reset costs what the manufacturer says it costs.** It is a real event on a
+  real bus, so its cycles are charged and appear in the tally.
 - **Bugs are features.** A part's defects are modelled, not corrected. A core
   that quietly fixes a hardware bug is wrong for the machine that shipped it.
 - **Revisions are separate parts.** Including the ones that only fixed a bug.
@@ -64,18 +100,18 @@ A caller moving between the two should not have to relearn anything the hardware
 does not force.
 
 ```python
-cpu = Cpu("z80")            # or Cpu("6502"), Cpu("w65c02"), Cpu("65816")
-cpu = Cpu("6502", memory)   # memory is optional; without one the part gets its own
+cpu = Cpu("z80")  # or Cpu("6502"), Cpu("w65c02"), Cpu("65816")
+cpu = Cpu("6502", memory)  # memory is optional; without one the part gets its own
 
-cpu.step()                  # one instruction, returns the cycles it cost
-cpu.run_for(cycles)         # a budget of cycles, returns what was actually spent
-cpu.run_until(check, limit) # steps while check(cpu) is false; limit raises RunLimit
+cpu.step()  # one instruction, returns the cycles it cost
+cpu.run_for(cycles)  # a budget of cycles, returns what was actually spent
+cpu.run_until(check, limit)  # steps while check(cpu) is false; limit raises RunLimit
 cpu.reset()
 cpu.irq()
 cpu.nmi()
 
-cpu.cycles                  # cycles since construction, across resets
-cpu.steps                   # instructions since the last reset
+cpu.cycles  # cycles since construction, across resets
+cpu.steps  # instructions since the last reset
 
 decode(data)
 disassemble(data)

@@ -65,6 +65,19 @@ def a_part() -> Part:
     return part
 
 
+def a_running_part() -> Part:
+    """A part pointed at a field of no-operations, so a bound is what is tested.
+
+    Left in scrambled memory a part reaches a halting opcode within a few dozen
+    instructions, which is correct behaviour and useless for testing a limit.
+    """
+    part = mos65xx.Cpu("65816", mos65xx.Memory(image=bytes([0xEA] * 256)), reset=False)
+    part.pb = 0x00
+    part.pc = 0x0000
+    checked: Part = part
+    return checked
+
+
 class PromisedInterfaceTest(unittest.TestCase):
     def test_every_call_the_standard_names_exists_here(self) -> None:
         part = a_part()
@@ -88,14 +101,14 @@ class PromisedInterfaceTest(unittest.TestCase):
 
 class PromisedBehaviourTest(unittest.TestCase):
     def test_a_step_reports_what_it_cost(self) -> None:
-        part = a_part()
+        part = a_running_part()
 
         cost = part.step()
 
         self.assertIsInstance(cost, int)
 
     def test_a_budget_reports_what_it_spent(self) -> None:
-        part = a_part()
+        part = a_running_part()
 
         spent = part.run_for(64)
 
@@ -107,7 +120,7 @@ class PromisedBehaviourTest(unittest.TestCase):
         self.assertEqual(named, ["cycles"])
 
     def test_the_tally_survives_a_reset(self) -> None:
-        part = a_part()
+        part = a_running_part()
         part.run_for(64)
         before = part.cycles
 
@@ -116,7 +129,7 @@ class PromisedBehaviourTest(unittest.TestCase):
         self.assertGreaterEqual(part.cycles, before)
 
     def test_a_bounded_run_gives_up_rather_than_hanging(self) -> None:
-        part = a_part()
+        part = a_running_part()
 
         with self.assertRaises(mos65xx.RunLimit):
             part.run_until(lambda _: False, limit=32)
