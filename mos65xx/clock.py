@@ -56,11 +56,25 @@ class Clock:
         self._worker.start()
 
     def _run(self) -> None:
-        """Run instructions forever, blocking inside every cycle they spend."""
+        """Run the part forever, blocking inside every cycle it spends.
+
+        A part that has stopped advancing the program still costs its host every
+        cycle, so this keeps clocking it rather than letting the refusal out.
+        Which call does that differs by family and the difference is real: a
+        halted Z80 goes on executing, so `step` keeps working and returns the
+        four T states each pass costs, while a jammed or stopped 65xx part
+        completes no further instruction and produces its cycles through
+        `held_cycle`. Asking the part which it is keeps the clock out of the
+        business of knowing.
+        """
+        holds = hasattr(self.cpu, "held_cycle")
         self._resume.acquire()
         try:
             while not self.closed:
-                self.cpu.step()
+                if holds and self.cpu.held():
+                    self.cpu.held_cycle()
+                else:
+                    self.cpu.step()
         except _Closed:
             pass
         except BaseException as failure:  # noqa: BLE001

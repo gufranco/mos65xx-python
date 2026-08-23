@@ -57,6 +57,17 @@ class ClockTest(unittest.TestCase):
 
         self.assertIn(0x99, [value for _, value, _ in cpu.trace])
 
+    def test_a_jammed_part_keeps_costing_cycles_under_a_clock(self) -> None:
+        space = mos65xx.Memory(image=bytes([0x02, 0xA1]))
+        cpu = mos65xx.Cpu("6502", space)
+        cpu.reset()
+        cpu.pc = 0x0000
+
+        with mos65xx.Clock(cpu) as clock:
+            clock.run_for(20)
+
+        self.assertEqual((clock.cycles, cpu.held()), (20, True))
+
     def test_a_clock_can_be_iterated(self) -> None:
         cpu = self.part()
 
