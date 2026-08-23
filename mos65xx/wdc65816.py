@@ -133,6 +133,15 @@ class Cpu:
         self._emulation = False
         self._s = 0x01FF
         self.cycle_budget: int | None = None
+        self.irq_line = False
+        """The request line, active when true. Level sensitive: held, not pulsed."""
+
+        self.nmi_line = False
+        """The non-maskable line, active when true. Edge sensitive: the transition interrupts."""
+
+        self.nmi_seen = False
+        """The level the non-maskable line last had when it was read."""
+
         self.on_cycle: Callable[[], None] | None = None
         """Called once per cycle, after that cycle's bus activity."""
 
@@ -822,6 +831,7 @@ class Cpu:
         if handler is None:
             raise UnsupportedError(f"{mnemonic} is not implemented")
         handler(mode)
+        self.sample_pins()
         return self.cycles - started
 
     def call(self, address: int) -> Cpu:
@@ -1433,6 +1443,36 @@ class Cpu:
         self.pb = 0x00
         self.pc = self.vector16(vector)
         return True
+
+    def sample_pins(self) -> bool:
+        """Read the interrupt lines the way the part reads them, and act on one.
+
+        The data sheet describes both pins as lines rather than as events, and
+        the difference is visible. The request line is level sensitive: "a low
+        input logic level initiates an interrupt sequence after the current
+        instruction is completed", and "no interrupt will occur if the interrupt
+        source is cleared prior to interrupt recognition". So a caller that holds
+        `irq_line` low and releases it before the instruction ends gets nothing,
+        which is what a device that withdrew its request would produce.
+
+        The non-maskable line is edge sensitive instead: an interrupt happens on
+        the transition, and "no interrupt will occur if NMIB remains low after
+        the negative transition was processed". That is why the level is compared
+        against the one last seen rather than simply tested.
+
+        Called where the data sheet puts the recognition, after the instruction
+        has completed. Which cycle within the instruction the part latches the
+        level on is not stated by any document here, and is recorded as open
+        rather than guessed at.
+        """
+        edge = self.nmi_line and not self.nmi_seen
+        self.nmi_seen = self.nmi_line
+        if edge:
+            self.nmi()
+            return True
+        if self.irq_line:
+            return self.irq()
+        return False
 
     def irq(self) -> bool:
         """Pull the interrupt request line, and say whether the part took it.

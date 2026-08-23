@@ -115,8 +115,10 @@ Everything a caller touches, in one place. Nothing else is public.
 | `cpu.run_until(predicate, limit=None)` | Steps while `predicate(cpu)` is false. `limit` bounds the instructions and raises `RunLimit` | the `Cpu` |
 | `cpu.call(address)` | Runs from an address until the routine there returns | the `Cpu` |
 | `cpu.reset(seed=...)` | Drives RESET. The cycle tally survives, because a clock does not rewind | nothing |
-| `cpu.irq()` | Pulls the level-sensitive line. Refused, not remembered, while the disable flag is set | `True` if taken |
-| `cpu.nmi()` | Pulls the line no flag defends against | `True` if taken |
+| `cpu.irq()` | Pulls the request line and acts on it now. Refused, not remembered, while the disable flag is set | `True` if taken |
+| `cpu.nmi()` | Pulls the line no flag defends against, and acts on it now | `True` if taken |
+| `cpu.irq_line` | The request line as a level. The data sheet is explicit that "no interrupt will occur if the interrupt source is cleared prior to interrupt recognition", so a request withdrawn before the instruction ends is not taken | `bool` |
+| `cpu.nmi_line` | The non-maskable line as a level. Edge sensitive, so the transition interrupts and holding it low afterwards does not interrupt again | `bool` |
 | `cpu.abort()` | 65816 only. The rollback of the interrupted instruction is not modelled | `True` if taken |
 | `cpu.held()` | Whether the part can no longer start an instruction: jammed, stopped or waiting | `bool` |
 | `cpu.status()` / `cpu.set_status(byte)` | The status register as a byte. Setting a width bit narrows the register it governs | `int` / nothing |

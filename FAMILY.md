@@ -151,6 +151,13 @@ hold it to a real frequency.
   one of them, and nothing catches it. One method spends the cycle, bumps the
   count and calls `on_cycle`, and every path that costs a cycle goes through it,
   including the ones that touch no memory.
+- **An interrupt input is a line, not an event.** A method that takes the
+  interrupt now is a convenience; the pin is a level the part reads when the
+  documents say it reads it. A request raised and withdrawn before that moment is
+  not taken, because that is what a device withdrawing its request does. An
+  edge-sensitive line is compared against the level last seen rather than tested,
+  so holding it active does not interrupt twice. Both are only observable because
+  a clock can stop between two cycles, which is why the two arrived together.
 - **`Clock` suspends the part between any two cycles.** `step()` is the fast
   path and runs whole instructions; `Clock.tick()` advances exactly one cycle and
   stops, so a host can change what a read will answer part way through an

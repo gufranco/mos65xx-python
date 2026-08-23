@@ -246,15 +246,19 @@ So the boundary is visible rather than implied:
 
 Absent rather than unknown, and absent on purpose:
 
-- **The pins under load.** `irq()`, `nmi()` and `abort()` perform the documented
-  sequence. No published corpus covers a pin asserted part way through an
-  instruction, and this core finishes an instruction before it will take one.
+- **The abort rollback.** `abort()` performs the documented sequence without the
+  rollback. Suspension is no longer what stands in the way, since `Clock` stops
+  the part between any two cycles; what is missing is that an instruction which
+  has begun cannot be abandoned, because its changes are already in the
+  registers. No published corpus covers an abort, so there is nothing to hold an
+  implementation to.
 - **Bus arbitration and wait states.** A model with no bus master and no slow
   memory has nothing to arbitrate.
-- **A pin asserted part way through an instruction.** `Clock` now advances the
-  part one cycle at a time and stops between any two, so a host can change what a
-  read will answer mid-instruction. What is still absent is the other half: the
-  part does not sample `irq`, `nmi` or `abort` at the cycle the data sheet says
-  it samples them. It takes them between instructions. Closing that needs the
-  core to announce the cycle where the latch happens, which is what ares calls
-  `lastCycle`, rather than any further work on the clock.
+- **Which cycle within an instruction the request line is latched on.** The
+  lines are lines now: `irq_line` is level sensitive and `nmi_line` interrupts on
+  its transition, and both are read where the data sheet puts recognition, after
+  the instruction completes. A request withdrawn before then is correctly not
+  taken, which is what "no interrupt will occur if the interrupt source is
+  cleared prior to interrupt recognition" describes. What no document here states
+  is which cycle inside the instruction the level is latched on, so it is read at
+  completion rather than at a cycle nobody named.
