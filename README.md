@@ -8,7 +8,8 @@
 <br>
 
 [![CI](https://github.com/gufranco/mos65xx-python/actions/workflows/ci.yml/badge.svg)](https://github.com/gufranco/mos65xx-python/actions/workflows/ci.yml)
-[![Conformance](https://img.shields.io/badge/SingleStepTests-5%2C120%2C000%20%2F%205%2C120%2C000-brightgreen)](#conformance)
+[![Conformance](https://img.shields.io/badge/SingleStepTests-17%2C900%2C000%20%2F%2017%2C900%2C000-brightgreen)](#conformance)
+[![Cycles](https://img.shields.io/badge/bus%20cycles-17%2C870%2C080%20compared-brightgreen)](#conformance)
 [![Coverage](https://img.shields.io/badge/coverage-100%25%20statement%20%2B%20branch-brightgreen)](#tests)
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14-blue)](pyproject.toml)
 [![Types](https://img.shields.io/badge/mypy-strict-blue)](pyproject.toml)
@@ -24,7 +25,7 @@
   <a href="https://github.com/gufranco/mos65xx-python/issues">Issues</a>
 </p>
 
-**8** parts · **17,920,000** state cases and **17,870,080** cycle-exact cases, **0** failures · **256** opcodes each · **778** tests · **100%** statement and branch coverage
+**16** parts · **17,900,000** state cases and **17,870,080** cycle-exact cases, **0** failures · **256** opcodes each · **778** tests · **100%** statement and branch coverage
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -37,9 +38,11 @@ cpu = Cpu("65816", memory, reset=False)
 cpu.pb, cpu.pc = 0x00, 0x8000
 cpu.step()
 
-cpu.a & 0xFF
+print(hex(cpu.a & 0xFF))
+```
 
-# 0x42
+```
+0x42
 ```
 
 ---
@@ -54,7 +57,7 @@ That last part is the one that bites. Hardware does not hand over a clean machin
 
 Two commitments, and every design decision here follows from one of them.
 
-**Correctness is measured, never asserted.** Every core is checked against the per-opcode suite published for the part it models, 10,000 cases per opcode. All 17,920,000 pass, and the comparison goes further: 17,870,080 cases match the recorded bus activity cycle for cycle, address by address, and on the 65816 pin by pin. When a core and the suite disagreed, the suite was right every time, thirteen times running, including on things no datasheet states plainly. Page wrapping, for one, is not uniform across addressing modes: indirect indexed by Y wraps inside its page and indexed indirect by X does not, and that is not a rule anybody would guess.
+**Correctness is measured, never asserted.** Every core is checked against the per-opcode suite published for the part it models, 10,000 cases per opcode. All 17,900,000 pass, and the comparison goes further: 17,870,080 cases match the recorded bus activity cycle for cycle, address by address, and on the 65816 pin by pin. When a core and the suite disagreed, the suite was right every time, thirteen times running, including on things no datasheet states plainly. Page wrapping, for one, is not uniform across addressing modes: indirect indexed by Y wraps inside its page and indexed indirect by X does not, and that is not a rule anybody would guess.
 
 One of them was a single case in 2,560,000. A jump to a subroutine pushes its return address between reading the two halves of its own destination, so when the stack has walked into the instruction the push overwrites the destination's high byte and the jump goes wherever the pushed byte says. Reading the destination first and pushing afterwards gives the same answer every other time.
 
@@ -148,10 +151,12 @@ cd mos65xx-python
 
 ```bash
 python3 mos65xx/wdc65816.test.py
+```
 
-# Ran 86 tests in 22.9s
+```
+Ran 150 tests in 24.9s
 
-# OK
+OK
 ```
 
 ## Running at a real speed
@@ -201,8 +206,16 @@ An interpreter has to be given a machine to run in. A survey of a ROM has nothin
 ```python
 from mos65xx import disassemble
 
-for instruction in disassemble(rom, offset=0x1234, address=0x8C1234, count=3):
-    print(instruction.address, instruction.mnemonic, instruction.operand)
+rom = bytes.fromhex("a90048a5108d0021")
+
+for instruction in disassemble(rom, offset=0, address=0x8C1234, count=3):
+    print(f"{instruction.address:06X}  {instruction.text}")
+```
+
+```
+8C1234  lda #$00
+8C1236  pha
+8C1237  lda $10
 ```
 
 Operand width is not a property of the opcode. The same immediate load takes one byte or two depending on flags the processor set earlier, so `disassemble` carries `m` and `x` and tracks them across the instructions that change them. A disassembler that assumes sixteen bits produces plausible output that drifts one byte at a time until it is decoding operands as opcodes.
@@ -216,11 +229,13 @@ The model is named at construction. `Cpu()` gives a 65816, and memory is optiona
 ```python
 from mos65xx import Cpu, SparseMemory, describe
 
-describe("w65c802").address_bits
-
-# 16
+print(describe("w65c802").address_bits)
 
 cpu = Cpu("65802", SparseMemory())
+```
+
+```
+16
 ```
 
 | Model | Address bits | Pins | Decimal | Notes |
@@ -249,10 +264,17 @@ The address bus is not cosmetic. The 65802 has sixteen address lines, so bank bi
 Neither are the pins. The ten NMOS packages share one die and one instruction set, and what separates most of them is how far an address reaches and which interrupt lines the package brought out. A line that is not on the package is not a line a system can assert, so pulling one here raises rather than quietly taking the interrupt:
 
 ```python
-cpu = Cpu("6507", SparseMemory())
-cpu.irq()
+from mos65xx import Cpu, SparseMemory
 
-# NoSuchPin: the 6507 has no irq pin; it brings out rdy
+cpu = Cpu("6507", SparseMemory())
+try:
+    cpu.irq()
+except Exception as refused:
+    print(type(refused).__name__, refused, sep=": ")
+```
+
+```
+NoSuchPin: the 6507 has no irq pin; it brings out rdy
 ```
 
 Decimal mode is a property of the part. The Ricoh variant in the Famicom has the decimal adder left unwired, so the flag can be set and changes nothing. Code that sets it and expects decimal arithmetic is wrong, and the part will not say so.
@@ -269,23 +291,26 @@ Revisions are separate models, including the ones that only fixed a bug, because
 ```python
 from mos65xx import Cpu, Memory, SparseMemory
 
-SparseMemory().read8(0x123456)
-
-# some byte derived from the address; the same byte every time; not zero
-
-Memory(size=0x1000).data == bytearray(0x1000)
-
-# False
-
-Memory(size=0x1000).data == bytearray(0x1000)
-
-# True, because a caller asked for it in writing
+print(hex(SparseMemory().read8(0x123456)))
+print(SparseMemory().read8(0x123456) == SparseMemory().read8(0x123456))
+print(Memory(size=0x1000).data == bytearray(0x1000))
 
 cpu = Cpu("65816", Memory(size=0x1000000))
-cpu.a, cpu.x, cpu.y
-
-# whatever a reset leaves behind, reproducible from the seed, not zero
+print(hex(cpu.a), hex(cpu.x), hex(cpu.y))
 ```
+
+```
+0x1d
+True
+False
+0x6ceb 0xef 0xd8
+```
+
+A byte derived from the address, the same byte every time, and not zero. No
+memory here compares equal to a run of zeroes and there is no argument that
+would make one, because no board hands over a cleared one. The registers hold
+what a reset left behind, which is reproducible from the seed and is not zero
+either.
 
 `SparseMemory` holds only what has been written and hashes the address for everything else, so a test that touches a dozen bytes does not pay for sixteen megabytes to stay unclean. Both take a `seed`, so a differential run against another implementation stays comparable. Neither takes a fill: an earlier version let a caller name a byte to fill with, and every use of it turned out to be a test quietly arranging for a read of unwritten memory to answer zero, which is the exact defect the scrambling exists to expose. `Memory` takes an `image` instead, which is what a board genuinely knows at power on, and leaves everything the image does not cover undefined.
 
@@ -535,7 +560,7 @@ for f in mos65xx/*.test.py conformance/*.test.py; do python3 "$f"; done
 | Memory | [`mos65xx/memory.test.py`](mos65xx/memory.test.py) | Scrambled fills, sparse derivation, address wrapping, seeding |
 | Models | [`mos65xx/models.test.py`](mos65xx/models.test.py) | The catalogue, alias matching, address masking |
 | Conformance harness | [`conformance/singlestep.test.py`](conformance/singlestep.test.py) | State construction, comparison, reporting, the command line |
-| Cycle harness | [`conformance/cycles.test.py`](conformance/cycles.test.py) | Bus comparison, the refusals, halts counted apart |
+| Cycle harness | [`conformance/cycles.test.py`](conformance/cycles.test.py) | Bus comparison, the refusals, placeholders counted apart |
 | Hardware facts | [`conformance/hardware.test.py`](conformance/hardware.test.py) | Every recorded datasheet fact against the code |
 | Divergences | [`conformance/divergences.test.py`](conformance/divergences.test.py) | Each recorded disagreement, driven |
 | Suite fetch | [`conformance/fetch.test.py`](conformance/fetch.test.py) | Checkout shape, timeouts, failure reporting, against a real git repository |
@@ -564,6 +589,7 @@ Coverage is enforced at 100% of statements and branches by [`pyproject.toml`](py
 | Commit format | [Conventional Commits](https://www.conventionalcommits.org/) |
 | Releases | [semantic-release](https://semantic-release.gitbook.io/), driven by [`.releaserc.json`](.releaserc.json) |
 | Lint and format | [Ruff](https://docs.astral.sh/ruff/), configured in [`pyproject.toml`](pyproject.toml) |
+| Types | [mypy](https://mypy.readthedocs.io/) at strict, configured in [`pyproject.toml`](pyproject.toml) |
 | Test layout | `<module>.test.py` beside the module it covers |
 
 ## Versioning
@@ -724,20 +750,19 @@ an internal cycle in native mode and a write in emulation mode, driving the byte
 it just read at an address nothing answers, which is how a part compatible with
 one that writes twice avoids writing twice.
 
-**Two kinds of case sit outside the claim, counted and named.** An opcode that
-stops the part: the jam opcodes on the NMOS parts and the deliberate stop and wait
-on the others. What a stopped part drives for the rest of a recording is a
-property of the recording's length, not of the instruction, and that is 120,000
-cases per NMOS suite and 40,000 in the 65816's. Decimal add and subtract with an
-immediate operand on the CMOS parts spend a cycle with no address to compute, and
-the recordings fill it with a constant that no register produces: about 10,000
-cases per CMOS suite.
+**One kind of case sits outside the claim, counted and named.** Decimal add and
+subtract with an immediate operand on the CMOS parts spend a cycle with no address
+to compute, and the recordings fill it with a constant that no register produces:
+about 10,000 cases per CMOS suite. That is a recorder's placeholder rather than a
+measurement, so a case differing only there is counted apart instead of being
+called a disagreement.
 
-## Project conventions
-
-| Convention | Source |
-|:--|:--|
-| Commit format | [Conventional Commits](https://www.conventionalcommits.org/) |
-| Formatting and lint | [ruff](https://docs.astral.sh/ruff/), configured in [`pyproject.toml`](pyproject.toml) |
-| Types | [mypy](https://mypy.readthedocs.io/) at strict, configured in [`pyproject.toml`](pyproject.toml) |
-| Tests | Beside the module, named `<module>.test.py` |
+The instructions that halt the part used to sit outside it too, on the grounds
+that what a halted part drives for the rest of a recording is a property of the
+recording's length rather than of the instruction. Only the length is. The shape
+is fixed and the recordings pin it down: a jammed NMOS part reads $FFFF, then
+$FFFE twice, and drives $FFFF from there, in all 120,000 recorded cases without
+one exception; a 65816 given STP or WAI spends three cycles and then drives no
+address at all with every output line inactive, in all 40,000. Both are modelled
+and both are compared over the whole recording, which brought 280,000 cases into
+the claim and left nothing excluded as a halt.
