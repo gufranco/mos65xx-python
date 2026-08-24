@@ -140,6 +140,65 @@ class PromisedBehaviourTest(unittest.TestCase):
         self.assertFalse(part.held())
 
 
+SURFACE = (
+    "Cpu",
+    "DEFAULT_MODEL",
+    "MODELS",
+    "UNSET_SEED",
+    "Clock",
+    "ClockClosed",
+    "RunLimit",
+    "UnknownModelError",
+    "describe",
+)
+"""Names the standard promises a caller finds in every package of the family.
+
+The memory type is not here because it is named for the part: this one has
+%s. What the standard requires is that
+a caller can reach it without importing a private module, which is what
+`test_the_memory_type_is_reachable_without_a_private_import` checks.
+
+`scramble` is not here either, and for a sharper reason. Two of the three fill a
+buffer with the pattern and hand it over, so they have a function to publish. The
+Z80 core derives each byte from the seed and the address at the moment it is read
+and never builds a buffer at all, so there is nothing to publish and adding one
+would mean building something the core does not need. A standard that promised it
+would be describing two implementations rather than one interface.
+"""
+
+
+class PublishedSurfaceTest(unittest.TestCase):
+    """That everything the standard names is importable from the package itself.
+
+    A name that exists on a module inside the package but not on the package is
+    not published. It works, so nothing fails, and a caller who finds it is
+    relying on a path that is free to move. A sibling package had six such names.
+    """
+
+    def test_every_name_the_standard_promises_is_published(self) -> None:
+        absent = [name for name in SURFACE if name not in mos65xx.__all__]
+
+        self.assertEqual(absent, [])
+
+    def test_and_each_one_is_actually_reachable(self) -> None:
+        absent = [name for name in SURFACE if not hasattr(mos65xx, name)]
+
+        self.assertEqual(absent, [])
+
+    def test_the_memory_type_is_reachable_without_a_private_import(self) -> None:
+        for name in ("Memory", "SparseMemory"):
+            self.assertIn(name, mos65xx.__all__, name)
+
+    def test_and_so_is_everything_it_can_raise(self) -> None:
+        for name in ("Truncated", "Stopped", "Waiting"):
+            self.assertIn(name, mos65xx.__all__, name)
+
+    def test_nothing_is_promised_that_is_not_there(self) -> None:
+        absent = [name for name in mos65xx.__all__ if not hasattr(mos65xx, name)]
+
+        self.assertEqual(absent, [])
+
+
 class SharedFileTest(unittest.TestCase):
     def test_the_standard_names_every_file_this_repository_must_carry(self) -> None:
         rows = re.findall(r"^\| `([^`]+)` \|", FAMILY, re.M)
