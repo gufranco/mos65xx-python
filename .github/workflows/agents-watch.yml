@@ -8,15 +8,14 @@ name: Agents watch
 # notices: an agent nobody here has heard of reads nothing, and the silence looks
 # exactly like being covered.
 #
-# So this asks agents.md, weekly, which agents now read AGENTS.md, and proposes
-# adding any name the record does not already hold. Appearing on that list means
-# the agent needs no file here, which is why the change is small enough to
-# propose rather than merely mention.
+# So this asks agents.md, weekly, which agents now read AGENTS.md, and opens an
+# issue naming any the record does not hold. A name on that list needs no file
+# here, so the change it asks for is one line in conformance/agent-files.json.
 #
 # An agent that does not read AGENTS.md never appears on that page, so its
 # pointer is still added by hand. The page says which tools read the file and
-# never says what a tool that does not would read instead, and guessing a path
-# would ship a file nothing opens.
+# never says what a tool that does not would read instead, and a pointer at a
+# guessed path is a file nothing opens.
 #
 # The judgement about what counts as a page that was read at all lives in
 # conformance/agents_support.py where the test suite covers it, rather than
@@ -30,8 +29,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
+  issues: write
 
 concurrency:
   group: agents-watch
@@ -64,7 +63,7 @@ jobs:
 
           held = json.loads(Path("/tmp/agents.json").read_text())
           if not held["read"]:
-              print(f"the page gave {held['found']} names, too few to believe; nothing proposed")
+              print(f"the page gave {held['found']} names, too few to believe; nothing reported")
           else:
               print(f"{held['found']} agents listed")
               for name in held["gone"]:
@@ -72,54 +71,23 @@ jobs:
           REPORT
         shell: bash
 
-      - uses: pnpm/action-setup@v6
+      - name: Report the agents this repository does not name
         if: steps.ask.outputs.new != '0'
-
-      - uses: actions/setup-node@v7
-        if: steps.ask.outputs.new != '0'
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Add the new names to the record
-        if: steps.ask.outputs.new != '0'
-        id: add
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python - <<'ADD'
-          import json
-          from pathlib import Path
+          title="An agent reads AGENTS.md and this record does not name it"
+          if [ -n "$(gh issue list --search "${title} in:title" --state open --json number --jq '.[].number')" ]; then
+            echo "already reported"
+            exit 0
+          fi
+          gh issue create --title "${title}" --body-file - <<BODY
+          The adopter list published at https://agents.md/ names one or more agents that \`conformance/agent-files.json\` does not hold. Each of them reads AGENTS.md directly, so none needs a file here and the change is to add the names under \`readsAgentsFile\`.
 
-          report = json.loads(Path("/tmp/agents.json").read_text())
-          path = Path("conformance/agent-files.json")
-          record = json.loads(path.read_text())
-          names = record["readsAgentsFile"]["names"]
-          names.extend(name for name in report["new"] if name not in names)
-          names.sort(key=str.casefold)
-          path.write_text(json.dumps(record, indent=2) + "\n")
-          ADD
-          pnpm install --frozen-lockfile --ignore-scripts
-          pnpm run format
-          {
-            echo "added<<NAMES"
-            python -c "import json,pathlib;print(', '.join(json.loads(pathlib.Path('/tmp/agents.json').read_text())['new']))"
-            echo "NAMES"
-          } >> "${GITHUB_OUTPUT}"
+          Worth checking first: that each name really is a new adopter rather than a rename of one already listed. A rename would otherwise leave the old name sitting in the record as an agent that no longer exists.
+
+          \`\`\`json
+          $(cat /tmp/agents.json)
+          \`\`\`
+          BODY
         shell: bash
-
-      - name: Propose it
-        if: steps.ask.outputs.new != '0'
-        uses: peter-evans/create-pull-request@v7
-        with:
-          branch: agents-watch/adopters
-          title: "chore(docs): name the agents that now read AGENTS.md"
-          commit-message: |
-            chore(docs): name the agents that now read AGENTS.md
-
-            ${{ steps.add.outputs.added }} appear on the adopter list published
-            at agents.md and this record did not name them. Each reads AGENTS.md
-            directly, so none needs a file in this repository.
-          body: |
-            ${{ steps.add.outputs.added }} now appear on the adopter list published at https://agents.md/ and this record does not name them. Each reads AGENTS.md directly, so none needs a file in this repository and the only change is to the record itself.
-
-            Worth checking before merging: that each name really is a new adopter rather than a rename of one already listed. A rename would otherwise leave the old name sitting in the record as an agent that no longer exists.
-          delete-branch: true

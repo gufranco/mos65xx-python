@@ -9,12 +9,12 @@ tool this repository has never heard of reads nothing, and the silence looks the
 same as being covered. So this walks the adopter list published on agents.md and
 reports every name the record does not already hold.
 
-It changes nothing on its own. The weekly job reads the report and opens a pull
-request adding the new names, because a name on that list means the agent reads
-AGENTS.md and therefore needs no file here, which is a change small enough to
-propose rather than merely mention. An agent that does not read AGENTS.md never
-appears on that page, so its pointer is added by hand: the page says which tools
-read the file and never says what a tool that does not would read instead.
+It changes nothing on its own. The weekly job reads the report and opens an issue
+naming the new agents, because a name on that list means the agent reads
+AGENTS.md and therefore needs no file here: the change it asks for is one line in
+the record. An agent that does not read AGENTS.md never appears on that page, so
+its pointer is added by hand, since the page says which tools read the file and
+never says what a tool that does not would read instead.
 """
 
 from __future__ import annotations

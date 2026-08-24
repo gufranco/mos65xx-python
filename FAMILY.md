@@ -242,8 +242,8 @@ out of date.
   never guessed, because a pointer at a guessed path is a file nothing opens.
 - A test holds every pointer to existing, to linking to `AGENTS.md`, and to
   staying short enough that it cannot have grown rules of its own.
-- A weekly job asks agents.md which agents now read `AGENTS.md` and proposes
-  adding any name the record does not hold. That page lists the agents that read
+- A weekly job asks agents.md which agents now read `AGENTS.md` and opens an
+  issue naming any the record does not hold. That page lists the agents that read
   the file, and never says what an agent that does not would read instead, so a
   new pointer is still added by hand.
 
