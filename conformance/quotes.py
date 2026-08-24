@@ -233,7 +233,20 @@ def readable(path: Path, run: Any = None) -> str:
         )
     except OSError:
         return ""
-    return flatten(done.stdout)
+    return flatten(done.stdout) + flatten(second(path))
+
+
+def second(path: Path) -> str:
+    """A second reading of the same document, taken from the pages as images.
+
+    A scan carries two descriptions of itself and neither is reliable alone: the
+    text layer prints lhe for the, and a reader of the images misses a faint line
+    outright. Where somebody has read the pages and left the result beside the
+    document as a text file, it is pooled with the layer the file already had.
+    Neither reading is committed, because neither is redistributable.
+    """
+    beside = path.with_suffix(".txt")
+    return beside.read_text(errors="replace") if beside.is_file() else ""
 
 
 def library(where: Path | None = None, run: Any = None) -> dict[str, str]:
