@@ -216,36 +216,12 @@ say the claim narrowly enough that it stays true.
 | File | Holds |
 |:--|:--|
 | `README.md` | The document for a person: how to run it, the whole interface, why it can be trusted, and a References section naming every source with its digest |
-| `AGENTS.md` | The document for an agent, and the only one. Every other agent's file points at it |
+| `AGENTS.md` | The document for an agent. `CLAUDE.md` points at it so the two cannot drift |
 | `FAMILY.md` | This file, identical in every repository |
 | `OPEN-QUESTIONS.md` | Every place fidelity is still a claim, and the measurement that would close it |
 
 The README is for a reader who wants to use the thing. Reasoning about why a
 source was believed belongs with the record it reasons about, not in the README.
-
-## One instruction file, and pointers to it
-
-`AGENTS.md` is the instruction file. Most coding agents read it directly, so for
-most of them there is nothing else to do.
-
-The rest each look for a file of their own, and the tempting answer is to write
-the rules again in each one. That is the failure this rule exists to prevent: two
-files holding the same rules drift, and a reader then follows whichever they
-happened to open, with nothing to say which is current.
-
-So an agent that does not read `AGENTS.md` gets a pointer instead. A pointer says
-where the instructions are and holds none of its own, which is why it cannot go
-out of date.
-
-- `conformance/agent-files.json` names every agent, the path it reads, and where
-  that path is documented. A path is taken from the tool's own documentation,
-  never guessed, because a pointer at a guessed path is a file nothing opens.
-- A test holds every pointer to existing, to linking to `AGENTS.md`, and to
-  staying short enough that it cannot have grown rules of its own.
-- A weekly job asks agents.md which agents now read `AGENTS.md` and opens an
-  issue naming any the record does not hold. That page lists the agents that read
-  the file, and never says what an agent that does not would read instead, so a
-  new pointer is still added by hand.
 
 ## Verification
 
