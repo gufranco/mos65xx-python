@@ -998,6 +998,28 @@ same place in the next.
 """
 
 
+SETTLED_SECTIONS = ("What is not in question", "What is deliberately not modelled")
+"""Sections of OPEN-QUESTIONS.md that hold decisions rather than questions."""
+
+
+def open_questions(where: Path | None = None) -> list[str]:
+    """Every entry in OPEN-QUESTIONS.md that is actually an open question.
+
+    Counting `###` headings counts the sections that exist to say what is not in
+    doubt and what is left out on purpose. Those belong in the file and do not
+    belong in a count of what is unsettled.
+    """
+    held = ((ROOT if where is None else where) / "OPEN-QUESTIONS.md").read_text()
+    found: list[str] = []
+    section = ""
+    for line in held.splitlines():
+        if line.startswith("## "):
+            section = line[3:].strip()
+        elif line.startswith("### ") and section not in SETTLED_SECTIONS:
+            found.append(line[4:].strip())
+    return found
+
+
 class BriefedTheSameWayTest(unittest.TestCase):
     """That the instructions read the same way across members.
 
@@ -1036,10 +1058,13 @@ class BriefedTheSameWayTest(unittest.TestCase):
         claimed = re.search(r"\*\*Not settled: (\d+) things\*\*", self.agents())
 
         assert claimed is not None
-        self.assertEqual(
-            int(claimed.group(1)),
-            len(re.findall(r"^### ", (ROOT / "OPEN-QUESTIONS.md").read_text(), re.M)),
-        )
+        self.assertEqual(int(claimed.group(1)), len(open_questions()))
+
+    def test_and_counts_questions_rather_than_headings(self) -> None:
+        """A file that ends with what it deliberately leaves out is not four questions."""
+        held = (ROOT / "OPEN-QUESTIONS.md").read_text()
+
+        self.assertLessEqual(len(open_questions()), len(re.findall(r"^### ", held, re.M)))
 
 
 class PublishesNamesNotModulesTest(unittest.TestCase):
