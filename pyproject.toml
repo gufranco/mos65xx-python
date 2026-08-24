@@ -26,6 +26,9 @@ Homepage = "https://github.com/gufranco/mos65xx-python"
 Source = "https://github.com/gufranco/mos65xx-python"
 Issues = "https://github.com/gufranco/mos65xx-python/issues"
 
+[project.scripts]
+mos65xx-doctor = "mos65xx.doctor:main"
+
 [tool.setuptools]
 packages = ["mos65xx"]
 
@@ -66,6 +69,12 @@ ignore = [
 # statement left behind, and routing it through a logger would put a level and
 # a timestamp in front of a report meant to be read by a person.
 "conformance/*.py" = ["T201"]
+# The doctor exists so that nothing fails silently, which means it has to survive
+# whatever a check throws at it and report that rather than propagate it. A
+# narrower catch here would let an unforeseen failure escape as a traceback and
+# take the rest of the report with it, which is the one outcome it must avoid.
+# It prints for the same reason every tool here does: its output is the product.
+"mos65xx/doctor.py" = ["BLE001", "T201"]
 
 [tool.mypy]
 # Every flag mypy has, plus the ones strict does not turn on. This is a processor

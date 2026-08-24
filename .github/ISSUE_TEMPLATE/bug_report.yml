@@ -8,6 +8,15 @@ body:
         A report here is almost always settled by one stepped instruction from a
         known state. The fields ask for exactly that.
 
+  - type: textarea
+    id: doctor
+    attributes:
+      label: What the doctor says
+      description: Run `python3 -m mos65xx.doctor` and paste all of it. Sixteen parts share this package and they answer differently, so which one it was decides the answer.
+      render: text
+    validations:
+      required: true
+
   - type: dropdown
     id: part
     attributes:
