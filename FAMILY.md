@@ -189,6 +189,15 @@ than a stub that pretends to a pin the package does not bring out. Every other
 name matches, including parameter names. A T state is the Z80's cycle, so the
 budget is called `cycles` on all three rather than being named for one part.
 
+Memory is one of those differences, and the second parameter is not. Every core
+takes what it runs on as `Cpu(model, memory)`, keeps the one it is handed, and
+builds its own when the argument is left out. What that argument is differs
+because the parts do: the Z80 and the 65xx have one flat byte addressed space and
+call it `cpu.memory`, and the uPD7725 has three separate stores at three widths,
+reached by three different registers, so it has `cpu.stores` with `program`,
+`table` and `scratch` inside. One attribute called `memory` on that part would
+not answer which of the three a caller meant.
+
 ## One definition per name
 
 An exception class defined twice under one name is a trap that looks like it

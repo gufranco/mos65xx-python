@@ -453,5 +453,33 @@ class StandardIsKeptTest(unittest.TestCase):
         self.assertNotIn("coverage run -a conformance/speed.py", workflow)
 
 
+class SuppliedMemoryTest(unittest.TestCase):
+    """That what a core runs on is handed in the same way in every package.
+
+    The second parameter is the shared half: every core takes `Cpu(model,
+    memory)`, keeps the one it is given, and builds its own when it is left out.
+    What that argument is differs because the parts do, and the standard names
+    the difference: one flat space called `memory` on the Z80 and the 65xx, three
+    stores called `stores` on the uPD7725, which has three of them at three
+    widths reached by three different registers.
+    """
+
+    def test_a_supplied_store_is_the_one_the_part_uses(self) -> None:
+        own = PACKAGE.Memory(image=bytes([0xEA]) * 65536)
+
+        built = PACKAGE.Cpu(PACKAGE.DEFAULT_MODEL, own)
+
+        self.assertIs(built.memory, own)
+
+    def test_and_one_is_built_when_the_argument_is_left_out(self) -> None:
+        built = PACKAGE.Cpu(PACKAGE.DEFAULT_MODEL)
+
+        self.assertIsNotNone(built.memory)
+
+    def test_the_standard_names_this_part_spelling(self) -> None:
+        """The spelling is a documented difference, so the document has to carry it."""
+        self.assertIn("cpu.memory", FAMILY)
+
+
 if __name__ == "__main__":
     unittest.main()
