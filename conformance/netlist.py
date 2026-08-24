@@ -84,6 +84,54 @@ CASES = (
         6,
         2,
     ),
+    Case(
+        "a branch not taken, which spends no extra cycle at all",
+        bytes((0xA9, 0x00, 0xD0, 0x10)),
+        4,
+        2,
+    ),
+    Case(
+        "a jump through a pointer that ends a page, which reads the wrong high byte",
+        bytes((0x6C, 0xFF, 0x12)),
+        5,
+        1,
+    ),
+    Case(
+        "a read modify write on absolute, which writes the old value before the new",
+        bytes((0x0E, 0x34, 0x12)),
+        6,
+        1,
+    ),
+    Case(
+        "an indexed write, which does the discarded read even though it will not use it",
+        bytes((0xA2, 0x01, 0x9D, 0xFF, 0x12)),
+        7,
+        2,
+    ),
+    Case(
+        "a read modify write on indexed, which is five cycles and never skips one",
+        bytes((0xA2, 0x01, 0x1E, 0xFF, 0x12)),
+        9,
+        2,
+    ),
+    Case(
+        "an indirect indexed read that crosses a page",
+        bytes((0xA0, 0x01, 0xB1, 0x80)),
+        7,
+        2,
+    ),
+    Case(
+        "the second cycle of a two cycle opcode, which reads and does not increment",
+        bytes((0x18, 0xEA)),
+        4,
+        2,
+    ),
+    Case(
+        "a zero page indexed read, which wraps inside the page rather than carrying",
+        bytes((0xA2, 0xFF, 0xB5, 0x02)),
+        6,
+        2,
+    ),
 )
 
 

@@ -224,17 +224,23 @@ reports as skipped rather than as a pass it did not earn. Nothing is fetched,
 built or carried here, because the simulation is somebody else's work under
 their own licence.
 
-**What it has settled so far.** The discarded read of an indexed access that
-crosses a page lands at the base plus the index with the carry not yet applied,
-and a taken branch that crosses a page reads that same un-fixed address before
-the corrected one. Both were open above on the grounds that no document states
-them and a recording only says what its author chose to write down.
+**What it has settled.** Twelve cases, and the model agrees on every one. The
+discarded read of an indexed access lands at the base plus the index with the
+carry not yet applied, on reads and on writes and on read-modify-writes alike. A
+taken branch reads the unmodified counter on its third cycle and the un-fixed sum
+on its fourth, which is the manual's two rows one line later than it prints them.
+A branch not taken spends no extra cycle. A jump through a pointer that ends a
+page takes its high byte from the start of that page. A read-modify-write writes
+the old value before the new. A zero page indexed read wraps inside the page. The
+second cycle of a two cycle opcode reads the counter without incrementing it.
 
-**What is left.** The other entries. Each needs a case written for it, which is
-the work rather than the tooling now that the tooling exists. The same was tried
-for the Z80 in the other repository of this family, where a port of the
-Z80Explorer netlist resolver was written and does not converge, so that side is
-still unanswered.
+**What is left, and why the netlist cannot reach it.** Everything remaining here
+is about a CMOS part or the 65816, and this is a simulation of the NMOS die. It
+answers what that part does and says nothing about the others, so the entries
+about a 65C02's spare cycles, its decimal cycle, STP and WAI, and every 65816
+question stay open on the same grounds as before. The Z80 side is unanswered too:
+a port of the Z80Explorer netlist resolver was written in the other repository of
+this family and does not converge.
 
 
 Not unknown to the world, unverified in this repository.
