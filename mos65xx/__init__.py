@@ -25,7 +25,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from . import mos65c02, mos6502, opcodes65c02, opcodes6502
+from . import mos65c02 as mos65c02
+from . import mos6502 as mos6502
+from . import opcodes65c02 as opcodes65c02
+from . import opcodes6502 as opcodes6502
 from .clock import Clock
 from .errors import (
     ClockClosed,
@@ -117,10 +120,6 @@ __all__ = [
     "decode",
     "describe",
     "disassemble",
-    "mos65c02",
-    "mos6502",
-    "opcodes65c02",
-    "opcodes6502",
     "operand_size",
     "render",
     "scramble",

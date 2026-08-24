@@ -70,6 +70,13 @@ checks the ones a test can reach.
 - [ ] Every exception a caller can meet is exported from the package. `except`
       takes a name, and one that cannot be imported can only be handled by
       catching everything. A leading underscore is how an internal one says so.
+- [ ] `__all__` lists names, never modules. A submodule is reachable whether or
+      not it is listed, because importing a name out of one makes it an
+      attribute of the package, so listing it changes nothing except what
+      `import *` binds while presenting the arrangement of the code as part of
+      the interface. Modules that a caller reaches for are re-exported with the
+      redundant alias a type checker reads as deliberate, `from . import core as
+      core`, which keeps the attribute without publishing it.
 
 **The record**
 

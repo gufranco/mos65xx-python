@@ -973,6 +973,35 @@ def unignored(where: Path, run: Any = None) -> list[str]:
     return sorted(line[3:] for line in done.stdout.splitlines() if line.startswith("??"))
 
 
+class PublishesNamesNotModulesTest(unittest.TestCase):
+    """That `__all__` lists what a caller uses rather than how it is arranged.
+
+    A submodule is reachable whether or not it is listed, because importing a
+    name out of one makes it an attribute of the package. Listing it therefore
+    changes nothing except what `import *` binds, while presenting the
+    arrangement of the code as part of the interface. The three members had
+    three different answers to this: one published nine modules, one published
+    four, and one published ten.
+    """
+
+    def test_no_module_is_published_as_a_name(self) -> None:
+        published = sorted(
+            name
+            for name in PACKAGE.__all__
+            if isinstance(getattr(PACKAGE, name, None), types.ModuleType)
+        )
+
+        self.assertEqual(published, [])
+
+    def test_a_module_is_still_reachable_without_being_published(self) -> None:
+        """Which is why removing them cost a caller nothing."""
+        self.assertTrue(hasattr(PACKAGE, "errors"))
+        self.assertNotIn("errors", PACKAGE.__all__)
+
+    def test_there_are_names_published(self) -> None:
+        self.assertGreater(len(PACKAGE.__all__), 10)
+
+
 class CarriesNobodyElsesWorkTest(unittest.TestCase):
     """That nothing licensed to somebody else is in the repository or reachable from it.
 
