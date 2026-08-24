@@ -260,8 +260,8 @@
     },
     "sixteenBitCycleShapes": {
       "document": "wdc816",
-      "section": "Table 6-7 Instruction Operation, read in full, with the notes and Table 6-8",
-      "quote": "To control the execution of instructions, the external 8 MHz clock is divided into phases for internal execution.",
+      "section": "Table 6-7 Instruction Operation, read in full, with the notes that follow it and Table 6-8. The quote gives the notes this model implements, numbered as the page numbers them.",
+      "quote": "2. Add 1 cycle for direct register low (DL) not equal 0. 4. Add 1 cycle for indexing across page boundaries, or write, or X=0. When X=1 or in the emulation mode, this cycle contains invalid addresses. 17. In the emulation mode, during a R-M-W instruction the RWB is low during both write and modify cycles.",
       "whatTheTableGives": "Every addressing mode and every stack, jump, return and interrupt sequence, cycle by cycle, with the address bus contents, what is on the data bus, the read or write line, and the vector-pull, memory-lock and address-valid pins.",
       "whatIsImplemented": {
         "internalCycles": "emitted with both address lines low and no value, because the manufacturer says that address may be invalid",
@@ -277,7 +277,8 @@
         "longJumpStack": "the instructions the 65816 added push through the end of page one rather than folding back into it"
       },
       "measured": "Every one of the 5,080,000 cases in the pinned 65816 suite that does not stop the part agrees, cycle for cycle, including the pins. The 40,000 that stop it are counted apart.",
-      "notStated": "What a stopped part drives is not in the document, and the recordings show cycles with no address at all for as long as the recording runs. Those are excluded rather than modelled."
+      "notStated": "What a stopped part drives is not in the document, and the recordings show cycles with no address at all for as long as the recording runs. Those are excluded rather than modelled.",
+      "andAlso": "14. VDA and VPA are not valid outputs on the W65C02S but are valid on the W65C816S. The two signals, VDA and VPA, are included to point out the upward compatibility to the W65C816S. When VDA and VPA are both a one level, this is equivalent to SYNC being a one level."
     },
     "cmosInterruptClearsDecimal": {
       "document": "wdc816",
