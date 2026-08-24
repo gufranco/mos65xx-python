@@ -186,6 +186,18 @@ class PublishedSurfaceTest(unittest.TestCase):
 
         self.assertEqual(absent, [])
 
+    def test_the_part_a_caller_gets_back_is_called_Cpu(self) -> None:  # noqa: N802
+        """The class, not just the call that builds it.
+
+        `Cpu(...)` is a factory in all three, and what it hands back was called
+        something else in one of them. That shows in a repr, in a traceback and
+        in any annotation a caller writes, and nothing about the hardware asks
+        for it.
+        """
+        built = PACKAGE.Cpu()
+
+        self.assertEqual(type(built).__name__, "Cpu")
+
     def test_the_memory_type_is_reachable_without_a_private_import(self) -> None:
         for name in ("Memory", "SparseMemory"):
             self.assertIn(name, mos65xx.__all__, name)
