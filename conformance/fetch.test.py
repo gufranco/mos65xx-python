@@ -4,6 +4,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -28,6 +29,7 @@ A_SUITE = {
 
 
 DEFINITION = fetch.DEFINITION
+README = DEFINITION.parent.parent / "README.md"
 
 
 class DefinitionTest(unittest.TestCase):
@@ -72,6 +74,58 @@ class DefinitionTest(unittest.TestCase):
         self.assertIn("provenance", held)
         self.assertIn("statedMethodology", held["provenance"])
         self.assertIn("whichImplementation", held["provenance"])
+
+    def test_the_readme_advertises_the_number_of_cases_the_pins_imply(self) -> None:
+        """A figure in a readme that nothing derives is a figure that drifts.
+
+        This one is derivable: every suite's file count times its cases per
+        opcode, less the files the publisher ships empty because the instruction
+        halts the part and leaves nothing to record. Holding the readme to that
+        sum means the claim cannot outlive a change to the pins.
+        """
+        held = json.loads(DEFINITION.read_text())
+        derived = sum(
+            (one["files"] - one["emptyFiles"]) * one["tests_per_opcode"] for one in held["suites"]
+        )
+        claimed = re.search(r"\*\*([\d,]+) cases, no unexplained failures\*\*", README.read_text())
+
+        assert claimed is not None
+        self.assertEqual(int(claimed.group(1).replace(",", "")), derived)
+
+    def test_and_the_number_it_advertises_for_the_cycle_comparison(self) -> None:
+        """Derivable too, once the placeholders are counted.
+
+        The cycle comparison judges every case the state comparison does, less
+        the ones whose recorded address for the extra decimal cycle is a constant
+        rather than a measurement. Those occur on the three CMOS parts alone.
+        """
+        held = json.loads(DEFINITION.read_text())
+        derived = sum(
+            (one["files"] - one["emptyFiles"]) * one["tests_per_opcode"] for one in held["suites"]
+        ) - sum(one["placeholderCases"] for one in held["suites"])
+        both = re.findall(r"\*\*([\d,]+) cases, no unexplained failures\*\*", README.read_text())
+
+        self.assertEqual(len(both), 2)
+        self.assertEqual(int(both[1].replace(",", "")), derived)
+
+    def test_every_suite_says_how_many_cases_carry_a_placeholder(self) -> None:
+        """Zero is an answer and has to be written, because absent is not."""
+        missing = [one["name"] for one in fetch.definitions() if "placeholderCases" not in one]
+
+        self.assertEqual(missing, [])
+
+    def test_every_suite_says_how_many_files_it_ships_empty(self) -> None:
+        """Zero is an answer and has to be written, because absent is not."""
+        missing = [one["name"] for one in fetch.definitions() if "emptyFiles" not in one]
+
+        self.assertEqual(missing, [])
+
+    def test_the_record_says_how_each_advertised_figure_is_known(self) -> None:
+        """One is derived and one is measured, and a reader cannot tell by looking."""
+        held = json.loads(DEFINITION.read_text())["counted"]
+
+        for name in ("stateCases", "cycleCases"):
+            self.assertIn("howItIsKnown", held[name])
 
     def test_a_definition_file_is_read_from_where_it_is_asked_for(self) -> None:
         with tempfile.TemporaryDirectory() as where:

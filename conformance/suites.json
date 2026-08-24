@@ -14,7 +14,9 @@
         "repository": "https://github.com/SingleStepTests/ProcessorTests.git",
         "commit": "bb11756436da8fd16cce86aef63dc6725f48836f",
         "why": "That repository was archived on 2024-05-15 and subdivided by test set, so the pin could never move again and the weekly job watching it was watching a repository nobody can push to. The set continued in a repository of its own, where a correction landed on 2024-09-22 for the [d],y modes, PEI and PLB in emulation mode."
-      }
+      },
+      "emptyFiles": 0,
+      "placeholderCases": 0
     },
     {
       "name": "6502",
@@ -24,7 +26,9 @@
       "sparse": ["6502"],
       "path": "6502/v1",
       "tests_per_opcode": 10000,
-      "files": 256
+      "files": 256,
+      "emptyFiles": 0,
+      "placeholderCases": 0
     },
     {
       "name": "nes6502",
@@ -34,7 +38,9 @@
       "sparse": ["nes6502"],
       "path": "nes6502/v1",
       "tests_per_opcode": 10000,
-      "files": 256
+      "files": 256,
+      "emptyFiles": 0,
+      "placeholderCases": 0
     },
     {
       "name": "synertek65c02",
@@ -44,7 +50,9 @@
       "sparse": ["synertek65c02"],
       "path": "synertek65c02/v1",
       "tests_per_opcode": 10000,
-      "files": 256
+      "files": 256,
+      "emptyFiles": 0,
+      "placeholderCases": 9979
     },
     {
       "name": "rockwell65c02",
@@ -54,7 +62,9 @@
       "sparse": ["rockwell65c02"],
       "path": "rockwell65c02/v1",
       "tests_per_opcode": 10000,
-      "files": 256
+      "files": 256,
+      "emptyFiles": 0,
+      "placeholderCases": 9966
     },
     {
       "name": "wdc65c02",
@@ -64,7 +74,10 @@
       "sparse": ["wdc65c02"],
       "path": "wdc65c02/v1",
       "tests_per_opcode": 10000,
-      "files": 256
+      "files": 256,
+      "emptyFiles": 2,
+      "emptyFilesAre": "cb and db, WAI and STP. A part that halts its own clock produces nothing to record, so the publisher ships the files empty rather than omitting them.",
+      "placeholderCases": 9975
     }
   ],
   "provenance": {
@@ -75,5 +88,18 @@
     "whichImplementation": "Not named by the publisher for any set this project uses. The Z80 set, which this family's other member pins, does name one, and that member records it with the commit and rebuilds 1,593 of its 1,604 files byte for byte. Nothing equivalent is possible here until the publisher names the generator, so what these suites are is a statement of method rather than a rebuildable artifact.",
     "whatThatMeansForTheLadder": "It is the reason the authority order in hardware.json puts a manufacturer statement above these files. They are a good source for behaviour nobody wrote down and a poor one for facts a manufacturer printed, and three entries in divergences.json are places where following them would have contradicted a sentence in a data sheet.",
     "correctionsAreNotAutomatic": "A set can be corrected after this project pins it. The 65816 set was, on 2024-09-22, in a repository the set had moved to after the one pinned here was archived. Six files changed and this model disagreed with five of them until 2026-08-25. The weekly job compares the pin against the repository it names, so a pin naming an archived repository can never move."
+  },
+  "counted": {
+    "note": "What the numbers in the readme are, and where each comes from. Counted on 2026-08-25 against the pins above.",
+    "stateCases": {
+      "value": 17900000,
+      "howItIsKnown": "Derived, not measured: every suite's file count times its cases per opcode, less the files the publisher ships empty. A test checks the readme against that sum, so neither can drift from the pins without the other."
+    },
+    "cycleCases": {
+      "value": 17870080,
+      "countedOn": "2026-08-25",
+      "byRunning": "python3 -m conformance.cycles <suite> --model <name>, which prints how many it left out",
+      "howItIsKnown": "Derived, once the placeholders are recorded: every case the state comparison covers, less the ones whose recorded address for the extra decimal cycle is a constant rather than a measurement. Those are the only cases the cycle comparison cannot judge, they occur on the three CMOS parts alone, and counting them on 2026-08-25 gives 9,979, 9,966 and 9,975. A test checks the readme against the same sum."
+    }
   }
 }
