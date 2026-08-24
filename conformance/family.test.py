@@ -970,6 +970,10 @@ def unignored(where: Path, run: Any = None) -> list[str]:
         text=True,
         check=False,
     )
+    if done.returncode != 0:
+        raise RuntimeError(
+            f"git could not read the tree: {done.stderr.strip() or 'no reason given'}"
+        )
     return sorted(line[3:] for line in done.stdout.splitlines() if line.startswith("??"))
 
 
@@ -1110,6 +1114,24 @@ class CarriesNobodyElsesWorkTest(unittest.TestCase):
         found = unignored(ROOT, self.saying(" M edited.py\nA  added.py\n"))
 
         self.assertEqual(found, [])
+
+    def test_a_run_that_failed_is_not_read_as_a_clean_tree(self) -> None:
+        """An empty answer and a broken one look the same, so one of them raises."""
+
+        def refused(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
+            return subprocess.CompletedProcess([], 128, stdout="", stderr="not a repository")
+
+        with self.assertRaises(RuntimeError) as caught:
+            unignored(ROOT, refused)
+
+        self.assertIn("not a repository", str(caught.exception))
+
+    def test_and_a_failure_with_nothing_to_say_still_raises(self) -> None:
+        def mute(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
+            return subprocess.CompletedProcess([], 1, stdout="", stderr="")
+
+        with self.assertRaises(RuntimeError):
+            unignored(ROOT, mute)
 
     def saying(self, text: str) -> Any:
         def run(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
