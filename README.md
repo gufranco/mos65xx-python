@@ -54,7 +54,7 @@ Everything a caller touches. Nothing else is public.
 | Call | Does | Returns |
 |:--|:--|:--|
 | `Cpu(model="65816", memory=None, **options)` | Builds a part, powered and not yet reset. Memory of its own if none is given | a `Cpu` |
-| `cpu.reset(seed=...)` | Drives RESET. Costs the six delay cycles the manual names plus the two of the vector fetch | nothing |
+| `cpu.reset(seed=...)` | Drives RESET. Costs the six delay cycles the manual names plus the two of the vector fetch | the `Cpu` |
 | `cpu.step()` | Runs one instruction | cycles it cost |
 | `cpu.run_for(cycles)` | Runs whole instructions until at least that many cycles have passed. Keeps clocking a part that has halted | cycles actually spent, usually a little over |
 | `cpu.run_until(check, limit=None)` | Steps while `check(cpu)` is false. `limit` bounds the instructions and raises `RunLimit` | the `Cpu` |
@@ -312,6 +312,10 @@ Every one of these is copyrighted by its publisher and not redistributable, whic
 Two parts have no data sheet of their own. Ricoh never published one for the **2A03**, so the MOS documents cover the core it is built from and the suite records the part separately because its decimal adder is not wired. WDC's **W65C802** is the 65816 core in a forty pin package with sixteen address lines, and none of the three W65C816S revisions mentions it, so the 65816 documents cover the core and only the packaging is undocumented.
 
 The corpora come from [SingleStepTests](https://github.com/SingleStepTests), pinned by commit in [`conformance/suites.json`](conformance/suites.json).
+
+## Citing this
+
+[CITATION.cff](CITATION.cff) is kept in step with the released version by the same script that stamps the package, so the version it names is the version that shipped. GitHub renders it as a Cite this repository button.
 
 ## License
 

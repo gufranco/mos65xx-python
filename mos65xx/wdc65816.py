@@ -228,7 +228,7 @@ class Cpu:
         self.m8 = bool(undefined[8] & 0x20) or self.emulation
         self.x8 = bool(undefined[8] & 0x10) or self.emulation
 
-    def reset(self, seed: int = UNSET_SEED) -> None:
+    def reset(self, seed: int = UNSET_SEED) -> Cpu:
         """Put the processor where a reset puts it, and nowhere else.
 
         A reset defines less than a model usually assumes. It forces emulation
@@ -271,6 +271,7 @@ class Cpu:
         self.steps = 0
         self.stopped = False
         self.waiting = False
+        return self
 
     def status(self) -> int:
         """The status byte as anything reading it would see.
