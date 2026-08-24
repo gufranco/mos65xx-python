@@ -166,9 +166,9 @@ A caller moving between two repositories should not have to relearn anything the
 hardware does not force.
 
 ```python
-cpu = Cpu("z80")  # or Cpu("6502"), Cpu("w65c02"), Cpu("65816")
+cpu = Cpu("z80")  # or Cpu("6502"), Cpu("w65c02"), Cpu("65816"), Cpu("upd96050")
 cpu = Cpu("6502", memory)  # memory is optional; without one the part gets its own
-cpu.reset()
+cpu.reset()  # returns the part, so the call chains
 
 cpu.step()  # one instruction, returns the cycles it cost
 cpu.run_for(cycles)  # a budget of cycles, returns what was actually spent
@@ -184,9 +184,10 @@ cpu.steps  # instructions since the last reset
 
 Differences are allowed where the parts differ, and nowhere else. The Z80 takes a
 vector on `irq()` and has a separate `Ports` space; the 65816 has `abort()` and a
-bank register. Every other name matches, including parameter names. A T state is
-the Z80's cycle, so the budget is called `cycles` on both rather than being named
-for one part.
+bank register; the uPD7725 has no non-maskable line, so it has no `nmi()` rather
+than a stub that pretends to a pin the package does not bring out. Every other
+name matches, including parameter names. A T state is the Z80's cycle, so the
+budget is called `cycles` on all three rather than being named for one part.
 
 ## One definition per name
 
