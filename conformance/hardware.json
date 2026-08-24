@@ -17,7 +17,21 @@
       "readVia": "mcs6500-hardware-manual-1976.pdf, 182 pages",
       "covers": "The NMOS parts. Appendix A gives the address bus, data bus and R/W line for every cycle of every addressing mode, which is the only manufacturer statement of NMOS cycle behaviour this project has found.",
       "pinnedIn": "the References section of README.md, and locally by digest as manufacturer/mcs6500-hardware-manual-1976.pdf",
-      "file": "mcs6500-hardware-manual-1976.pdf"
+      "file": "mcs6500-hardware-manual-1976.pdf",
+      "cores": ["nmos"],
+      "appliesTo": [
+        "2a03",
+        "6502",
+        "6503",
+        "6504",
+        "6505",
+        "6506",
+        "6507",
+        "6512",
+        "6513",
+        "6514",
+        "6515"
+      ]
     },
     "mos6500_datasheet": {
       "publisher": "Commodore Semiconductor Group, formerly MOS Technology, Inc.",
@@ -27,7 +41,21 @@
       "readVia": "mos-6500-mpu-nov-1985.pdf, 12 pages",
       "covers": "Which parts the NMOS family has. A page per package giving its addressable range and the interrupt lines it brings out, which between them are the whole of what a program can tell apart.",
       "pinnedIn": "the References section of README.md, and locally by digest as manufacturer/mos-6500-mpu-nov-1985.pdf",
-      "file": "mos-6500-mpu-nov-1985.pdf"
+      "file": "mos-6500-mpu-nov-1985.pdf",
+      "cores": ["nmos"],
+      "appliesTo": [
+        "2a03",
+        "6502",
+        "6503",
+        "6504",
+        "6505",
+        "6506",
+        "6507",
+        "6512",
+        "6513",
+        "6514",
+        "6515"
+      ]
     },
     "mos6500_datasheet_1980": {
       "publisher": "MOS Technology, Inc.",
@@ -36,7 +64,21 @@
       "readOn": "2026-08-21",
       "file": "mos-6500-mpu-mar-1980.pdf",
       "covers": "The same family sheet five years earlier than the 1985 one, kept so a claim about which packages existed can be checked against both printings rather than the later one alone.",
-      "pinnedIn": "the References section of README.md"
+      "pinnedIn": "the References section of README.md",
+      "cores": ["nmos"],
+      "appliesTo": [
+        "2a03",
+        "6502",
+        "6503",
+        "6504",
+        "6505",
+        "6506",
+        "6507",
+        "6512",
+        "6513",
+        "6514",
+        "6515"
+      ]
     },
     "mos6500_programming": {
       "publisher": "MOS Technology, Inc.",
@@ -45,7 +87,21 @@
       "readOn": "2026-08-21",
       "file": "mcs6500-programming-manual-1976.pdf",
       "covers": "The instruction set as the manufacturer described it, including Appendix B's per-instruction pages. Cited for what the documented mnemonics do, never for cycle shapes, which the hardware manual carries.",
-      "pinnedIn": "the References section of README.md"
+      "pinnedIn": "the References section of README.md",
+      "cores": ["nmos"],
+      "appliesTo": [
+        "2a03",
+        "6502",
+        "6503",
+        "6504",
+        "6505",
+        "6506",
+        "6507",
+        "6512",
+        "6513",
+        "6514",
+        "6515"
+      ]
     },
     "rockwell": {
       "publisher": "Rockwell International",
@@ -54,7 +110,9 @@
       "readOn": "2026-08-21",
       "pinnedIn": "the References section of README.md, and locally by digest as manufacturer/rockwell-r65c00-microprocessors.pdf",
       "covers": "Rockwell's own CMOS part, which the suite records separately because it is not the same as Synertek's or WDC's.",
-      "file": "rockwell-r65c00-microprocessors.pdf"
+      "file": "rockwell-r65c00-microprocessors.pdf",
+      "cores": ["cmos"],
+      "appliesTo": ["65c02", "r65c02", "w65c02"]
     },
     "synertek_datasheet": {
       "publisher": "Synertek, Inc.",
@@ -63,7 +121,21 @@
       "readOn": "2026-08-21",
       "file": "synertek-sy6500-microprocessors.pdf",
       "covers": "Synertek's own printing of the family sheet. The suite records a Synertek CMOS part separately from Rockwell's and WDC's, which is why the second source matters.",
-      "pinnedIn": "the References section of README.md"
+      "pinnedIn": "the References section of README.md",
+      "cores": ["nmos"],
+      "appliesTo": [
+        "2a03",
+        "6502",
+        "6503",
+        "6504",
+        "6505",
+        "6506",
+        "6507",
+        "6512",
+        "6513",
+        "6514",
+        "6515"
+      ]
     },
     "synertek_hardware": {
       "publisher": "Synertek, Inc.",
@@ -72,7 +144,21 @@
       "readOn": "2026-08-21",
       "file": "synertek-hardware-manual.pdf",
       "covers": "Synertek's printing of the hardware manual, a second source for the NMOS cycle tables that the MOS Technology manual carries.",
-      "pinnedIn": "the References section of README.md"
+      "pinnedIn": "the References section of README.md",
+      "cores": ["nmos"],
+      "appliesTo": [
+        "2a03",
+        "6502",
+        "6503",
+        "6504",
+        "6505",
+        "6506",
+        "6507",
+        "6512",
+        "6513",
+        "6514",
+        "6515"
+      ]
     },
     "wdc02": {
       "publisher": "The Western Design Center, Inc.",
@@ -81,7 +167,9 @@
       "readOn": "2026-08-21",
       "pinnedIn": "the References section of README.md, and locally by digest as manufacturer/w65c02s.pdf",
       "covers": "The CMOS part, including the operational enhancements table this project cites for what changed from the NMOS part and the note about the extra decimal cycle.",
-      "file": "w65c02s.pdf"
+      "file": "w65c02s.pdf",
+      "cores": ["cmos"],
+      "appliesTo": ["65c02", "r65c02", "w65c02"]
     },
     "wdc816": {
       "publisher": "The Western Design Center, Inc.",
@@ -91,7 +179,9 @@
       "readVia": "w65c816s.pdf, 62 pages, read in full. The record used to say 76 and to name a bare URL; the file at that URL is 62 pages, which is why every document is now pinned by digest.",
       "covers": "The 65816 core, in both native and emulation mode, including the cycle-by-cycle bus activity of every addressing mode in Table 6-7.",
       "pinnedIn": "the References section of README.md, and locally by digest as manufacturer/w65c816s.pdf",
-      "file": "w65c816s.pdf"
+      "file": "w65c816s.pdf",
+      "cores": ["wide"],
+      "appliesTo": ["65802", "65816"]
     },
     "wdc816_1994": {
       "publisher": "The Western Design Center, Inc.",
@@ -101,7 +191,9 @@
       "readVia": "wdc-w65c816s-jul-1994.pdf, 72 pages",
       "covers": "The same part, eleven years earlier. Its prose sections match the 2004 revision word for word except in one sentence, where it names two addressing modes the later revision dropped. Its own caveats table is a scan with no text layer.",
       "pinnedIn": "the References section of README.md, and locally by digest as manufacturer/wdc-w65c816s-jul-1994.pdf",
-      "file": "wdc-w65c816s-jul-1994.pdf"
+      "file": "wdc-w65c816s-jul-1994.pdf",
+      "cores": ["wide"],
+      "appliesTo": ["65802", "65816"]
     },
     "wdc816_2024": {
       "publisher": "The Western Design Center, Inc.",
@@ -111,7 +203,9 @@
       "readVia": "w65c816s-2024.pdf, 55 pages",
       "covers": "The current revision. Its caveats table carries the same values as the 2004 one, renumbered from Table 8-1 to Table 7-1, which is what makes those claims safe to cite without pinning a revision.",
       "pinnedIn": "the References section of README.md, and locally by digest as manufacturer/w65c816s-2024.pdf",
-      "file": "w65c816s-2024.pdf"
+      "file": "w65c816s-2024.pdf",
+      "cores": ["wide"],
+      "appliesTo": ["65802", "65816"]
     },
     "wdc816_book": {
       "publisher": "The Western Design Center, Inc.",
@@ -121,7 +215,9 @@
       "readVia": "wdc-programming-the-65816-2007.pdf, 469 pages, Appendix C read in full",
       "covers": "The manufacturer's own book. Its Appendix C describes every pin at length, which is where the data sheet is briefest.",
       "pinnedIn": "the References section of README.md",
-      "file": "wdc-programming-the-65816-2007.pdf"
+      "file": "wdc-programming-the-65816-2007.pdf",
+      "cores": ["wide"],
+      "appliesTo": ["65802", "65816"]
     }
   },
   "facts": {
@@ -131,19 +227,49 @@
       "quote": "During the Reset conditioning period the following processor initialization takes place: D=0000, SH=01, SL=*, DBR=00, XH=00, XL=*, PBR=00, YH=00, YL=*, A=*. P Register: N=*, V=*, M=1, X=1, D=0, I=1, Z=*, C/E=*/1. *=not initialized",
       "assembled": true,
       "andAlso": "When Reset is brought high, an interrupt sequence is initiated. STP and WAI instructions are cleared. RWB remains in the high state during the stack address cycles. The Reset vector address is 00FFFC,D. PC is loaded with the contents of 00FFFC,D",
-      "note": "The starred entries are why nothing in this project starts clean. The accumulator, both index low bytes and the stack low byte are undefined, so the model scrambles them from a seed rather than zeroing them."
+      "note": "The starred entries are why nothing in this project starts clean. The accumulator, both index low bytes and the stack low byte are undefined, so the model scrambles them from a seed rather than zeroing them.",
+      "appliesTo": ["65802", "65816"],
+      "appliesToCore": "wide"
     },
     "nothingStartsClean": {
       "document": "mos6500",
       "section": "1.3.3 System Reset",
       "quote": "It should be mentioned that in the entire set of microcomputer chips, the contents of latches, registers, etc. is totally random after power is applied.",
-      "note": "The manufacturer's own statement of the rule this project applies to memory and registers alike."
+      "note": "The manufacturer's own statement of the rule this project applies to memory and registers alike.",
+      "appliesTo": [
+        "2a03",
+        "6502",
+        "6503",
+        "6504",
+        "6505",
+        "6506",
+        "6507",
+        "6512",
+        "6513",
+        "6514",
+        "6515"
+      ],
+      "appliesToCore": "nmos"
     },
     "nmosReset": {
       "document": "mos6500",
       "section": "1.4.1.2.11 RES--Reset",
       "quote": "When the line goes high, the microprocessor will delay 6 cycles and then fetch the new program count vectors from specific locations in memory (PCL from location FFFC and PCH from location FFFD).",
-      "andAlso": "It should be assumed that any time the reset line has been pulled low and then high, the internal states of the machine are unknown and all registers must be re-initialized during the restart sequence."
+      "andAlso": "It should be assumed that any time the reset line has been pulled low and then high, the internal states of the machine are unknown and all registers must be re-initialized during the restart sequence.",
+      "appliesTo": [
+        "2a03",
+        "6502",
+        "6503",
+        "6504",
+        "6505",
+        "6506",
+        "6507",
+        "6512",
+        "6513",
+        "6514",
+        "6515"
+      ],
+      "appliesToCore": "nmos"
     },
     "vectors": {
       "document": "wdc816",
@@ -177,7 +303,9 @@
         "measured": "The per-opcode suite settles the two it covers. Every one of the 10,000 native BRK tests reads 00FFE6 and 00FFE7, every one of the 10,000 emulation BRK tests reads 00FFFE and 00FFFF, and every one of the 10,000 emulation COP tests reads 00FFF4 and 00FFF5.",
         "whatThisProjectUses": "00FFE6 for native BRK and 00FFE4 for native COP, matching both the measurement and the FFE0 block, and the pin descriptions for the three hardware vectors.",
         "notSettled": "No suite covers a hardware interrupt, so the native IRQ, NMI and ABORT addresses rest on the pin descriptions and on the second manufacturer-endorsed source, the vector table in the appendix of Programming the 65816, which agrees with them. That is two documents against one table in one of them."
-      }
+      },
+      "appliesTo": ["65802", "65816"],
+      "appliesToCore": "wide"
     },
     "interruptEffects": {
       "document": "wdc816",
@@ -187,70 +315,92 @@
       "pushedBytes": "The IRQB signal going low causes 4 bytes of information to be pushed onto the stack before jumping to the interrupt handler. The first byte is PBR followed by PCH, PCL and P (Processor Status Register).",
       "breakBitOnHardwareInterrupt": "Table 6-7 note 11, against the cycle that pushes P for ABORT, IRQ, NMI and RES: BRK bit 4 equals \"0\" in Emulation mode.",
       "oneFewerCycleInEmulation": "Table 6-7 note 7: Subtract 1 cycle for 6502 emulation mode (E=1).",
-      "note": "So a hardware interrupt in emulation mode pushes three bytes rather than four, and the status it pushes has bit 4 clear, which is the one thing that distinguishes it from a BRK. In native mode the program bank goes out first and the same bit carries the index width instead."
+      "note": "So a hardware interrupt in emulation mode pushes three bytes rather than four, and the status it pushes has bit 4 clear, which is the one thing that distinguishes it from a BRK. In native mode the program bank goes out first and the same bit carries the index width instead.",
+      "appliesTo": ["65802", "65816"],
+      "appliesToCore": "wide"
     },
     "programBankOnInterrupt": {
       "document": "wdc816",
       "section": "8.11",
       "quote": "When in the Native mode, the Program Bank register (PBR) is cleared to 00 when a hardware interrupt, BRK or COP is executed. In the Native mode, previous PBR contents are automatically saved on Stack. In the Emulation mode, the PBR and DBR registers are cleared to 00 when a hardware interrupt, BRK or COP is executed. In this case, previous contents of the PBR are not automatically saved.",
-      "note": "The clause about the data bank is contradicted by measurement and is recorded in divergences.json."
+      "note": "The clause about the data bank is contradicted by measurement and is recorded in divergences.json.",
+      "appliesTo": ["65802", "65816"],
+      "appliesToCore": "wide"
     },
     "switchingToEmulation": {
       "document": "wdc816",
       "section": "8.10",
-      "quote": "When switching from the Native mode to the Emulation mode, the X and M bits of the Status Register are set high (logic 1), the high byte of the Stack is set to 01, and the high bytes of the X and Y Index Registers are set to 00. To save previous values, these bytes must always be stored before changing modes. Note that the low byte of the S, X and Y Registers and the low and high byte of the Accumulator (A and B) are not affected by a mode change."
+      "quote": "When switching from the Native mode to the Emulation mode, the X and M bits of the Status Register are set high (logic 1), the high byte of the Stack is set to 01, and the high bytes of the X and Y Index Registers are set to 00. To save previous values, these bytes must always be stored before changing modes. Note that the low byte of the S, X and Y Registers and the low and high byte of the Accumulator (A and B) are not affected by a mode change.",
+      "appliesTo": ["65802", "65816"],
+      "appliesToCore": "wide"
     },
     "stackRangeInEmulation": {
       "document": "wdc816",
       "section": "8.1",
       "quote": "In the Emulation mode, the Stack address range is 000100 to 0001FF. The following OpCodes and addressing modes will increment or decrement beyond this range when accessing two or three bytes: JSL, JSR (a,x), PEA, PEI, PER, PHD, PLD, RTL",
-      "note": "The list is exactly the set of instructions the 65816 added, which is why the model folds a push into page one for the operations the 6502 already had and does not fold for these."
+      "note": "The list is exactly the set of instructions the 65816 added, which is why the model folds a push into page one for the operations the 6502 already had and does not fold for these.",
+      "appliesTo": ["65802", "65816"],
+      "appliesToCore": "wide"
     },
     "directRangeInEmulation": {
       "document": "wdc816",
       "section": "8.2",
       "quote": "The effective address generated by Direct; Direct,X and Direct,Y addressing modes will always be in the Native mode range 000000 to 00FFFF. When in the Emulation mode, the direct addressing range is 000000 to 0000FF, except for [Direct] and [Direct],Y addressing modes and the PEI instruction which will increment from 0000FE or 0000FF into the Stack area.",
       "andAlso": "When in the Emulation mode and DL in not equal to zero, the direct addressing range is 000000 to 00FFFF.",
-      "note": "The second sentence is why the model wraps inside the page only when the direct register is page aligned. The exception list in the first sentence is contradicted by measurement and is recorded in divergences.json."
+      "note": "The second sentence is why the model wraps inside the page only when the direct register is page aligned. The exception list in the first sentence is contradicted by measurement and is recorded in divergences.json.",
+      "appliesTo": ["65802", "65816"],
+      "appliesToCore": "wide"
     },
     "directIsBankZero": {
       "document": "wdc816",
       "section": "4.3, corroborated by Table 6-7 entries 10a, 10b, 16a and 16b",
       "quote": "The Direct addressing modes are usually used to store memory registers and pointers. The effective address generated by Direct, Direct,X and Direct,Y addressing modes is always in Bank 0 (000000-00FFFF).",
       "cycleTable": "Table 6-7 addresses every direct access as 0,D+DO and its second half as 0,D+DO+1, with the bank written as a literal zero rather than as a register.",
-      "note": "So a sixteen-bit direct access whose low half sits at 00FFFF finds its high half at 000000. Both halves of a read-modify-write did carry into bank one here until this was read."
+      "note": "So a sixteen-bit direct access whose low half sits at 00FFFF finds its high half at 000000. Both halves of a read-modify-write did carry into bank one here until this was read.",
+      "appliesTo": ["65802", "65816"],
+      "appliesToCore": "wide"
     },
     "indirectJumpBanks": {
       "document": "wdc816",
       "section": "8.9, corroborated by Table 6-7 entries 2a, 2b, 3a and 3b",
       "quote": "The JMP (a) and JML (a) instructions use the direct Bank for indirect addressing, while JMP (a,x) and JSR (a,x) use the Program Bank for indirect address tables.",
       "contradictedBy": "The addressing mode description in section 4 says the (a,x) pointer is a 16-bit pointer in Bank 0. Table 6-7 addresses that cycle as PBR,AA+X, and the suite agrees with the caveat and the table, so the section 4 prose is the loose one.",
-      "note": "Recorded because it is the second place in this document where the prose and the cycle table disagree, and both times the cycle table is right."
+      "note": "Recorded because it is the second place in this document where the prose and the cycle table disagree, and both times the cycle table is right.",
+      "appliesTo": ["65802", "65816"],
+      "appliesToCore": "wide"
     },
     "registerTransferWidths": {
       "document": "wdc816",
       "section": "8.20 and 8.21",
       "quote": "All transfers from one register to another will result in a full 16-bit output from the source register. The destination register size will determine the number of bits actually stored in the destination register and the values stored in the processor Status Register. The following are always 16-bit transfers, regardless of the accumulator size: TCS, TSC, TCD and TDC. Note: PHP and PLP are always 8 bit operations.",
-      "andAlso": "When in the Emulation mode, a 01 is forced into SH. In this case, the B Accumulator will not be loaded into SH during a TCS instruction. When in the Native mode, the B Accumulator is transferred to SH. Note that in both the Emulation and Native modes, the full 16 bits of the Stack Register are transferred to the A, B and C Accumulators, regardless of the state of the M bit in the Status Register."
+      "andAlso": "When in the Emulation mode, a 01 is forced into SH. In this case, the B Accumulator will not be loaded into SH during a TCS instruction. When in the Native mode, the B Accumulator is transferred to SH. Note that in both the Emulation and Native modes, the full 16 bits of the Stack Register are transferred to the A, B and C Accumulators, regardless of the state of the M bit in the Status Register.",
+      "appliesTo": ["65802", "65816"],
+      "appliesToCore": "wide"
     },
     "aluSupersedesNothing": {
       "document": "wdc816",
       "section": "Table 6-5",
       "quote": "LSR 0 . . . . . Z C",
-      "note": "The status column for LSR prints a literal zero under N rather than the letter N, because a right shift can only ever leave that bit clear. Recorded because it is the one row in the table that states a result rather than an effect, and a model that sets N from the result agrees with it either way."
+      "note": "The status column for LSR prints a literal zero under N rather than the letter N, because a right shift can only ever leave that bit clear. Recorded because it is the one row in the table that states a result rather than an effect, and a model that sets N from the result agrees with it either way.",
+      "appliesTo": ["65802", "65816"],
+      "appliesToCore": "wide"
     },
     "memoryLock": {
       "document": "wdc816",
       "section": "3.7",
       "quote": "Memory Lock is low during the last three or five cycles of ASL, DEC, INC, LSR, ROL, ROR, TRB, and TSB memory referencing instructions, depending on the state of the M flag.",
-      "note": "A pin, so it matters only to a cycle-level model. Nothing in this project drives it yet."
+      "note": "A pin, so it matters only to a cycle-level model. Nothing in this project drives it yet.",
+      "appliesTo": ["65802", "65816"],
+      "appliesToCore": "wide"
     },
     "addressQualification": {
       "document": "wdc816",
       "section": "3.14 and 8.5",
       "quote": "VDA VPA: 0 0 Internal Operation Address and Data Bus available. The Address Bus may be invalid. 0 1 Valid program address. 1 0 Valid data address. 1 1 OpCode fetch.",
       "andAlso": "Note that when VDA and VPA are both low, invalid addresses may be generated. The Page and Bank addresses could also be invalid. This will be due to low byte addition only.",
-      "note": "The reason a cycle-level model has to distinguish an internal cycle from a read: on this part an internal cycle drives an address that is deliberately allowed to be wrong."
+      "note": "The reason a cycle-level model has to distinguish an internal cycle from a read: on this part an internal cycle drives an address that is deliberately allowed to be wrong.",
+      "appliesTo": ["65802", "65816"],
+      "appliesToCore": "wide"
     },
     "nmosSingleCycleAppendix": {
       "document": "mos6500",
@@ -258,20 +408,62 @@
       "quote": "This section contains an outline of the data on both the address bus and the data bus for each cycle of the various processor instructions. It tells the system designer exactly what to expect while single cycling through a program.",
       "andAlso": "Note that the processor will not stop in any cycle where R/W is a 0 (write cycle). Instead, it will go right into the next read cycle and stop there. For this reason, some instructions may appear to be shorter than indicated here.",
       "whatItGives": "Every addressing mode, cycle by cycle, with the address bus contents named. The dummy accesses are in it: the discarded read of the un-indexed pointer in (zp,X), the discarded read at the un-fixed address when an absolute index crosses a page, the discarded read of the next opcode in every single-byte instruction, the discarded stack read before a pull, and the two writes a read-modify-write performs.",
-      "note": "This is the document the cycle work is being built from. The suites carry the same information as a recording, and disagreements will be recorded in divergences.json rather than settled by preference."
+      "note": "This is the document the cycle work is being built from. The suites carry the same information as a recording, and disagreements will be recorded in divergences.json rather than settled by preference.",
+      "appliesTo": [
+        "2a03",
+        "6502",
+        "6503",
+        "6504",
+        "6505",
+        "6506",
+        "6507",
+        "6512",
+        "6513",
+        "6514",
+        "6515"
+      ],
+      "appliesToCore": "nmos"
     },
     "nmosReadModifyWriteWritesTwice": {
       "document": "mos6500",
       "section": "Appendix A.4.4, Absolute,X Addressing (7 cycles)",
       "quote": "T3 ADL: BAL + X, ADH: BAH + C, Data (Discarded), R/W 1; T4 ADL: BAL + X, ADH: BAH + C, Data, R/W 1, Fetch Data; T5 ADH, ADL, Data, R/W 0; T6 ADH, ADL, Modified Data, R/W 0, Write modified Data back into memory",
       "assembled": true,
-      "note": "Two write cycles to the same address, the first carrying the value just read. A device that latches on a write sees it twice, which is why this is worth modelling rather than collapsing."
+      "note": "Two write cycles to the same address, the first carrying the value just read. A device that latches on a write sees it twice, which is why this is worth modelling rather than collapsing.",
+      "appliesTo": [
+        "2a03",
+        "6502",
+        "6503",
+        "6504",
+        "6505",
+        "6506",
+        "6507",
+        "6512",
+        "6513",
+        "6514",
+        "6515"
+      ],
+      "appliesToCore": "nmos"
     },
     "nmosRorArrivedLate": {
       "document": "mos6500",
       "section": "Appendix A.4, Read-Modify-Write Operations",
       "quote": "Note: The ROR instruction will be available on MCS650X microprocessors after June, 1976.",
-      "notModelled": "The earliest parts have no working ROR, and this project models the part that does. Recorded because a model of the family that claims to include its mistakes should say which mistake it leaves out."
+      "notModelled": "The earliest parts have no working ROR, and this project models the part that does. Recorded because a model of the family that claims to include its mistakes should say which mistake it leaves out.",
+      "appliesTo": [
+        "2a03",
+        "6502",
+        "6503",
+        "6504",
+        "6505",
+        "6506",
+        "6507",
+        "6512",
+        "6513",
+        "6514",
+        "6515"
+      ],
+      "appliesToCore": "nmos"
     },
     "nmosCycleShapesNowImplemented": {
       "document": "mos6500",
@@ -292,7 +484,21 @@
         "hardwareInterrupt": "spends two cycles reading the program counter before it pushes anything"
       },
       "measured": "Every one of the 2,440,000 non-halting cases in the pinned 6502 suite and every one of the 2,440,000 in the 2A03 suite agrees address for address, value for value, read against write, in order. The 120,000 cases per suite whose opcode halts the part are left out and counted separately.",
-      "notStated": "A halted part keeps driving its address lines and the manual does not say with what. The recordings show a stuck pattern around the interrupt vector whose length is a property of the recording, so those cases are excluded rather than matched."
+      "notStated": "A halted part keeps driving its address lines and the manual does not say with what. The recordings show a stuck pattern around the interrupt vector whose length is a property of the recording, so those cases are excluded rather than matched.",
+      "appliesTo": [
+        "2a03",
+        "6502",
+        "6503",
+        "6504",
+        "6505",
+        "6506",
+        "6507",
+        "6512",
+        "6513",
+        "6514",
+        "6515"
+      ],
+      "appliesToCore": "nmos"
     },
     "cmosCycleShapes": {
       "document": "wdc02",
@@ -313,7 +519,9 @@
       "measured": "Every one of the 7,630,080 non-placeholder cases across the three CMOS suites agrees, cycle for cycle. The placeholder cases are the ones counted apart in divergences.json.",
       "notStated": "The invalid-OpCode table in Table 7-1 gives a length and a cycle count for every undocumented opcode, and six of its seven rows match the recordings exactly. The seventh, for $5C, prints eight cycles where every recording shows four, and the row for read-modify-write of an indexed absolute address inside a page is right for four of the six instructions it covers. Both are in divergences.json. The timing chart's addresses for three spare cycles are contradicted by this same table and are not followed.",
       "andAlso": "Read/Modify/Write instruction at effective address: NMOS 6502, one read and two write cycles; W65C02S, two read and one write cycle. Jump indirect, operand = XXFF: page address increments, one additional cycle. Flags after decimal operation: valid flags. One additional cycle. Decimal flag: initialized to binary mode (D=0) after reset and interrupts.",
-      "correction": "This was recorded against the 65816 data sheet. The sentence is not in that document at all: Table 7-1 Microprocessor Operational Enhancements is the W65C02S sheet's table, and the 65816 sheet has a Table 7-1 of its own about something else. The quote checker scored every quote against whichever document placed it best rather than against the one named, so three facts about the CMOS part carried the wrong source and nothing said so."
+      "correction": "This was recorded against the 65816 data sheet. The sentence is not in that document at all: Table 7-1 Microprocessor Operational Enhancements is the W65C02S sheet's table, and the 65816 sheet has a Table 7-1 of its own about something else. The quote checker scored every quote against whichever document placed it best rather than against the one named, so three facts about the CMOS part carried the wrong source and nothing said so.",
+      "appliesTo": ["65c02", "r65c02", "w65c02"],
+      "appliesToCore": "cmos"
     },
     "sixteenBitCycleShapes": {
       "document": "wdc816",
@@ -335,7 +543,9 @@
       },
       "measured": "Every one of the 5,080,000 cases in the pinned 65816 suite that does not stop the part agrees, cycle for cycle, including the pins. The 40,000 that stop it are counted apart.",
       "notStated": "What a stopped part drives is not in the document, and the recordings show cycles with no address at all for as long as the recording runs. Those are excluded rather than modelled.",
-      "andAlso": "14. VDA and VPA are not valid outputs on the W65C02S but are valid on the W65C816S. The two signals, VDA and VPA, are included to point out the upward compatibility to the W65C816S. When VDA and VPA are both a one level, this is equivalent to SYNC being a one level."
+      "andAlso": "14. VDA and VPA are not valid outputs on the W65C02S but are valid on the W65C816S. The two signals, VDA and VPA, are included to point out the upward compatibility to the W65C816S. When VDA and VPA are both a one level, this is equivalent to SYNC being a one level.",
+      "appliesTo": ["65802", "65816"],
+      "appliesToCore": "wide"
     },
     "cmosInterruptClearsDecimal": {
       "document": "wdc02",
@@ -343,7 +553,9 @@
       "quote": "Decimal flag: NMOS 6502, indeterminate after reset; W65C02S, initialized to binary mode (D=0) after reset and interrupts.",
       "assembled": true,
       "note": "Two facts in one row. The NMOS part's decimal flag is undefined after a reset, which is why nothing here clears it, and the CMOS parts clear it on an interrupt as well as a reset, which is why their interrupt path does.",
-      "correction": "This was recorded against the 65816 data sheet. The sentence is not in that document at all: Table 7-1 Microprocessor Operational Enhancements is the W65C02S sheet's table, and the 65816 sheet has a Table 7-1 of its own about something else. The quote checker scored every quote against whichever document placed it best rather than against the one named, so three facts about the CMOS part carried the wrong source and nothing said so."
+      "correction": "This was recorded against the 65816 data sheet. The sentence is not in that document at all: Table 7-1 Microprocessor Operational Enhancements is the W65C02S sheet's table, and the 65816 sheet has a Table 7-1 of its own about something else. The quote checker scored every quote against whichever document placed it best rather than against the one named, so three facts about the CMOS part carried the wrong source and nothing said so.",
+      "appliesTo": ["65c02", "r65c02", "w65c02"],
+      "appliesToCore": "cmos"
     },
     "cmosInterruptDuringBreak": {
       "document": "wdc02",
@@ -351,20 +563,26 @@
       "quote": "Interrupt after fetch of BRK instruction: NMOS 6502, interrupt vector is loaded, BRK vector is ignored; W65C02S, BRK is executed, and then interrupt is executed.",
       "assembled": true,
       "notModelled": "Neither behaviour. A pin taken in the middle of an instruction needs a core that can stop part way through one, and this one runs an instruction to completion before it will take an interrupt. Recorded because it is a real difference between the parts and this project does not have it.",
-      "correction": "This was recorded against the 65816 data sheet. The sentence is not in that document at all: Table 7-1 Microprocessor Operational Enhancements is the W65C02S sheet's table, and the 65816 sheet has a Table 7-1 of its own about something else. The quote checker scored every quote against whichever document placed it best rather than against the one named, so three facts about the CMOS part carried the wrong source and nothing said so."
+      "correction": "This was recorded against the 65816 data sheet. The sentence is not in that document at all: Table 7-1 Microprocessor Operational Enhancements is the W65C02S sheet's table, and the 65816 sheet has a Table 7-1 of its own about something else. The quote checker scored every quote against whichever document placed it best rather than against the one named, so three facts about the CMOS part carried the wrong source and nothing said so.",
+      "appliesTo": ["65c02", "r65c02", "w65c02"],
+      "appliesToCore": "cmos"
     },
     "stackRangeInEmulationAsFirstPrinted": {
       "document": "wdc816_1994",
       "section": "8.1",
       "quote": "In the Emulation mode, the Stack address range is 000100 to 0001FF. The following opcodes and addressing modes will increment or decrement beyond this range when accessing two or three bytes: JSL; JSR(a,x); PEA, PEI, PER, PHD, PLD, RTL; d, s; (d,s), y",
       "note": "Two entries longer than the same sentence in the 2004 and 2024 revisions, which stop after RTL. The two that were dropped are the stack relative addressing modes, and they belong there: with the stack pointer near the top of page one, a stack relative read lands above 0001FF rather than wrapping. The sentence promises the same thing in all three revisions and only the earliest one lists everything it applies to, so the earliest is the one this project follows.",
-      "whyTheLaterListIsTheIncompleteOne": "The note on the shorter list reasons that it names exactly what the part added. That reasoning argues for the longer list: stack relative addressing is also something the part added, and it is only absent from the sentence, never from the part."
+      "whyTheLaterListIsTheIncompleteOne": "The note on the shorter list reasons that it names exactly what the part added. That reasoning argues for the longer list: stack relative addressing is also something the part added, and it is only absent from the sentence, never from the part.",
+      "appliesTo": ["65802", "65816"],
+      "appliesToCore": "wide"
     },
     "caveatsTableIsStableAcrossRevisions": {
       "document": "wdc816_2024",
       "section": "Table 7-1 Caveats, which the 2004 revision numbers Table 8-1",
       "quote": "A.ABS,X,ASL,LSR,ROL with no Page Crossing: 7 cycles, 6 cycles, 6 cycles, 7 cycles.",
-      "note": "Every cell of the comparison table is the same in the 2004 and 2024 revisions, twenty years apart. Only the section number moved. A claim taken from that table therefore does not depend on which revision a reader happens to hold, which is worth knowing because three revisions of this data sheet are pinned here."
+      "note": "Every cell of the comparison table is the same in the 2004 and 2024 revisions, twenty years apart. Only the section number moved. A claim taken from that table therefore does not depend on which revision a reader happens to hold, which is worth knowing because three revisions of this data sheet are pinned here.",
+      "appliesTo": ["65802", "65816"],
+      "appliesToCore": "wide"
     },
     "nmosFamilyPackages": {
       "document": "mos6500_datasheet",
@@ -388,13 +606,29 @@
         "6513",
         "6514",
         "6515"
-      ]
+      ],
+      "appliesTo": [
+        "2a03",
+        "6502",
+        "6503",
+        "6504",
+        "6505",
+        "6506",
+        "6507",
+        "6512",
+        "6513",
+        "6514",
+        "6515"
+      ],
+      "appliesToCore": "nmos"
     },
     "falseReadIsVisibleOnThePins": {
       "document": "wdc816_book",
       "section": "Appendix C, Valid Program Address and Valid Data Address",
       "quote": "since the 65816 sometimes generates a false read during instructions that cross page boundaries, these may be trapped via these two signals if this is desirable. Note, however, that addresses should not be qualified in emulation mode if hardware such as the Apple II disk controller is used, which requires false read to operate.",
-      "note": "The manufacturer confirming that the discarded read of an indexed access is real, that a system can tell it apart on the qualifier pins, and that at least one shipped machine depends on it happening. A model that skipped that cycle would break that machine."
+      "note": "The manufacturer confirming that the discarded read of an indexed access is real, that a system can tell it apart on the qualifier pins, and that at least one shipped machine depends on it happening. A model that skipped that cycle would break that machine.",
+      "appliesTo": ["65802", "65816"],
+      "appliesToCore": "wide"
     }
   },
   "documentContradictions": [
@@ -417,5 +651,32 @@
       "whyItIsWorthRecording": "A demonstrated instance of this publisher transposing these two signals in its own documentation. It does not settle the one place where the data sheet and the recorded cycles disagree about which of the two is asserted, but it shows the mistake is one the publisher has made elsewhere, which is evidence about how much weight a single printed row can carry.",
       "verifiedOn": "the rendered page of each, 2026-08-23"
     }
-  ]
+  ],
+  "cores": {
+    "note": "The three behavioural units this package implements. Sixteen part names build one of three cores, and a fact is about a core rather than about a part name: what separates two names inside one core is address width and which interrupt pins the package brings out, which part-differences.json carries. Every fact names the models it governs, expanded from one of these. Taken from the builder each model resolves to, so the list cannot drift from the code without conformance/family.test.py saying so.",
+    "nmos": {
+      "builder": "_build_6502",
+      "models": [
+        "2a03",
+        "6502",
+        "6503",
+        "6504",
+        "6505",
+        "6506",
+        "6507",
+        "6512",
+        "6513",
+        "6514",
+        "6515"
+      ]
+    },
+    "cmos": {
+      "builder": "_build_65c02",
+      "models": ["65c02", "r65c02", "w65c02"]
+    },
+    "wide": {
+      "builder": "_build_65816",
+      "models": ["65802", "65816"]
+    }
+  }
 }

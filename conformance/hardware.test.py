@@ -16,6 +16,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+import mos65xx  # noqa: E402
 from mos65xx import Memory, models, mos6502, wdc65816  # noqa: E402
 
 HARDWARE = Path(__file__).resolve().parent / "hardware.json"
@@ -324,6 +325,103 @@ class HonestyTest(unittest.TestCase):
     def test_the_two_places_the_document_contradicts_itself_are_both_recorded(self) -> None:
         self.assertIn("contradictedBy", fact("indirectJumpBanks"))
         self.assertIn("whyItIsAnErratum", fact("vectors")["erratumInTable6_3"])
+
+
+def overreaching(facts: dict[str, Any], documents: dict[str, Any]) -> list[str]:
+    """Every fact reaching parts the document it cites does not describe."""
+    found = []
+    for name, fact in facts.items():
+        held = documents.get(fact["document"], {}).get("appliesTo")
+        if held and not set(fact["appliesTo"]) <= set(held):
+            found.append(f"{name}: {fact['appliesToCore']} from {fact['document']}")
+    return found
+
+
+class CoreScopeTest(unittest.TestCase):
+    """That every fact says which core it governs, and could have come from its source.
+
+    Sixteen part names build three cores here, and a claim is about a core. Left
+    unsaid, the part a fact governs was carried by the key's spelling and by which
+    document it cited, so a claim read from the CMOS sheet and filed among the
+    16-bit facts would read exactly like the others.
+
+    The core list is taken from the package rather than written down twice, so a
+    part that changes core is a failure here rather than a record that quietly
+    disagrees with the code.
+    """
+
+    def cores(self) -> dict[str, list[str]]:
+        held: dict[str, list[str]] = {}
+        for name in sorted(mos65xx.MODELS):
+            held.setdefault(mos65xx.describe(name).core.__name__, []).append(name)
+        return held
+
+    def test_the_record_names_the_cores_the_package_builds(self) -> None:
+        declared_cores = {
+            one["builder"]: one["models"]
+            for name, one in declared()["cores"].items()
+            if name != "note"
+        }
+
+        self.assertEqual(declared_cores, self.cores())
+
+    def test_every_fact_names_the_models_it_governs(self) -> None:
+        unscoped = [
+            name
+            for name, fact in declared()["facts"].items()
+            if not isinstance(fact.get("appliesTo"), list) or not fact["appliesTo"]
+        ]
+
+        self.assertEqual(unscoped, [])
+
+    def test_and_every_model_it_names_is_one_the_package_builds(self) -> None:
+        invented = sorted(
+            {
+                model
+                for fact in declared()["facts"].values()
+                for model in fact["appliesTo"]
+                if model not in mos65xx.MODELS
+            }
+        )
+
+        self.assertEqual(invented, [])
+
+    def test_and_the_shorthand_it_was_expanded_from_agrees(self) -> None:
+        cores = {name: one["models"] for name, one in declared()["cores"].items() if name != "note"}
+
+        wrong = [
+            name
+            for name, fact in declared()["facts"].items()
+            if fact["appliesTo"] != cores[fact["appliesToCore"]]
+        ]
+
+        self.assertEqual(wrong, [])
+
+    def test_no_fact_claims_a_core_its_document_does_not_cover(self) -> None:
+        self.assertEqual(overreaching(declared()["facts"], declared()["documents"]), [])
+
+    def test_and_one_that_did_would_be_reported(self) -> None:
+        """The check has to be seen failing to be worth running.
+
+        Three facts about the CMOS part were filed under the 16-bit part's data
+        sheet, and this rule catches that shape on its own: a fact reaching parts
+        its source does not describe.
+        """
+        facts = {
+            "borrowed": {
+                "document": "wide-only",
+                "appliesTo": ["65c02"],
+                "appliesToCore": "cmos",
+            }
+        }
+        documents = {"wide-only": {"appliesTo": ["65802", "65816"]}}
+
+        self.assertEqual(len(overreaching(facts, documents)), 1)
+
+    def test_every_document_says_which_cores_it_covers(self) -> None:
+        silent = [name for name, one in declared()["documents"].items() if "cores" not in one]
+
+        self.assertEqual(silent, [])
 
 
 if __name__ == "__main__":
