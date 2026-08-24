@@ -334,6 +334,24 @@ class SectionTest(unittest.TestCase):
 
         self.assertEqual(found, [])
 
+    def test_several_ranges_are_accepted_for_a_part_the_book_returns_to(self) -> None:
+        spans = [{"from": 416, "to": 419}, {"from": 424, "to": 424}]
+
+        self.assertEqual(quotes.sections([self.a_record(417, spans)]), [])
+        self.assertEqual(quotes.sections([self.a_record(424, spans)]), [])
+
+    def test_and_a_page_between_them_belongs_to_another_part(self) -> None:
+        spans = [{"from": 416, "to": 419}, {"from": 424, "to": 424}]
+
+        found = quotes.sections([self.a_record(421, spans)])
+
+        self.assertIn("outside the 416-419, 424-424", found[0])
+
+    def test_a_range_in_a_list_that_is_not_a_mapping_declares_nothing(self) -> None:
+        found = quotes.sections([self.a_record(None, ["416-419"])])
+
+        self.assertEqual(found, [])
+
     def test_a_range_that_is_not_two_numbers_declares_nothing(self) -> None:
         found = quotes.sections([self.a_record(None, {"from": "76", "to": 99})])
 

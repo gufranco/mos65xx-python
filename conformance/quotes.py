@@ -289,6 +289,11 @@ def sections(records: Iterable[tuple[str, Any]] | None = None) -> list[str]:
     occupies. Where it does, every fact citing that document has to name a
     `filePage` inside them. A document that declares no range is single-part and
     nothing here applies to it.
+
+    The pages need not be contiguous. A questions-and-answers section runs
+    through the whole family, a few pages per part and back again, so one part's
+    material is several blocks with other parts' material between them. A record
+    may give a list of ranges for that, and one range is the common case.
     """
     found: list[str] = []
     for name, held in loaded() if records is None else records:
@@ -296,33 +301,47 @@ def sections(records: Iterable[tuple[str, Any]] | None = None) -> list[str]:
         if not ranges:
             continue
         for where, document, page in _cited(held, name):
-            span = ranges.get(document)
-            if span is None:
+            spans = ranges.get(document)
+            if spans is None:
                 continue
             if page is None:
                 found.append(
                     f"{where}: cites {document}, which covers several parts, and names no filePage"
                 )
-            elif not span[0] <= page <= span[1]:
+            elif not any(low <= page <= high for low, high in spans):
+                written = ", ".join(f"{low}-{high}" for low, high in spans)
                 found.append(
-                    f"{where}: names file page {page}, outside the {span[0]}-{span[1]} this part occupies in {document}"
+                    f"{where}: names file page {page}, outside the {written} this part occupies in {document}"
                 )
     return found
 
 
-def _ranges(node: Any, trail: str = "") -> dict[str, tuple[int, int]]:
+def _ranges(node: Any, trail: str = "") -> dict[str, list[tuple[int, int]]]:
     """Every document in a record that declares which pages are this part's."""
-    found: dict[str, tuple[int, int]] = {}
+    found: dict[str, list[tuple[int, int]]] = {}
     if isinstance(node, dict):
         for key, value in node.items():
-            if isinstance(value, dict) and isinstance(value.get("sectionPages"), dict):
-                span = value["sectionPages"]
-                if isinstance(span.get("from"), int) and isinstance(span.get("to"), int):
-                    found[key] = (span["from"], span["to"])
+            if isinstance(value, dict) and value.get("sectionPages") is not None:
+                spans = _spans(value["sectionPages"])
+                if spans:
+                    found[key] = spans
             found.update(_ranges(value, key))
     elif isinstance(node, list):
         for one in node:
             found.update(_ranges(one, trail))
+    return found
+
+
+def _spans(declared: Any) -> list[tuple[int, int]]:
+    """One range or several, as pairs. Anything else declares nothing."""
+    held = declared if isinstance(declared, list) else [declared]
+    found = []
+    for one in held:
+        if not isinstance(one, dict):
+            continue
+        low, high = one.get("from"), one.get("to")
+        if isinstance(low, int) and isinstance(high, int):
+            found.append((low, high))
     return found
 
 
