@@ -101,7 +101,10 @@
         "6513",
         "6514",
         "6515"
-      ]
+      ],
+      "readVia": "mcs6500-programming-manual-1976.pdf, 262 pages, a scan with no text layer at all. Nothing can search it, so a citation into it is followed by rendering the page and reading it, which is how the two below were checked.",
+      "pageNumbering": "Appendix B numbers its pages B-1 upward and the file does not: B-3 is file page 200 and B-20 is file page 217, so file page is the printed number plus 197 across that appendix. Found by rendering pages until the printed marker appeared, since no search can reach it.",
+      "howItWasRead": "Rendered at 400 dots per inch and read with the operating system's own text recognition at its accurate setting, which is the procedure FAMILY.md sets out for a document that is a photograph. Both cited pages carry the rows quoted and the footnote about a page boundary."
     },
     "rockwell": {
       "publisher": "Rockwell International",
