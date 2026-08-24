@@ -949,6 +949,81 @@ class ErrorsCloseNoCycleTest(unittest.TestCase):
         self.assertIn(f"{PACKAGE.__name__}.core", found)
 
 
+DOCUMENT_SUFFIXES = frozenset({".pdf", ".djvu", ".epub", ".rom", ".bin", ".img"})
+"""Extensions that name a file somebody else owns rather than one written here."""
+
+
+def unignored(where: Path, run: Any = None) -> list[str]:
+    """Every path this repository's own ignore file leaves exposed.
+
+    A machine-global ignore file is configured once and does not travel with a
+    clone, so a path protected only there is exposed in every other checkout and
+    in CI. Nothing shows locally, because the status a person reads has the
+    global file applied. Reading it with that file switched off is the only way
+    to see what a fresh clone would.
+    """
+    runner = subprocess.run if run is None else run
+    done = runner(
+        ["git", "-c", "core.excludesFile=/dev/null", "status", "--porcelain", "-uall"],
+        cwd=where,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return sorted(line[3:] for line in done.stdout.splitlines() if line.startswith("??"))
+
+
+class CarriesNobodyElsesWorkTest(unittest.TestCase):
+    """That nothing licensed to somebody else is in the repository or reachable from it.
+
+    Documents live beside the code and are never committed, which is why every
+    check that reads one says so when it cannot find it. The rule held by hand
+    until a sweep found one member's own ignore file missing seven entries the
+    others had, with build output protected only by a file configured on one
+    machine.
+    """
+
+    def tracked(self) -> list[str]:
+        listed = subprocess.run(
+            ["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=False
+        )
+        return listed.stdout.split()
+
+    def test_no_document_is_committed(self) -> None:
+        carried = sorted(
+            rel for rel in self.tracked() if Path(rel).suffix.lower() in DOCUMENT_SUFFIXES
+        )
+
+        self.assertEqual(carried, [])
+
+    def test_nor_is_anything_from_the_folder_they_live_in(self) -> None:
+        self.assertEqual([rel for rel in self.tracked() if rel.startswith("docs/")], [])
+
+    def test_there_are_tracked_files_to_look_through(self) -> None:
+        """Or an empty listing would pass for a repository with nothing in it."""
+        self.assertGreater(len(self.tracked()), 20)
+
+    def test_the_ignore_file_here_covers_everything_on_its_own(self) -> None:
+        """Without leaning on one configured on this machine and nowhere else."""
+        self.assertEqual(unignored(ROOT), [])
+
+    def test_the_reader_of_that_names_an_untracked_file(self) -> None:
+        found = unignored(ROOT, self.saying("?? left/behind.txt\n M edited.py\n"))
+
+        self.assertEqual(found, ["left/behind.txt"])
+
+    def test_and_steps_over_one_that_is_merely_edited(self) -> None:
+        found = unignored(ROOT, self.saying(" M edited.py\nA  added.py\n"))
+
+        self.assertEqual(found, [])
+
+    def saying(self, text: str) -> Any:
+        def run(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
+            return subprocess.CompletedProcess([], 0, stdout=text, stderr="")
+
+        return run
+
+
 class QuotedPassageTest(unittest.TestCase):
     """That a document's own words are blanked before the sweep reads a record.
 

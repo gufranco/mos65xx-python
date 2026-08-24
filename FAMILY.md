@@ -131,7 +131,14 @@ checks the ones a test can reach.
       document's words, and a document may name whatever it likes. The file
       declaring the names to search for is the list rather than a mention.
 - [ ] Nothing licensed to anybody else is carried, fetched, vendored or
-      generated. A copy belongs on the machine that runs it.
+      generated. A copy belongs on the machine that runs it. Checked two ways:
+      no tracked file carries a document or image extension, and nothing is
+      tracked from the folder those live in.
+- [ ] The repository's own ignore file covers every ignorable path on its own.
+      One configured on a machine does not travel with a clone, so a path
+      protected only there is exposed in every other checkout and in CI, and
+      nothing shows locally because the status a person reads has that file
+      applied. Reading it with that file switched off is the check.
 
 **How it is written**
 
