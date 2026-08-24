@@ -14,6 +14,7 @@ from __future__ import annotations
 import inspect
 import re
 import sys
+import types
 import unittest
 from pathlib import Path
 from typing import Any, Protocol
@@ -197,6 +198,89 @@ class PublishedSurfaceTest(unittest.TestCase):
         absent = [name for name in mos65xx.__all__ if not hasattr(mos65xx, name)]
 
         self.assertEqual(absent, [])
+
+
+PACKAGE = mos65xx
+
+
+class OneDefinitionTest(unittest.TestCase):
+    """That no exception in the package is defined in two places under one name.
+
+    The standard calls this out because of how quietly it fails. Two exception
+    classes under one name both work, both are tested, and `except ThatName`
+    written against one of them sails straight past the other. This package
+    shipped exactly that: two `Truncated` classes, one per decoder, with the
+    package exporting one of them, so catching it missed every case the other
+    raised.
+
+    Exceptions only, and deliberately. Two core classes under one name in two
+    modules is ordinary and safe, because nobody catches a core: the caller
+    reaches them through a factory and the one that needed a public name of its
+    own already has one. An exception is different precisely because its name is
+    the thing a caller writes down.
+
+    The runtime is asked rather than the text, because `__module__` says where a
+    class was defined and an import cannot fake it.
+    """
+
+    def defined(self, package: Any = None) -> dict[str, list[str]]:
+        held = PACKAGE if package is None else package
+        found: dict[str, list[str]] = {}
+        for name in dir(held):
+            module = getattr(held, name)
+            if not isinstance(module, types.ModuleType):
+                continue
+            for one in vars(module).values():
+                if not isinstance(one, type) or not issubclass(one, BaseException):
+                    continue
+                if one.__module__ != module.__name__:
+                    continue
+                found.setdefault(one.__qualname__, []).append(module.__name__)
+        return {name: sorted(set(where)) for name, where in found.items()}
+
+    def test_no_exception_name_is_defined_twice(self) -> None:
+        twice = {name: where for name, where in self.defined().items() if len(where) > 1}
+
+        self.assertEqual(twice, {})
+
+    def test_every_exception_a_caller_can_meet_is_published(self) -> None:
+        """One a caller cannot import is one they cannot catch by name.
+
+        `except` takes a name, so an exception reachable through the public
+        interface and absent from the package is a failure a caller can only
+        handle by catching everything. A leading underscore is how a genuinely
+        internal one says so.
+        """
+        hidden = [
+            name
+            for name in self.defined()
+            if not name.startswith("_") and name not in PACKAGE.__all__
+        ]
+
+        self.assertEqual(hidden, [])
+
+    def test_there_are_exceptions_to_check(self) -> None:
+        self.assertGreater(len(self.defined()), 2)
+
+    def test_an_exception_imported_into_a_module_is_not_counted_as_defined_there(
+        self,
+    ) -> None:
+        """Where a class was written is what matters, not where it can be read.
+
+        Pointing several modules at one definition is the fix for a name defined
+        twice, so a check that counted an import as a definition would report the
+        fix as the fault it was meant to cure.
+        """
+        home: Any = types.ModuleType("home")
+        borrower: Any = types.ModuleType("borrower")
+        held = type("Borrowed", (Exception,), {"__module__": "home"})
+        home.Borrowed = held
+        borrower.Borrowed = held
+        package: Any = types.ModuleType("package")
+        package.home = home
+        package.borrower = borrower
+
+        self.assertEqual(self.defined(package), {"Borrowed": ["home"]})
 
 
 class SharedFileTest(unittest.TestCase):

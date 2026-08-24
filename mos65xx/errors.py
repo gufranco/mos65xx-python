@@ -50,3 +50,14 @@ class ClockClosed(Exception):
     Nothing about the processor. The clock has let its worker go and handed the
     part's hook back, so there is nothing left to advance.
     """
+
+
+class Truncated(Exception):
+    """The bytes ran out before the instruction did.
+
+    One definition for both decoders. It was two, one in each opcode module, and
+    the package exported the 65816 one. So `except mos65xx.Truncated` was written
+    against the package, tested against the 65816, and sailed straight past the
+    same condition raised by the 6502 decoder, which is the trap the standard
+    names.
+    """

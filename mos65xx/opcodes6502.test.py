@@ -4,7 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from mos65xx import opcodes6502
+from mos65xx import errors, opcodes6502
 
 
 class TableTest(unittest.TestCase):
@@ -72,11 +72,11 @@ class DecodeTest(unittest.TestCase):
         self.assertEqual(found.operand, 0x1234)
 
     def test_an_opcode_with_no_bytes_after_it_is_refused(self) -> None:
-        with self.assertRaises(opcodes6502.Truncated):
+        with self.assertRaises(errors.Truncated):
             opcodes6502.decode(bytes([0xA9]), 0, 0x8000)
 
     def test_an_offset_past_the_end_is_refused(self) -> None:
-        with self.assertRaises(opcodes6502.Truncated):
+        with self.assertRaises(errors.Truncated):
             opcodes6502.decode(b"", 0, 0x8000)
 
     def test_an_undocumented_instruction_says_so(self) -> None:

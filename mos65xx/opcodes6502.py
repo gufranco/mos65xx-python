@@ -25,6 +25,8 @@ from __future__ import annotations
 from collections.abc import Iterator, Sequence
 from typing import Any, override
 
+from .errors import Truncated
+
 MODE_SIZE = {
     "implied": 0,
     "accumulator": 0,
@@ -343,10 +345,6 @@ UNDOCUMENTED = frozenset(
 )
 
 UNSTABLE = frozenset({"ane", "lxa", "sha", "shx", "shy", "tas"})
-
-
-class Truncated(Exception):
-    pass
 
 
 class Instruction:

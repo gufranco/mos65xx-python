@@ -4,6 +4,8 @@ from collections import namedtuple
 from collections.abc import Sequence
 from typing import Any
 
+from .errors import Truncated
+
 MODE_SIZE = {
     "absolute": 2,
     "absoluteLong": 3,
@@ -326,10 +328,6 @@ LONG_MODES = {
 RELATIVE_MODES = {"relative", "relativeWord"}
 
 Instruction = namedtuple("Instruction", "address offset opcode mnemonic mode operand size text")
-
-
-class Truncated(Exception):
-    pass
 
 
 def operand_size(mode: str, m: bool, x: bool) -> int:
