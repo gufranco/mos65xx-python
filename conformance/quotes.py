@@ -275,6 +275,73 @@ def verify(
     return found
 
 
+def sections(records: Iterable[tuple[str, Any]] | None = None) -> list[str]:
+    """Every fact that cites a multi-part document without landing in this part's section.
+
+    A data book covers a dozen parts, and several of them are close relatives
+    that print the same table under the same name with the same column headings.
+    A quote taken from the wrong one reads as perfectly sourced: the words are
+    the document's, the table number may even match, and the part is not this
+    part. Searching the flattened document cannot catch it, because the flattened
+    document contains every section at once.
+
+    So a document record may declare `sectionPages`, the file pages its own part
+    occupies. Where it does, every fact citing that document has to name a
+    `filePage` inside them. A document that declares no range is single-part and
+    nothing here applies to it.
+    """
+    found: list[str] = []
+    for name, held in loaded() if records is None else records:
+        ranges = _ranges(held)
+        if not ranges:
+            continue
+        for where, document, page in _cited(held, name):
+            span = ranges.get(document)
+            if span is None:
+                continue
+            if page is None:
+                found.append(
+                    f"{where}: cites {document}, which covers several parts, and names no filePage"
+                )
+            elif not span[0] <= page <= span[1]:
+                found.append(
+                    f"{where}: names file page {page}, outside the {span[0]}-{span[1]} this part occupies in {document}"
+                )
+    return found
+
+
+def _ranges(node: Any, trail: str = "") -> dict[str, tuple[int, int]]:
+    """Every document in a record that declares which pages are this part's."""
+    found: dict[str, tuple[int, int]] = {}
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if isinstance(value, dict) and isinstance(value.get("sectionPages"), dict):
+                span = value["sectionPages"]
+                if isinstance(span.get("from"), int) and isinstance(span.get("to"), int):
+                    found[key] = (span["from"], span["to"])
+            found.update(_ranges(value, key))
+    elif isinstance(node, list):
+        for one in node:
+            found.update(_ranges(one, trail))
+    return found
+
+
+def _cited(node: Any, trail: str = "") -> list[tuple[str, str, int | None]]:
+    """Every fact that names a document, with the file page it claims."""
+    found: list[tuple[str, str, int | None]] = []
+    if isinstance(node, dict):
+        document = node.get("document")
+        if isinstance(document, str) and ("quote" in node or "rows" in node):
+            page = node.get("filePage")
+            found.append((trail, document, page if isinstance(page, int) else None))
+        for key, value in node.items():
+            found.extend(_cited(value, f"{trail}.{key}" if trail else key))
+    elif isinstance(node, list):
+        for at, one in enumerate(node):
+            found.extend(_cited(one, f"{trail}[{at}]"))
+    return found
+
+
 def report(found: Sequence[Verdict], books: int) -> str:
     """What was checked, what was not, and anything a person should read."""
     if not books:
@@ -300,10 +367,16 @@ def report(found: Sequence[Verdict], books: int) -> str:
 def main(
     books: dict[str, str] | None = None,
     held: Iterable[tuple[str, str]] | None = None,
+    astray: Sequence[str] | None = None,
 ) -> int:
     books = library() if books is None else books
     found = verify(held, books)
     print(report(found, len(books)))
+    wandered = sections() if astray is None else astray
+    for one in wandered:
+        print(f"  {one}")
+    if wandered:
+        return 1
     if not books:
         return 0
     return 0 if all(one.found for one in found) else 1

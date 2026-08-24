@@ -5,6 +5,7 @@ a machine without them checks nothing, and the part worth pinning is that such a
 run says so rather than reporting a pass it did not earn.
 """
 
+import builtins
 import contextlib
 import io
 import sys
@@ -283,6 +284,111 @@ class CitationTest(unittest.TestCase):
         found = quotes.uncited({"vectorQuote": "hello"})
 
         self.assertEqual(found, ["vectorQuote"])
+
+
+class SectionTest(unittest.TestCase):
+    """That a fact from a book covering many parts names which part's pages it came from.
+
+    This is the one thing searching the document cannot answer. The flattened
+    text holds every section at once, so a table lifted from a sibling part
+    matches just as well as the right one, and the sibling in this particular
+    book prints the same six flag bits under the same names.
+    """
+
+    def a_record(self, page: object, span: object = None) -> tuple[str, object]:
+        document: dict[str, object] = {"title": "a book"}
+        if span is not None:
+            document["sectionPages"] = span
+        fact: dict[str, object] = {"document": "book", "quote": "words"}
+        if page is not None:
+            fact["filePage"] = page
+        return ("held.json", {"book": document, "facts": {"a": fact}})
+
+    def test_a_page_inside_the_section_is_accepted(self) -> None:
+        found = quotes.sections([self.a_record(82, {"from": 76, "to": 99})])
+
+        self.assertEqual(found, [])
+
+    def test_a_page_outside_it_is_reported(self) -> None:
+        found = quotes.sections([self.a_record(105, {"from": 76, "to": 99})])
+
+        self.assertEqual(len(found), 1)
+        self.assertIn("outside the 76-99", found[0])
+
+    def test_a_page_below_it_is_reported_too(self) -> None:
+        found = quotes.sections([self.a_record(12, {"from": 76, "to": 99})])
+
+        self.assertIn("outside the 76-99", found[0])
+
+    def test_the_first_and_last_pages_are_inside(self) -> None:
+        self.assertEqual(quotes.sections([self.a_record(76, {"from": 76, "to": 99})]), [])
+        self.assertEqual(quotes.sections([self.a_record(99, {"from": 76, "to": 99})]), [])
+
+    def test_a_fact_naming_no_page_is_reported(self) -> None:
+        found = quotes.sections([self.a_record(None, {"from": 76, "to": 99})])
+
+        self.assertIn("names no filePage", found[0])
+
+    def test_a_document_declaring_no_range_is_single_part_and_exempt(self) -> None:
+        found = quotes.sections([self.a_record(None)])
+
+        self.assertEqual(found, [])
+
+    def test_a_range_that_is_not_two_numbers_declares_nothing(self) -> None:
+        found = quotes.sections([self.a_record(None, {"from": "76", "to": 99})])
+
+        self.assertEqual(found, [])
+
+    def test_a_fact_citing_a_document_with_no_range_is_left_alone(self) -> None:
+        held = {
+            "book": {"sectionPages": {"from": 76, "to": 99}},
+            "other": {"title": "single part"},
+            "facts": {"a": {"document": "other", "quote": "words"}},
+        }
+
+        self.assertEqual(quotes.sections([("held.json", held)]), [])
+
+    def test_a_record_carrying_no_ranges_at_all_is_skipped(self) -> None:
+        held = {"facts": {"a": {"document": "book", "quote": "words"}}}
+
+        self.assertEqual(quotes.sections([("held.json", held)]), [])
+
+    def test_a_row_table_counts_as_a_fact_even_with_no_quote(self) -> None:
+        held = {
+            "book": {"sectionPages": {"from": 76, "to": 99}},
+            "facts": {"a": {"document": "book", "rows": [], "filePage": 105}},
+        }
+
+        found = quotes.sections([("held.json", held)])
+
+        self.assertIn("outside", found[0])
+
+    def test_ranges_are_found_inside_a_list(self) -> None:
+        held = {
+            "parts": [{"book": {"sectionPages": {"from": 1, "to": 2}}}],
+            "facts": {"a": {"document": "book", "quote": "w", "filePage": 9}},
+        }
+
+        self.assertIn("outside the 1-2", quotes.sections([("held.json", held)])[0])
+
+    def test_the_records_on_disk_all_land_in_their_own_section(self) -> None:
+        self.assertEqual(quotes.sections(), [])
+
+    def test_a_fact_in_the_wrong_section_fails_the_run(self) -> None:
+        code = quotes.main({}, [], ["a.json.facts.x: names file page 105, outside 76-99"])
+
+        self.assertEqual(code, 1)
+
+    def test_and_the_run_says_which_fact_it_was(self) -> None:
+        said: list[str] = []
+        original = builtins.print
+        builtins.print = lambda *args, **kwargs: said.append(" ".join(str(one) for one in args))
+        try:
+            quotes.main({}, [], ["a.json.facts.x: names file page 105"])
+        finally:
+            builtins.print = original
+
+        self.assertTrue(any("names file page 105" in line for line in said))
 
 
 if __name__ == "__main__":
