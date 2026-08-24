@@ -224,7 +224,7 @@ The third is an FPGA core rather than an emulator, and it is worth reading becau
 
 **What exists.** A transistor level simulation of the 6502 die is public, and others use it as an oracle: MAME's NMOS 6502 opcode definitions carry the note "Verified with visual6502". It answers what a data sheet drawn at cycle resolution and a recording written one row per cycle cannot, which is what a discarded read puts on the bus and which cycle of a taken branch carries which address.
 
-**What this project does.** It runs against it now, for four cases, through
+**What this project does.** It runs against it now, for twelve cases, through
 `conformance/netlist.py`. The simulation drives an address every half cycle and
 the model is compared against it, and on those four they agree. The runner is
 opt-in: `NETLIST` names a built probe and it runs, and without one every case

@@ -1,3 +1,4 @@
+import re
 import sys
 import types
 import unittest
@@ -7,6 +8,8 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from conformance import netlist
+
+ROOT = Path(__file__).resolve().parent.parent
 
 
 def answering(addresses: list[int]) -> Any:
@@ -54,6 +57,48 @@ class ModelTest(unittest.TestCase):
     def test_every_case_drives_at_least_its_own_program(self) -> None:
         for case in netlist.CASES:
             self.assertGreaterEqual(len(netlist.modelled(case)), len(case.program))
+
+
+class ClaimedCaseCountTest(unittest.TestCase):
+    """That the number of cases OPEN-QUESTIONS.md claims is the number there are.
+
+    That entry said four in one paragraph and twelve in the next, because the
+    first was written when there were four and nothing held it to the runner.
+    """
+
+    def test_the_document_says_how_many_cases_run_here(self) -> None:
+        words = {
+            "one": 1,
+            "two": 2,
+            "three": 3,
+            "four": 4,
+            "five": 5,
+            "six": 6,
+            "seven": 7,
+            "eight": 8,
+            "nine": 9,
+            "ten": 10,
+            "eleven": 11,
+            "twelve": 12,
+            "thirteen": 13,
+            "fourteen": 14,
+            "fifteen": 15,
+            "sixteen": 16,
+        }
+        held = (ROOT / "OPEN-QUESTIONS.md").read_text()
+
+        claimed = re.findall(r"for ([a-z]+) cases, through\n`conformance/netlist.py`", held)
+
+        self.assertEqual([words.get(one) for one in claimed], [len(netlist.CASES)])
+
+    def test_and_says_the_same_number_where_it_says_what_they_settled(self) -> None:
+        held = (ROOT / "OPEN-QUESTIONS.md").read_text()
+
+        claimed = re.search(r"\*\*What it has settled\.\*\* ([A-Za-z]+) cases", held)
+
+        assert claimed is not None
+        self.assertEqual(claimed.group(1).lower(), "twelve")
+        self.assertEqual(len(netlist.CASES), 12)
 
 
 class ComparisonTest(unittest.TestCase):
