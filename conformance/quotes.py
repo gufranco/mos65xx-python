@@ -37,6 +37,9 @@ DOCUMENTS = ROOT / "docs" / "manufacturer"
 RECORDS = ROOT / "conformance"
 
 WINDOW = 5
+
+TABLE = re.compile(r"Table\s+(\d+(?:[-.]\d+)*)")
+"""How a numbered table is named, in either family the documents here use."""
 """Words per window. Short enough to survive a misread word, long enough that
 matching one is not a coincidence."""
 
@@ -372,10 +375,14 @@ def _quoted_with_document(node: Any, trail: str = "") -> list[tuple[str, str, st
 def labelled(path: Path, run: Any = None) -> set[str]:
     """Every table a document names, spelled the way it prints them.
 
-    Read from the text rather than from the flattened body. Flattening removes
-    the separator that tells `Table 6-7` from `Table 6-76`, so a containment
-    test on the flattened form reports the shorter one as present because the
-    longer one starts the same way.
+    Read from the text rather than from the flattened body, and compared as whole
+    labels rather than by containment. Flattening removes the separator that
+    tells `Table 6-7` from `Table 6-76`, and containment would call a bare
+    `Table 6` present in a document whose only table is `6-5`.
+
+    The families here are `Table 6`, which NEC uses, and `Table 6-5`, which WDC
+    uses. A full stop counts as a separator only when a digit follows it, so
+    "Table 6. ALU Field" is table six and "Table 1.2" is table one point two.
     """
     runner = subprocess.run if run is None else run
     try:
@@ -387,7 +394,7 @@ def labelled(path: Path, run: Any = None) -> set[str]:
         )
     except OSError:
         return set()
-    return set(re.findall(r"Table \d+-\d+", done.stdout + second(path)))
+    return set(TABLE.findall(done.stdout + second(path)))
 
 
 def catalogue(where: Path | None = None, run: Any = None) -> dict[str, set[str]]:
@@ -412,10 +419,14 @@ def phantom(
     table pointed at did not exist, so nothing failed and a reader looking for
     it found the wrong sheet or nothing.
 
-    Only `Table N-M` is checked, because a table is named the same way in every
-    document here and its presence is decidable. A section named in prose is
-    left alone, and a document with no file on this machine is skipped rather
-    than counted as a pass.
+    Only a numbered table is checked, because that is the one form whose presence
+    is decidable. A section named in prose is left alone.
+
+    Two things are skipped rather than counted as a pass: a document with no file
+    on this machine, and one whose reading names no table at all. The second is a
+    scan whose text layer did not carry the labels, and reporting every citation
+    into it as a phantom would say something about the scan rather than about the
+    record.
     """
     held = catalogue() if tables is None else tables
     found: list[str] = []
@@ -427,13 +438,15 @@ def phantom(
             wanted = files.get(document)
             if wanted is None or wanted not in held:
                 continue
-            for label in re.findall(r"Table \d+-\d+", section):
+            if not held[wanted]:
+                continue
+            for label in TABLE.findall(section):
                 if label in held[wanted]:
                     continue
                 elsewhere = sorted(one for one, has in held.items() if label in has)
                 tail = f", and it is in {', '.join(elsewhere)}" if elsewhere else ""
                 found.append(
-                    f"{where}: cites {document} {label}, which {wanted} does not have{tail}"
+                    f"{where}: cites {document} Table {label}, which {wanted} does not have{tail}"
                 )
     return found
 

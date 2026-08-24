@@ -250,14 +250,25 @@ being made in one of them and forgotten in the others, because a test in this
 repository cannot see the others, so the check is a command rather than a suite:
 
 ```sh
-for other in ../*/FAMILY.md; do
-  cmp <(head -518 FAMILY.md) <(head -518 "$other") && echo "match: $other"
+shared() { sed '/^\*Everything above this line/q' "$1"; }
+
+grep -o 'github\.com/[^/]*/\([a-z0-9-]*\))' FAMILY.md | sed 's|.*/||; s|)||' | sort -u |
+while read -r member; do
+  other="../$member/FAMILY.md"
+  [ -f "$other" ] || { echo "not on this machine: $member"; continue; }
+  cmp <(shared FAMILY.md) <(shared "$other") && echo "match: $member"
 done
 ```
 
-518 is where the shared part ends. A member may add sections after it about its
-own state, and nothing may be added before it that the others do not also get.
-Run this after any edit to the file, and read the output rather than the exit
+The members come from the table at the top of `FAMILY.md` rather than from a
+glob over the parent directory. Several repositories beside these carry a copy
+of this file because somebody started from one. Those are working notes: they
+bind nothing, they are not expected to match, and a sweep that reports them as
+drifted invites somebody to edit a file that was never a member.
+
+The marker line at the end of the shared part is what bounds the comparison, so
+nothing here carries a line number that has to be maintained alongside the file
+it counts. Run this after any edit, and read the output rather than the exit
 code: a loop over a pattern that matched nothing prints nothing and succeeds.
 
 Two rules from that file are worth repeating because they are the ones skipped

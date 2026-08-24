@@ -573,8 +573,8 @@ class PhantomTableTest(unittest.TestCase):
     """
 
     TABLES: ClassVar[dict[str, set[str]]] = {
-        "right.pdf": {"Table 4-1", "Table 7-1"},
-        "other.pdf": {"Table 6-5", "Table 6-76"},
+        "right.pdf": {"4-1", "7-1"},
+        "other.pdf": {"6-5", "6-76"},
     }
 
     def a_record(self, document: str, section: str) -> tuple[str, dict[str, Any]]:
@@ -621,6 +621,21 @@ class PhantomTableTest(unittest.TestCase):
         found = quotes.phantom([self.a_record("other", "Table 6-7")], self.TABLES)
 
         self.assertEqual(len(found), 1)
+
+    def test_a_bare_table_number_is_not_satisfied_by_a_subdivided_one(self) -> None:
+        """NEC numbers a table `6`. A document whose only six is `6-5` has no `6`."""
+        found = quotes.phantom([self.a_record("other", "Table 6. ALU Field")], self.TABLES)
+
+        self.assertEqual(len(found), 1)
+        self.assertIn("Table 6,", found[0])
+
+    def test_a_document_whose_reading_names_no_table_is_skipped(self) -> None:
+        """A scan whose text layer lost the labels says nothing about the record."""
+        found = quotes.phantom(
+            [self.a_record("right", "Table 6-5")], {"right.pdf": set(), "other.pdf": {"6-5"}}
+        )
+
+        self.assertEqual(found, [])
 
     def test_a_document_with_no_file_on_this_machine_is_skipped(self) -> None:
         held = (
@@ -676,7 +691,7 @@ class TableCatalogueTest(unittest.TestCase):
     def test_the_tables_a_document_names_are_collected(self) -> None:
         found = quotes.labelled(ROOT / "one.pdf", self.answering("see Table 4-1 and Table 7-1"))
 
-        self.assertEqual(found, {"Table 4-1", "Table 7-1"})
+        self.assertEqual(found, {"4-1", "7-1"})
 
     def test_a_machine_without_the_reader_reports_nothing_rather_than_raising(self) -> None:
         self.assertEqual(quotes.labelled(ROOT / "one.pdf", self.refuse), set())
@@ -689,7 +704,7 @@ class TableCatalogueTest(unittest.TestCase):
 
             found = quotes.labelled(folder / "one.pdf", self.answering("Table 4-1"))
 
-        self.assertEqual(found, {"Table 4-1", "Table 9-9"})
+        self.assertEqual(found, {"4-1", "9-9"})
 
     def test_a_folder_that_is_not_there_yields_no_catalogue(self) -> None:
         self.assertEqual(quotes.catalogue(ROOT / "no such folder"), {})
@@ -702,7 +717,7 @@ class TableCatalogueTest(unittest.TestCase):
 
             found = quotes.catalogue(folder, self.answering("Table 1-1"))
 
-        self.assertEqual(found, {"one.pdf": {"Table 1-1"}, "two.pdf": {"Table 1-1"}})
+        self.assertEqual(found, {"one.pdf": {"1-1"}, "two.pdf": {"1-1"}})
 
 
 if __name__ == "__main__":

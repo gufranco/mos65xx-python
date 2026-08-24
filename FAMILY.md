@@ -76,6 +76,16 @@ checks the ones a test can reach.
 - [ ] Every quote is present in the document it names, not merely in some
       document. Those come apart exactly when a fact is filed under the wrong
       source.
+- [ ] A section naming a numbered table names one the document has. The words
+      quoted beside it are checked and the table is prose, so a citation can be
+      correct in every part a check reads and still send a reader to a table
+      only a different sheet has.
+- [ ] Every passage taken from a document sits under a key ending in `quote`,
+      which is the only kind the checker reads. A second passage beside a first
+      one is its own entry with its own document, section and page, never a
+      field named for being second: a marker saying the words are the
+      document's but the order is not belongs to one passage and silences every
+      quote on its node.
 - [ ] A document covering more than this part declares the file pages that are
       this part's, and every fact citing it names one of them.
 - [ ] Every fact names the parts it governs. Left unsaid it is carried by how the
@@ -516,3 +526,9 @@ A repository is finished when `OPEN-QUESTIONS.md` contains only entries whose
 closing condition is outside reach: hardware nobody has probed, a document nobody
 wrote, or a behaviour the manufacturer never specified. Claiming more than that
 is claiming to know things nobody knows.
+
+---
+
+*Everything above this line is identical in every member. A member may add
+sections below it about its own state, and nothing may be added above it that
+the others do not also get.*
