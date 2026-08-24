@@ -27,9 +27,18 @@ from typing import Any
 
 from . import mos65c02, mos6502, opcodes65c02, opcodes6502
 from .clock import Clock
-from .errors import ClockClosed, RunLimit, Stopped, Truncated, UnsupportedError, Waiting
+from .errors import (
+    ClockClosed,
+    NoSuchPin,
+    RunLimit,
+    Stopped,
+    Truncated,
+    UnknownModelError,
+    UnsupportedError,
+    Waiting,
+)
 from .memory import Memory, SparseMemory, scramble
-from .models import MODELS, Model, NoSuchPin, UnknownModelError, describe
+from .models import MODELS, Model, describe
 from .opcodes65816 import (
     FLAG_DEPENDENT,
     MODE_SIZE,

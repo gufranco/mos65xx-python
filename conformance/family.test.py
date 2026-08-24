@@ -220,14 +220,27 @@ class OneDefinitionTest(unittest.TestCase):
     the thing a caller writes down.
 
     The runtime is asked rather than the text, because `__module__` says where a
-    class was defined and an import cannot fake it.
+    class was defined and an import cannot fake it. Every module file is imported
+    rather than only the ones the package exposes as attributes: a module left out
+    of the package's own import list is exactly where a second definition hides,
+    and asking `dir()` would walk straight past it.
     """
 
+    def modules(self) -> list[Any]:
+        """Every module file in the package, imported whether or not it is exposed."""
+        import importlib
+
+        found = []
+        for path in sorted(Path(PACKAGE.__file__ or "").resolve().parent.glob("*.py")):
+            if path.name.endswith(".test.py") or path.name == "__init__.py":
+                continue
+            found.append(importlib.import_module(f"{PACKAGE.__name__}.{path.stem}"))
+        return found
+
     def defined(self, package: Any = None) -> dict[str, list[str]]:
-        held = PACKAGE if package is None else package
+        held = self.modules() if package is None else [getattr(package, n) for n in dir(package)]
         found: dict[str, list[str]] = {}
-        for name in dir(held):
-            module = getattr(held, name)
+        for module in held:
             if not isinstance(module, types.ModuleType):
                 continue
             for one in vars(module).values():

@@ -40,9 +40,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from .errors import RunLimit, Stopped, UnsupportedError
+from .errors import NoSuchPin, RunLimit, Stopped, UnsupportedError
 from .memory import UNSET_SEED, scramble
-from .models import NoSuchPin
 from .opcodes6502 import MODE_SIZE, NMOS
 
 RESET_VECTOR = 0xFFFC

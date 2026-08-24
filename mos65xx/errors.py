@@ -61,3 +61,17 @@ class Truncated(Exception):
     same condition raised by the 6502 decoder, which is the trap the standard
     names.
     """
+
+
+class NoSuchPin(Exception):
+    """Raised when a caller pulls a line the package does not bring out.
+
+    The narrower parts of the family are the same die in a smaller package, and
+    the lines that did not fit are simply not there. A system cannot assert one,
+    so a model that quietly accepted the request would be describing a part
+    nobody could build.
+    """
+
+
+class UnknownModelError(Exception):
+    pass

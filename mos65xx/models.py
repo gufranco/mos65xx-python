@@ -34,19 +34,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from typing import Any, override
 
-
-class UnknownModelError(Exception):
-    pass
-
-
-class NoSuchPin(Exception):
-    """Raised when a caller pulls a line the package does not bring out.
-
-    The narrower parts of the family are the same die in a smaller package, and
-    the lines that did not fit are simply not there. A system cannot assert one,
-    so a model that quietly accepted the request would be describing a part
-    nobody could build.
-    """
+from .errors import UnknownModelError
 
 
 class Model:

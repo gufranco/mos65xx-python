@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 models = importlib.import_module("mos65xx.models")
 memory = importlib.import_module("mos65xx.memory")
+errors = importlib.import_module("mos65xx.errors")
 mos65xx = importlib.import_module("mos65xx")
 
 
@@ -26,13 +27,13 @@ class CatalogueTest(unittest.TestCase):
         self.assertEqual(found.address_bits, 24)
 
     def test_a_model_the_family_does_not_have_is_refused_by_name(self) -> None:
-        with self.assertRaises(models.UnknownModelError) as raised:
+        with self.assertRaises(errors.UnknownModelError) as raised:
             models.describe("6809")
 
         self.assertIn("6809", str(raised.exception))
 
     def test_the_refusal_lists_what_is_available(self) -> None:
-        with self.assertRaises(models.UnknownModelError) as raised:
+        with self.assertRaises(errors.UnknownModelError) as raised:
             models.describe("nonsense")
 
         self.assertIn("65816", str(raised.exception))
@@ -252,13 +253,13 @@ class PinTest(unittest.TestCase):
         cpu = self.part("6507")
 
         for pin in ("irq", "nmi"):
-            with self.assertRaises(models.NoSuchPin):
+            with self.assertRaises(errors.NoSuchPin):
                 getattr(cpu, pin)()
 
     def test_the_error_says_what_the_package_does_bring_out(self) -> None:
         cpu = self.part("6504")
 
-        with self.assertRaises(models.NoSuchPin) as caught:
+        with self.assertRaises(errors.NoSuchPin) as caught:
             cpu.nmi()
 
         self.assertIn("it brings out irq", str(caught.exception))
