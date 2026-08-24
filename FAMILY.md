@@ -128,7 +128,13 @@ checks the ones a test can reach.
 **The documents**
 
 - [ ] `README.md`, `AGENTS.md`, `CLAUDE.md` pointing at it, `FAMILY.md`
-      byte-identical above the closing section, and `OPEN-QUESTIONS.md`.
+      identical above the marker at the end of its shared part, and
+      `OPEN-QUESTIONS.md`.
+- [ ] `AGENTS.md` carries the same ten sections under the same names in the same
+      order. Anything a member adds about its own part sits between what is
+      settled and the gates, so the shared spine reads the same everywhere.
+- [ ] The number of open questions it claims is the number the file holds. Two
+      of the three said a figure that had stopped being true, one by six.
 - [ ] No mention of any system the part was used in, in any tracked file. A
       processor is not the machine somebody put it in, and a package that names
       one is a catalogue of that machine's parts wearing a processor's name.

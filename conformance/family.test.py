@@ -973,6 +973,71 @@ def unignored(where: Path, run: Any = None) -> list[str]:
     return sorted(line[3:] for line in done.stdout.splitlines() if line.startswith("??"))
 
 
+AGENTS_SECTIONS = (
+    "What this project is, in one paragraph",
+    "The interface a caller drives",
+    "The authority ladder",
+    "What is settled and what is not",
+    "Every gate, in the order to run them",
+    "Conventions that are not negotiable",
+    "Layout",
+    "Things that will bite you",
+    "Before calling anything finished",
+    "What a change is expected to leave behind",
+)
+"""The sections every AGENTS.md carries, in the order it carries them.
+
+A member may add sections of its own about the part it models. Those sit after
+"What is settled and what is not", so the shared spine reads the same everywhere
+and a reader who learned where something lives in one member finds it in the
+same place in the next.
+"""
+
+
+class BriefedTheSameWayTest(unittest.TestCase):
+    """That the instructions read the same way across members.
+
+    Not taste. Three members had three orders and one was missing the two
+    sections that say what the interface is and what is settled, which are the
+    two an agent reads first.
+    """
+
+    def agents(self) -> str:
+        return (ROOT / "AGENTS.md").read_text()
+
+    def held(self) -> list[str]:
+        return re.findall(r"^## (.+)$", self.agents(), re.M)
+
+    def test_it_carries_the_sections_the_family_carries(self) -> None:
+        missing = [one for one in AGENTS_SECTIONS if one not in self.held()]
+
+        self.assertEqual(missing, [])
+
+    def test_and_in_the_order_the_family_carries_them(self) -> None:
+        kept = [one for one in self.held() if one in AGENTS_SECTIONS]
+
+        self.assertEqual(kept, list(AGENTS_SECTIONS))
+
+    def test_anything_it_adds_of_its_own_sits_in_one_place(self) -> None:
+        """After what is settled and before the gates, so the spine stays whole."""
+        held = self.held()
+        added = [one for one in held if one not in AGENTS_SECTIONS]
+        gates = held.index("Every gate, in the order to run them")
+        settled = held.index("What is settled and what is not")
+
+        self.assertTrue(all(settled < held.index(one) < gates for one in added), added)
+
+    def test_the_count_of_open_questions_is_the_count_there_is(self) -> None:
+        """Two of the three said a number that had stopped being true."""
+        claimed = re.search(r"\*\*Not settled: (\d+) things\*\*", self.agents())
+
+        assert claimed is not None
+        self.assertEqual(
+            int(claimed.group(1)),
+            len(re.findall(r"^### ", (ROOT / "OPEN-QUESTIONS.md").read_text(), re.M)),
+        )
+
+
 class PublishesNamesNotModulesTest(unittest.TestCase):
     """That `__all__` lists what a caller uses rather than how it is arranged.
 

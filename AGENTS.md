@@ -78,26 +78,8 @@ Appendix B of the programming manual, Table 6-7 of the W65C816S data sheet and
 the reserved-opcode row of the W65C02S data sheet are each recorded and driven,
 so a claim about timing is checkable without any corpus on the machine.
 
-**Not settled:** nine things, each named in [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)
+**Not settled: 15 things**, each named in [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)
 with the measurement that would close it. Do not close one by argument.
-
-## Every gate, in the order to run them
-
-```bash
-ruff format --check .
-ruff check .
-mypy
-pnpm run format:check
-for f in $(find mos65xx conformance -name '*.test.py' | sort); do python3 "$f"; done
-python3 -m coverage report
-```
-
-The conformance run needs the suites, which are fetched rather than vendored:
-
-```bash
-python3 -m conformance.fetch
-python3 -m conformance.singlestep
-```
 
 ## The cycle claim, and what it rests on
 
@@ -170,34 +152,23 @@ page is contradicted by three of the four cases the suite can settle. Read the
 cycle table and the pin descriptions before the prose: both times the document
 contradicted itself, those two were the ones that matched the silicon.
 
-## Things that will bite you
+## Every gate, in the order to run them
 
-**A figure taken from a document is read twice.** Almost every document behind
-these projects is a photograph of a printed book. Its text layer, where it has
-one, was produced by somebody else's recogniser and prints `lhe` for `the`; the
-page read as an image now is cleaner but drops a lone digit and misses a faint
-line outright. Read it both ways and record what both agree on. `FAMILY.md`, under
-"Reading a document that is a photograph", carries the traps and what the record
-has to hold. Skipping this is how a timing table came to name forty three of its
-rows after the text sitting next to them.
+```bash
+ruff format --check .
+ruff check .
+mypy
+pnpm run format:check
+for f in $(find mos65xx conformance -name '*.test.py' | sort); do python3 "$f"; done
+python3 -m coverage report
+```
 
-**Import conformance modules package-qualified.** `from conformance import fetch`,
-never `importlib.import_module("fetch")` with the directory on the path. The
-importlib form gives the checker a bare module object with no attributes, so every
-access reads as missing and an assignment to one is an error.
-`conformance/__init__.py` exists to make the qualified form work.
+The conformance run needs the suites, which are fetched rather than vendored:
 
-**The three cores do not share a base class except where they do.** `mos65c02.Cpu`
-inherits from `mos6502.Cpu`, and `wdc65816.Cpu` inherits from nothing. Marking a
-65816 method as an override is wrong and the checker says so.
-
-**Run on the oldest Python supported.** Annotations are evaluated eagerly before
-3.14 and lazily from 3.14 on.
-
-**A checker complaint is not always the code's fault.** A branch flagged as
-unreachable here turned out to be a real feature that a too-narrow annotation had
-hidden, and deleting it broke a test. Read the branch before believing the
-annotation.
+```bash
+python3 -m conformance.fetch
+python3 -m conformance.singlestep
+```
 
 ## Conventions that are not negotiable
 
@@ -236,6 +207,35 @@ conformance/
   links.py       the weekly check that every cited address still answers
 specs/current/   what this does now, as requirements with scenarios
 ```
+
+## Things that will bite you
+
+**A figure taken from a document is read twice.** Almost every document behind
+these projects is a photograph of a printed book. Its text layer, where it has
+one, was produced by somebody else's recogniser and prints `lhe` for `the`; the
+page read as an image now is cleaner but drops a lone digit and misses a faint
+line outright. Read it both ways and record what both agree on. `FAMILY.md`, under
+"Reading a document that is a photograph", carries the traps and what the record
+has to hold. Skipping this is how a timing table came to name forty three of its
+rows after the text sitting next to them.
+
+**Import conformance modules package-qualified.** `from conformance import fetch`,
+never `importlib.import_module("fetch")` with the directory on the path. The
+importlib form gives the checker a bare module object with no attributes, so every
+access reads as missing and an assignment to one is an error.
+`conformance/__init__.py` exists to make the qualified form work.
+
+**The three cores do not share a base class except where they do.** `mos65c02.Cpu`
+inherits from `mos6502.Cpu`, and `wdc65816.Cpu` inherits from nothing. Marking a
+65816 method as an override is wrong and the checker says so.
+
+**Run on the oldest Python supported.** Annotations are evaluated eagerly before
+3.14 and lazily from 3.14 on.
+
+**A checker complaint is not always the code's fault.** A branch flagged as
+unreachable here turned out to be a real feature that a too-narrow annotation had
+hidden, and deleting it broke a test. Read the branch before believing the
+annotation.
 
 ## Before calling anything finished
 
