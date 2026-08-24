@@ -481,5 +481,82 @@ class SuppliedMemoryTest(unittest.TestCase):
         self.assertIn("cpu.memory", FAMILY)
 
 
+def still_holding(classes: Any) -> list[str]:
+    """Every class that has a dictionary despite whatever it declared."""
+    return [
+        one.__qualname__
+        for one in classes
+        if any("__dict__" in vars(base) for base in one.__mro__[:-1])
+    ]
+
+
+class NoStrayAttributeTest(unittest.TestCase):
+    """That a name a class does not have cannot be written to one.
+
+    Without slots the write is accepted in silence: a stray attribute appears,
+    the one the caller meant keeps whatever it held, and nothing reports that it
+    went nowhere. The family has two spellings for one flag, `.i` on the eight
+    bit 65xx parts and `.irq_disable` on the 65816, so reaching for the wrong one
+    is a mistake somebody will make and the readme warned about it in prose for
+    as long as it existed.
+
+    Exceptions are exempt. They carry whatever a raiser attached and are never
+    the thing a caller writes registers to.
+    """
+
+    def published(self) -> list[type]:
+        found = []
+        for name in dir(PACKAGE):
+            held = getattr(PACKAGE, name)
+            if isinstance(held, type) and not issubclass(held, BaseException):
+                if held.__module__.startswith(PACKAGE.__name__):
+                    found.append(held)
+            elif isinstance(held, types.ModuleType) and held.__name__.startswith(PACKAGE.__name__):
+                for attr, one in vars(held).items():
+                    if attr.startswith("_"):
+                        continue
+                    if (
+                        isinstance(one, type)
+                        and one.__module__ == held.__name__
+                        and not issubclass(one, BaseException)
+                        and not getattr(one, "_is_protocol", False)
+                    ):
+                        found.append(one)
+        return sorted(set(found), key=lambda one: one.__qualname__)
+
+    def test_every_published_class_declares_what_it_holds(self) -> None:
+        loose = [
+            f"{one.__module__.split('.')[-1]}.{one.__qualname__}"
+            for one in self.published()
+            if "__slots__" not in vars(one)
+        ]
+
+        self.assertEqual(loose, [])
+
+    def test_and_none_of_them_kept_a_dict_anyway(self) -> None:
+        """A slotted class whose base is not slotted still has one, silently.
+
+        Declaring the slots is not enough on its own. One unslotted class
+        anywhere in the chain gives every subclass a dictionary back, and the
+        guard is gone again with nothing to show it.
+        """
+        self.assertEqual(still_holding(self.published()), [])
+
+    def test_and_one_that_did_would_be_named(self) -> None:
+        class Loose:
+            pass
+
+        class Slotted(Loose):
+            __slots__ = ()
+
+        found = still_holding([Slotted])
+
+        self.assertEqual(len(found), 1)
+        self.assertTrue(found[0].endswith("Slotted"), found[0])
+
+    def test_there_are_classes_to_check(self) -> None:
+        self.assertGreater(len(self.published()), 3)
+
+
 if __name__ == "__main__":
     unittest.main()

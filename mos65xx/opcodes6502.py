@@ -350,6 +350,15 @@ UNSTABLE = frozenset({"ane", "lxa", "sha", "shx", "shy", "tas"})
 class Instruction:
     """One decoded instruction and where it was found."""
 
+    __slots__ = (
+        "address",
+        "mnemonic",
+        "mode",
+        "opcode",
+        "operand",
+        "size",
+    )
+
     def __init__(
         self,
         address: int,

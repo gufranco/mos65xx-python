@@ -43,6 +43,17 @@ class Clock:
     second one on top of it.
     """
 
+    __slots__ = (
+        "_arrived",
+        "_failure",
+        "_previous",
+        "_resume",
+        "_worker",
+        "closed",
+        "cpu",
+        "cycles",
+    )
+
     def __init__(self, cpu: Any) -> None:
         self.cpu = cpu
         self.cycles = 0

@@ -47,6 +47,11 @@ class SparseMemory:
     and still reads the same twice, at no setup cost.
     """
 
+    __slots__ = (
+        "cells",
+        "seed",
+    )
+
     def __init__(self, seed: int = UNSET_SEED) -> None:
         self.cells: dict[int, int] = {}
         self.seed = seed & _WORD
@@ -78,6 +83,8 @@ class Memory:
     ROM or a cartridge holds, loaded at the bottom. Everything the image does
     not cover stays undefined, because on the board it is.
     """
+
+    __slots__ = ("data",)
 
     def __init__(
         self,

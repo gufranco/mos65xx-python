@@ -40,6 +40,20 @@ from .errors import UnknownModelError
 class Model:
     """One part of the family: what it is, what it reaches, and how to build it."""
 
+    __slots__ = (
+        "address_bits",
+        "aliases",
+        "core",
+        "data_bits",
+        "decimal",
+        "name",
+        "narrows",
+        "pins",
+        "reset_cycles",
+        "revision",
+        "summary",
+    )
+
     def __init__(
         self,
         name: str,
