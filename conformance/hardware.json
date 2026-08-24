@@ -85,6 +85,7 @@
       "document": "wdc816",
       "section": "3.13 Reset (RESB)",
       "quote": "During the Reset conditioning period the following processor initialization takes place: D=0000, SH=01, SL=*, DBR=00, XH=00, XL=*, PBR=00, YH=00, YL=*, A=*. P Register: N=*, V=*, M=1, X=1, D=0, I=1, Z=*, C/E=*/1. *=not initialized",
+      "assembled": true,
       "andAlso": "When Reset is brought high, an interrupt sequence is initiated. STP and WAI instructions are cleared. RWB remains in the high state during the stack address cycles. The Reset vector address is 00FFFC,D. PC is loaded with the contents of 00FFFC,D",
       "note": "The starred entries are why nothing in this project starts clean. The accumulator, both index low bytes and the stack low byte are undefined, so the model scrambles them from a seed rather than zeroing them."
     },
@@ -108,7 +109,9 @@
         "nmi": 65530,
         "abort": 65528,
         "cop": 65524,
-        "quote": "Table 6-2 Emulation Mode Vector Locations (8-bit Mode): 00FFFE,F IRQB/BRK Hardware/Software; 00FFFC,D RESETB Hardware; 00FFFA,B NMIB Hardware; 00FFF8,9 ABORTB Hardware; 00FFF6,7 (Reserved) Hardware; 00FFF4,5 COP Software"
+        "quote": "Table 6-2 Emulation Mode Vector Locations (8-bit Mode): 00FFFE,F IRQB/BRK Hardware/Software; 00FFFC,D RESETB Hardware; 00FFFA,B NMIB Hardware; 00FFF8,9 ABORTB Hardware; 00FFF6,7 (Reserved) Hardware; 00FFF4,5 COP Software",
+        "pdfPage": 34,
+        "readIn": "w65c816s.pdf"
       },
       "native": {
         "irq": 65518,
@@ -117,10 +120,14 @@
         "brk": 65510,
         "cop": 65508,
         "quote": "The Interrupt Request vector address is 00FFFE,F (Emulation mode) or 00FFEE,F (Native mode). [3.6] The Non-Maskable Interrupt vector address is 00FFFA,B (Emulation mode) or 00FFEA,B (Native mode). [3.9] The Abort vector address is 00FFF8,9 (Emulation mode) or 00FFE8,9 (Native mode). [3.1]",
+        "assembled": true,
+        "document": "W65C816S Data Sheet, sections 3.1, 3.6 and 3.9, the three pin descriptions",
         "note": "Taken from the three pin descriptions rather than from Table 6-3, for the reason recorded immediately below."
       },
       "erratumInTable6_3": {
         "quote": "Table 6-3 Native Mode Vector Locations (16-bit Mode): 00FFFE,F IRQB Hardware; 00FFFC,D (Reserved); 00FFFA,B NMIB Hardware; 00FFF8,9 ABORTB; 00FFF6,7 BRK Software; 00FFF4,5 COP Software",
+        "pdfPage": 34,
+        "readIn": "w65c816s.pdf",
         "whyItIsAnErratum": "Table 6-3 gives the native vectors at the same addresses as the emulation vectors in Table 6-2, which would leave the two modes indistinguishable. Three things contradict it inside the same document: the pin descriptions in 3.1, 3.6 and 3.9 name 00FFE8, 00FFEA and 00FFEE for native; section 4.1 says the vectors use the fixed addresses between 00FFE0 and 00FFFF, and nothing else lives below 00FFF0; and Table 6-7 22j gives BRK and COP one vector each per mode.",
         "measured": "The per-opcode suite settles the two it covers. Every one of the 10,000 native BRK tests reads 00FFE6 and 00FFE7, every one of the 10,000 emulation BRK tests reads 00FFFE and 00FFFF, and every one of the 10,000 emulation COP tests reads 00FFF4 and 00FFF5.",
         "whatThisProjectUses": "00FFE6 for native BRK and 00FFE4 for native COP, matching both the measurement and the FFE0 block, and the pin descriptions for the three hardware vectors.",
@@ -130,6 +137,8 @@
     "interruptEffects": {
       "document": "wdc816",
       "quote": "The VP output is low during the two cycles used for vector location access. When an interrupt is executed, D=0 and I=1 in Status Register P.",
+      "pdfPage": 30,
+      "readIn": "w65c816s-2024.pdf",
       "pushedBytes": "The IRQB signal going low causes 4 bytes of information to be pushed onto the stack before jumping to the interrupt handler. The first byte is PBR followed by PCH, PCL and P (Processor Status Register).",
       "breakBitOnHardwareInterrupt": "Table 6-7 note 11, against the cycle that pushes P for ABORT, IRQ, NMI and RES: BRK bit 4 equals \"0\" in Emulation mode.",
       "oneFewerCycleInEmulation": "Table 6-7 note 7: Subtract 1 cycle for 6502 emulation mode (E=1).",
@@ -210,6 +219,7 @@
       "document": "mos6500",
       "section": "Appendix A.4.4, Absolute,X Addressing (7 cycles)",
       "quote": "T3 ADL: BAL + X, ADH: BAH + C, Data (Discarded), R/W 1; T4 ADL: BAL + X, ADH: BAH + C, Data, R/W 1, Fetch Data; T5 ADH, ADL, Data, R/W 0; T6 ADH, ADL, Modified Data, R/W 0, Write modified Data back into memory",
+      "assembled": true,
       "note": "Two write cycles to the same address, the first carrying the value just read. A device that latches on a write sees it twice, which is why this is worth modelling rather than collapsing."
     },
     "nmosRorArrivedLate": {
@@ -243,6 +253,7 @@
       "document": "wdc816",
       "section": "Table 7-1 Microprocessor Operational Enhancements of the W65C02S data sheet, with Table 6-5 for the cycle counts",
       "quote": "Indexed addressing across page boundary: NMOS 6502, extra read of invalid address; W65C02S, extra read of last instruction byte.",
+      "assembled": true,
       "whatIsImplemented": {
         "indexedSpareCycle": "re-reads the last byte of the instruction rather than the half-formed address",
         "readModifyWrite": "reads its address twice and writes it once, where the NMOS part reads once and writes twice",
@@ -284,12 +295,14 @@
       "document": "wdc816",
       "section": "Table 7-1 of the W65C02S data sheet",
       "quote": "Decimal flag: NMOS 6502, indeterminate after reset; W65C02S, initialized to binary mode (D=0) after reset and interrupts.",
+      "assembled": true,
       "note": "Two facts in one row. The NMOS part's decimal flag is undefined after a reset, which is why nothing here clears it, and the CMOS parts clear it on an interrupt as well as a reset, which is why their interrupt path does."
     },
     "cmosInterruptDuringBreak": {
       "document": "wdc816",
       "section": "Table 7-1 of the W65C02S data sheet",
       "quote": "Interrupt after fetch of BRK instruction: NMOS 6502, interrupt vector is loaded, BRK vector is ignored; W65C02S, BRK is executed, and then interrupt is executed.",
+      "assembled": true,
       "notModelled": "Neither behaviour. A pin taken in the middle of an instruction needs a core that can stop part way through one, and this one runs an instruction to completion before it will take an interrupt. Recorded because it is a real difference between the parts and this project does not have it."
     },
     "stackRangeInEmulationAsFirstPrinted": {

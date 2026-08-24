@@ -105,8 +105,9 @@ class VectorTest(unittest.TestCase):
         native = fact("vectors")["native"]
 
         for name, address in native.items():
-            if isinstance(address, int):
-                self.assertTrue(0x00FFE0 <= address <= 0x00FFEF, name)
+            if isinstance(address, bool) or not isinstance(address, int):
+                continue
+            self.assertTrue(0x00FFE0 <= address <= 0x00FFEF, name)
 
     def test_the_erratum_is_recorded_rather_than_quietly_ignored(self) -> None:
         held = fact("vectors")["erratumInTable6_3"]
