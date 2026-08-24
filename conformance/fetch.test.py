@@ -27,6 +27,9 @@ A_SUITE = {
 }
 
 
+DEFINITION = fetch.DEFINITION
+
+
 class DefinitionTest(unittest.TestCase):
     def test_the_repository_declares_at_least_one_suite(self) -> None:
         self.assertTrue(fetch.definitions())
@@ -37,6 +40,38 @@ class DefinitionTest(unittest.TestCase):
             self.assertEqual(len(suite["commit"]), 40)
             self.assertTrue(suite["sparse"])
             self.assertTrue(suite["path"])
+
+    def test_no_suite_is_pinned_to_a_repository_that_moved(self) -> None:
+        """A pin naming a repository nobody can push to can never move again.
+
+        The 65816 set was pinned to one that was archived and subdivided, so the
+        weekly job that proposes bumps was watching a dead repository. A
+        correction landed in the set's own repository fourteen months before
+        anybody here noticed, and this model disagreed with five of the six files
+        it touched. Where a suite has moved, the record says so and says what it
+        moved from.
+        """
+        stale = [
+            one["name"] for one in fetch.definitions() if "ProcessorTests" in one["repository"]
+        ]
+
+        self.assertEqual(stale, [])
+
+    def test_and_a_suite_that_moved_says_where_it_moved_from(self) -> None:
+        moved = [one for one in fetch.definitions() if "movedFrom" in one]
+
+        self.assertTrue(moved, "the 65816 suite moved and should record it")
+        for one in moved:
+            self.assertIn("repository", one["movedFrom"])
+            self.assertIn("why", one["movedFrom"])
+
+    def test_the_record_says_where_these_recordings_come_from(self) -> None:
+        """They are not captures from a part, and a reader has to be able to see that."""
+        held = json.loads(DEFINITION.read_text())
+
+        self.assertIn("provenance", held)
+        self.assertIn("statedMethodology", held["provenance"])
+        self.assertIn("whichImplementation", held["provenance"])
 
     def test_a_definition_file_is_read_from_where_it_is_asked_for(self) -> None:
         with tempfile.TemporaryDirectory() as where:

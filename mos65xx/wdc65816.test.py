@@ -761,9 +761,15 @@ class DirectPagePointerWrapTest(unittest.TestCase):
     """Which pointer reads stay inside the direct page, per mode.
 
     Emulation mode with a page-aligned direct register is the only place this
-    arises, and the part is not consistent about it. Four of these six are what a
-    recorded cycle address shows and two are what the datasheet says, and
-    conformance/divergences.json names which is which and holds the evidence.
+    arises. Four of these six are what a recorded cycle address shows and all
+    four leave the page: the three the datasheet names and `(d,x)`, which it does
+    not. The remaining two have no case in any corpus that reaches the edge, so
+    they follow the datasheet and wrap. conformance/divergences.json names which
+    is which and holds the evidence.
+
+    Two of these expectations said the opposite until 2026-08-25, because the
+    corpus they were measured from carried a reading that its own publishers
+    corrected in 2024 and this project had pinned an archived copy from before.
     """
 
     def addresses(self, code: Sequence[int], operand: int = 0xFF) -> list[int]:
@@ -801,11 +807,11 @@ class DirectPagePointerWrapTest(unittest.TestCase):
     def test_a_long_indirect_pointer_leaves_the_page(self) -> None:
         self.assertEqual(self.addresses([0xA7]), [0x000CFF, 0x000D00, 0x000D01])
 
-    def test_a_long_indirect_indexed_pointer_wraps_inside_the_page(self) -> None:
-        self.assertEqual(self.addresses([0xB7]), [0x000CFF, 0x000C00, 0x000C01])
+    def test_a_long_indirect_indexed_pointer_leaves_the_page(self) -> None:
+        self.assertEqual(self.addresses([0xB7]), [0x000CFF, 0x000D00, 0x000D01])
 
-    def test_the_pointer_pushed_by_pei_wraps_inside_the_page(self) -> None:
-        self.assertEqual(self.addresses([0xD4]), [0x000CFF, 0x000C00])
+    def test_the_pointer_pushed_by_pei_leaves_the_page(self) -> None:
+        self.assertEqual(self.addresses([0xD4]), [0x000CFF, 0x000D00])
 
     def test_none_of_it_happens_when_the_page_is_not_aligned(self) -> None:
         seen: list[int] = []

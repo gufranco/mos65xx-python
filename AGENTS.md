@@ -78,7 +78,7 @@ Appendix B of the programming manual, Table 6-7 of the W65C816S data sheet and
 the reserved-opcode row of the W65C02S data sheet are each recorded and driven,
 so a claim about timing is checkable without any corpus on the machine.
 
-**Not settled: 15 things**, each named in [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)
+**Not settled: 16 things**, each named in [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)
 with the measurement that would close it. Do not close one by argument.
 
 ## The cycle claim, and what it rests on

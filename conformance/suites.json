@@ -3,13 +3,18 @@
   "suites": [
     {
       "name": "65816",
-      "repository": "https://github.com/SingleStepTests/ProcessorTests.git",
-      "commit": "bb11756436da8fd16cce86aef63dc6725f48836f",
-      "sparse": ["65816"],
-      "path": "65816/v1",
+      "repository": "https://github.com/SingleStepTests/65816.git",
+      "commit": "db6b10401729d5f20f2181dde5d3d7b037093a4a",
+      "sparse": ["v1"],
+      "path": "v1",
       "tests_per_opcode": 10000,
       "files": 512,
-      "model": "65816"
+      "model": "65816",
+      "movedFrom": {
+        "repository": "https://github.com/SingleStepTests/ProcessorTests.git",
+        "commit": "bb11756436da8fd16cce86aef63dc6725f48836f",
+        "why": "That repository was archived on 2024-05-15 and subdivided by test set, so the pin could never move again and the weekly job watching it was watching a repository nobody can push to. The set continued in a repository of its own, where a correction landed on 2024-09-22 for the [d],y modes, PEI and PLB in emulation mode."
+      }
     },
     {
       "name": "6502",
@@ -61,5 +66,14 @@
       "tests_per_opcode": 10000,
       "files": 256
     }
-  ]
+  ],
+  "provenance": {
+    "note": "Where these recordings come from, so a reader can weigh them rather than only count them. None of them is a capture from a part.",
+    "statedMethodology": "To generate each test set, an implementation is used that: conforms to all available documentation, official and third-party; passes all other published test sets; and has been verified by usage in an emulated machine.",
+    "statedIn": "the README of SingleStepTests/65x02 and of SingleStepTests/ProcessorTests",
+    "readOn": "2026-08-25",
+    "whichImplementation": "Not named by the publisher for any set this project uses. The Z80 set, which this family's other member pins, does name one, and that member records it with the commit and rebuilds 1,593 of its 1,604 files byte for byte. Nothing equivalent is possible here until the publisher names the generator, so what these suites are is a statement of method rather than a rebuildable artifact.",
+    "whatThatMeansForTheLadder": "It is the reason the authority order in hardware.json puts a manufacturer statement above these files. They are a good source for behaviour nobody wrote down and a poor one for facts a manufacturer printed, and three entries in divergences.json are places where following them would have contradicted a sentence in a data sheet.",
+    "correctionsAreNotAutomatic": "A set can be corrected after this project pins it. The 65816 set was, on 2024-09-22, in a repository the set had moved to after the one pinned here was archived. Six files changed and this model disagreed with five of them until 2026-08-25. The weekly job compares the pin against the repository it names, so a pin naming an archived repository can never move."
+  }
 }

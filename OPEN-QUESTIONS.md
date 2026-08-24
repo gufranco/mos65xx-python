@@ -76,6 +76,20 @@ Source: MCS6500 Hardware Manual, Appendix A, table A.5.8.
 
 **What would settle it.** A program on a real part: place a branch so its target is on the next page, put a memory-mapped register at the partially corrected address, and see on which cycle it is read.
 
+### The stack address of a one byte pull at the top of emulation page one
+
+**The document says.** "In the Emulation mode, the Stack address range is 000100 to 0001FF. The following OpCodes and addressing modes will increment or decrement beyond this range when accessing two or three bytes: JSL, JSR (a,x), PEA, PEI, PER, PHD, PLD, RTL"
+
+Source: W65C816S Data Sheet, 8.1 Stack Addressing. PLB is not on that list and pulls one byte, so by the document it stays inside the page.
+
+**The recordings say.** PLB with the stack pointer at 0001FF reads 000200, and leaves the pointer at 000100. Thirty-seven cases, which is every case in the file where the pointer sits at the top of the page and no others. That figure arrived in the correction of 2024-09-22, alongside the two this project has just fixed.
+
+**What this project does.** Keeps it inside page one, following the document. The list of stack operations that step through consecutive addresses here is exactly the document's: PEA, PEI, PER, PHD, PLD and RTL. Every other stack operation folds. Adding PLB to that list would mean following a recording against a manufacturer statement that names the opcodes one by one, which is the wrong way round on this project's ladder. `conformance/singlestep.py` leaves those thirty-seven out by condition rather than by name, and prints how many it left out.
+
+**Why the same correction is trusted for the other two.** There the document and the corrected recording agree, and it was the older recording that stood alone. Here they disagree, and a recording that has been wrong once about this exact instruction is not the thing to prefer over a sentence naming opcodes individually.
+
+**What would settle it.** A logic capture of a real W65C816S executing PLB in emulation mode with the stack pointer at 0001FF, reading the address lines. Both sources give a definite answer and the answers differ, so nothing short of the part decides it.
+
 ### How many cycles the reserved opcode 5C spends on a CMOS part
 
 **The document says.** All are NOP's (reserved for future use). OpCode 5C, Bytes 3, Cycles 8.
@@ -259,11 +273,13 @@ Not unknown to the world, unverified in this repository.
 
 Source: W65C816S Data Sheet, 8.2.1 and 8.2.2.
 
-**The recordings say.** Every emulation-mode file for all five pointer modes and for PEI, 41 files and 410,000 tests, filtered to the cases where the direct register is page aligned and the pointer starts at the end of the page, then read straight off the recorded cycle addresses.
+**The recordings say.** Every emulation-mode file for all five pointer modes and for PEI, filtered to the cases where the direct register is page aligned and the pointer reaches the end of the page, then read straight off the recorded cycle addresses. Four modes are covered and all four leave the page: `[d]` reads 002FFE, 002FFF, 003000; `[d],y` reads 00B6FE, 00B6FF, 00B700; PEI reads 000CFF, 000D00; and `(d,x)` reads 00F4FF, 00F500. The first three are the ones the document names. The fourth is not.
 
-**What this project does.** Follows the four measured cases exactly, and takes the document for the two the suite does not cover, which means (d) and (d),y wrap. The document's exception list is right about one of the four cases it covers, so it is not treated as a rule here, only as evidence where there is nothing else.
+**What this was, until 2026-08-25.** Six modes, four measured, and no rule fitting all four, because two of the recordings said the pointer wrapped where the document said it should not. Those two recordings were wrong. The corpus lived in a repository that was archived in May 2024 and continued in one of its own, where a correction landed on 2024-09-22 for `[d],y`, PEI and PLB. This project pinned the archived copy and so never saw it. Against the corrected recordings the document is right about every mode it names, and the model was wrong about two of them; both are fixed.
 
-**What would settle it.** Six short programs on a real part, one per mode, each with the direct register page aligned and a pointer at FF, reading back the byte the part fetched. Until then this project's behaviour for (d) and (d),y is a document reading rather than a measurement, and is marked as such.
+**What this project does.** Follows every measured case, which means `[d]`, `[d],y`, PEI and `(d,x)` all leave the page. The two the corpus never takes to the edge, `(d)` and `(d),y`, follow the document and wrap.
+
+**What would settle it.** Two short programs on a real part, one for `(d)` and one for `(d),y`, each with the direct register page aligned and the pointer at FF, reading back the byte the part fetched. The other four are settled. Generalising to those two from the four that were measured would be inventing a rule against the only document that speaks about them, so they are a document reading and marked as one.
 
 ## What is not in question
 

@@ -659,15 +659,20 @@ class Cpu:
         rather than crossing into the next.
 
         The narrower wrap, staying inside the direct page itself, applies only in
-        emulation mode with the page aligned, and only to some modes. Which ones
-        is not a rule worth inventing: the hardware is inconsistent, and with the
-        same page and the same operand `AND [dp]` reads its bank byte past the end
-        of the page while `ORA [dp],Y` wraps back to the start of it.
+        emulation mode with the page aligned, and only to some modes.
 
-        Four of the six modes are settled by a recorded cycle address, and no rule
-        fits all four. The other two are taken from the datasheet, which is right
-        about one of the four it covers. Which mode rests on which is written down
-        in conformance/divergences.json, per mode, with the case.
+        The data sheet names three that leave the page: `[d]`, `[d],y` and PEI.
+        A recorded cycle address confirms all three, and shows a fourth the list
+        does not name, `(d,x)`, leaving it as well. So the list is incomplete
+        rather than wrong.
+
+        The remaining two, `(d)` and `(d),y`, have no case in any corpus where the
+        pointer starts at the last byte of the page, so nothing has measured them.
+        They follow the data sheet and wrap. That is a reading rather than a
+        measurement and is marked as one, because generalising from the four that
+        were measured would be inventing a rule against the only document that
+        speaks. Which mode rests on which is written down in
+        conformance/divergences.json, per mode, with the case.
         """
         bank = address & 0xFF0000
         if wraps_in_page and self.page_wraps:
@@ -761,7 +766,7 @@ class Cpu:
         if mode == "indirectLongY":
             offset = self.fetch8()
             self.unaligned()
-            return self.read_pointer(self.direct(offset), 3, wraps_in_page=True) + self.y
+            return self.read_pointer(self.direct(offset), 3) + self.y
         if mode == "stack":
             offset = self.fetch8()
             self.internal(self.here())
@@ -1270,7 +1275,7 @@ class Cpu:
         offset = self.fetch8()
         self.unaligned()
         pointer = self.direct(offset)
-        self.push16_flat(self.read_pointer(pointer, 2, wraps_in_page=True))
+        self.push16_flat(self.read_pointer(pointer, 2))
 
     def op_per(self, mode: str) -> None:
         offset = self.fetch16()

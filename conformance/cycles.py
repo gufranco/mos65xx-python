@@ -40,6 +40,7 @@ from conformance.singlestep import (  # noqa: E402
     DEFAULT_MODEL,
     Usage,
     machine_for,
+    recorded_divergence,
     suite_files,
 )
 from mos65xx import UnknownModelError, describe  # noqa: E402
@@ -156,9 +157,13 @@ def run_tests(
 ) -> tuple[int, int, int, list[Example]]:
     """How many agreed, how many did not, how many were left out, and examples.
 
-    One kind is left out: a case that differs only at a cycle whose recorded
-    address is a placeholder rather than a measurement. It is reported rather
-    than hidden.
+    Two kinds are left out and both are reported rather than hidden: a case that
+    differs only at a cycle whose recorded address is a placeholder rather than a
+    measurement, and a case where the corpus and a manufacturer statement give
+    different answers and this project follows the document. The second is the
+    same predicate `singlestep` uses, imported rather than copied, so the rule
+    lives in one place and a change to it cannot reach one runner and miss the
+    other.
     """
     agreed = differed = skipped = 0
     examples: list[Example] = []
@@ -167,7 +172,7 @@ def run_tests(
         if seen is None:
             agreed += 1
             continue
-        if only_placeholder(test, seen):
+        if only_placeholder(test, seen) or recorded_divergence(test, model):
             skipped += 1
             continue
         differed += 1
@@ -264,7 +269,8 @@ def main(argv: Sequence[str]) -> int:
     if empty:
         print(f"  {len(empty)} files hold no cases: {' '.join(empty)}")
     print(
-        f"  {agreed} agreed cycle for cycle, {differed} did not, {skipped} left out as placeholders"
+        f"  {agreed} agreed cycle for cycle, {differed} did not,"
+        f" {skipped} left out as placeholders or recorded divergences"
     )
     for name, count, examples in broken[:EXAMPLE_LIMIT]:
         print(f"    {name}: {count} differed")

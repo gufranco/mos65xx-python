@@ -17,7 +17,7 @@
 
 </div>
 
-**16** parts · **17,900,000** state cases and **17,870,080** cycle-exact cases, **0** failures · **1,082** tests · **100%** statement and branch coverage · no dependencies
+**16** parts · **17,900,000** state cases and **17,870,080** cycle-exact cases, **0** unexplained failures · **1,093** tests · **100%** statement and branch coverage · no dependencies
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -237,7 +237,9 @@ False
 
 ## Is it right
 
-Every core is checked against the per-opcode suite published for the part it models, 10,000 cases per opcode: **17,900,000 cases, no failures**. The comparison then goes further and checks what the part put on the bus, cycle by cycle, address by address, and on the 65816 pin by pin: **17,870,080 cases, no failures**.
+Every core is checked against the per-opcode suite published for the part it models, 10,000 cases per opcode: **17,900,000 cases, no unexplained failures**. The comparison then goes further and checks what the part put on the bus, cycle by cycle, address by address, and on the 65816 pin by pin: **17,870,080 cases, no unexplained failures**.
+
+Thirty-seven cases are left out of both, by condition rather than by name, and both runners print how many they left out and where to read why. They are the ones where the corpus and a manufacturer statement give different answers about where a one byte pull lands when the stack pointer is at the top of emulation page one, and this core follows the document. [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) carries the disagreement and what would settle it.
 
 ```bash
 python3 -m conformance.fetch ~/.cache/conformance-suites

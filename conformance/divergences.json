@@ -48,8 +48,8 @@
         "section": "8.2.1 and 8.2.2"
       },
       "suiteSays": {
-        "corpus": "SingleStepTests/ProcessorTests 65816 v1",
-        "howItWasMeasured": "Every emulation-mode file for all five pointer modes and for PEI, 41 files and 410,000 tests, filtered to the cases where the direct register is page aligned and the pointer starts at the end of the page, then read straight off the recorded cycle addresses.",
+        "corpus": "SingleStepTests 65816 v1",
+        "howItWasMeasured": "Every emulation-mode file for all five pointer modes and for PEI, filtered to the cases where the direct register is page aligned and the pointer reaches the end of the page, then read straight off the recorded cycle addresses. Re-measured on 2026-08-25 against the corpus in its own repository, which carries a correction of 2024-09-22 for [d],y, PEI and PLB that the archived one this project used to pin predates.",
         "cases": [
           {
             "mode": "(d,x)",
@@ -57,7 +57,7 @@
             "test": "e1 e 8669",
             "pointerAt": "00F4FF",
             "readsCycled": ["00F4FF", "00F500"],
-            "verdict": "left the page, which the document says it should not"
+            "verdict": "left the page, which the document does not name it as doing"
           },
           {
             "mode": "[d]",
@@ -69,28 +69,38 @@
           },
           {
             "mode": "[d],y",
-            "opcode": "57",
-            "test": "57 e 6432",
-            "pointerAt": "0089FF",
-            "readsCycled": ["0089FF", "008900", "008901"],
-            "verdict": "wrapped inside the page, which the document says it should not"
+            "opcode": "17",
+            "test": "17 e 1412",
+            "pointerAt": "00B6FE",
+            "readsCycled": ["00B6FE", "00B6FF", "00B700"],
+            "verdict": "left the page, which the document says it should",
+            "note": "The archived corpus recorded this one wrapping, and the model was built to match it. The correction of 2024-09-22 changed it to leave the page, which is what the document said all along."
           },
           {
             "mode": "PEI",
             "opcode": "D4",
-            "test": "the case at D=000C00 with an operand of FF",
+            "test": "d4 e 232",
             "pointerAt": "000CFF",
-            "readsCycled": ["000CFF", "000C00"],
-            "verdict": "wrapped inside the page, which the document says it should not"
+            "readsCycled": ["000CFF", "000D00"],
+            "verdict": "left the page, which the document says it should",
+            "note": "Corrected in the same commit, and for the same reason."
+          },
+          {
+            "mode": "(d)",
+            "opcode": "52",
+            "test": "52 e 6983",
+            "pointerAt": "00DAFE",
+            "readsCycled": ["00DAFE", "00DAFF"],
+            "verdict": "never reached the edge, so it says nothing either way"
           }
         ],
         "notCovered": "(d) and (d),y. The suite contains no emulation case for either where the direct register is page aligned and the pointer starts at FE or FF, so nothing measured constrains them."
       },
-      "whatThisProjectDoes": "Follows the four measured cases exactly, and takes the document for the two the suite does not cover, which means (d) and (d),y wrap. The document's exception list is right about one of the four cases it covers, so it is not treated as a rule here, only as evidence where there is nothing else.",
-      "whatWouldSettleIt": "Six short programs on a real part, one per mode, each with the direct register page aligned and a pointer at FF, reading back the byte the part fetched. Until then this project's behaviour for (d) and (d),y is a document reading rather than a measurement, and is marked as such.",
+      "whatThisProjectDoes": "Follows every measured case. Four modes are measured and all four leave the page: the three the document names and (d,x), which it does not. The two the corpus never takes to the edge, (d) and (d),y, follow the document and wrap. Generalising from the four would be inventing a rule against the only document that speaks about them.",
+      "whatWouldSettleIt": "Two short programs on a real part, one for (d) and one for (d),y, each with the direct register page aligned and the pointer at FF, reading back the byte the part fetched. The other four are settled. Until then this project's behaviour for those two is a document reading rather than a measurement, and is marked as such.",
       "whyItIsOddEitherWay": "No simple rule produces the measured set. Whatever the part does, it is not deciding by pointer width and it is not deciding by whether the mode is one the 6502 had.",
       "status": "open",
-      "severity": "unchecked"
+      "severity": "two of six modes unmeasured"
     },
     {
       "subject": "which address the NMOS 6502 puts on the bus during a taken branch",
@@ -475,6 +485,28 @@
       "whyItMatters": "Only for a host counting cycles across a reset, which happens once at power on. It is one cycle, and it is one cycle this project would have got wrong on the WDC part by assuming a family shares a figure that only one of its manufacturers ever printed.",
       "status": "open",
       "severity": "unstated"
+    },
+    {
+      "subject": "the stack address of a one byte pull at the top of emulation page one",
+      "documentSays": {
+        "document": "wdc816",
+        "quote": "In the Emulation mode, the Stack address range is 000100 to 0001FF. The following OpCodes and addressing modes will increment or decrement beyond this range when accessing two or three bytes: JSL, JSR (a,x), PEA, PEI, PER, PHD, PLD, RTL",
+        "section": "8.1 Stack Addressing",
+        "pdfPage": 57,
+        "readIn": "w65c816s.pdf",
+        "meaning": "The range is page one, and the named opcodes leave it only when they access two or three bytes. PLB is not named and pulls one byte, so it stays inside the page."
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests 65816 v1",
+        "measured": "PLB with the stack pointer at 0001FF reads 000200 and leaves the pointer at 000100. Thirty-seven cases in ab.e.json, which is every case in that file where the pointer sits at the top of the page and no others.",
+        "arrivedOn": "2024-09-22, in the same correction that fixed [d],y and PEI"
+      },
+      "whatThisProjectDoes": "Keeps it inside page one, following the document. The model's flat-stack list is exactly the document's: PEA, PEI, PER, PHD, PLD and RTL step through consecutive addresses, and every other stack operation folds. Adding PLB to that list would be following a recording against a manufacturer statement that names the opcodes one by one, which is the wrong way round on this project's ladder.",
+      "whatWouldSettleIt": "A logic capture of a real W65C816S executing PLB in emulation mode with the stack pointer at 0001FF, reading the address lines. The document and the corpus each give a definite answer and they are not the same answer, so nothing short of the part decides it.",
+      "whyItMatters": "A program that pulls the data bank register with a full stack reads a byte from the wrong page on one of the two readings, and which byte that is decides what bank every following data access lands in.",
+      "runnerBehaviour": "conformance/singlestep.py leaves these thirty-seven out by condition rather than by name, and prints how many it left out and where they are explained.",
+      "status": "open",
+      "severity": "document against recording"
     }
   ]
 }
