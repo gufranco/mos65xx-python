@@ -125,6 +125,12 @@ jobs:
       - name: Every quoted sentence, against the document it came from
         run: python -m conformance.quotes
 
+      # Uninstrumented, and deliberately after the coverage run rather than
+      # inside it. A coverage tracer costs about ten times what the model does, so
+      # a throughput check under one measures the tracer.
+      - name: The model has not become several times slower
+        run: python -m conformance.speed
+
   conformance:
     name: Conformance against SingleStepTests
     runs-on: ubuntu-latest
