@@ -38,6 +38,76 @@ across the members. A rule that needs changing is changed in every member in the
 same task. A copy that has drifted is worse than no copy, because a reader trusts
 it.
 
+### What a new repository has to have before it is a member
+
+Each line below was a defect found in one of the existing members and fixed in
+all of them. A repository joining now starts with them rather than earning them
+one session at a time. Every one is checkable, and `conformance/family.test.py`
+checks the ones a test can reach.
+
+**The interface**
+
+- [ ] `Cpu(model, memory)` builds the part, keeps what it is handed, and builds
+      its own when the argument is left out.
+- [ ] What it hands back is a class called `Cpu`, not something else. The name
+      shows in every repr and every traceback.
+- [ ] `step`, `run_for`, `run_until`, `reset`, `held` and the counters exist and
+      return what the standard says they return.
+- [ ] Every class the package publishes declares `__slots__`. Without them a name
+      the class does not have is accepted in silence, the one meant keeps its
+      value, and nothing reports that the write went nowhere.
+- [ ] No unslotted class anywhere in a chain, which would hand the dictionary
+      back to every subclass below it.
+
+**Errors**
+
+- [ ] One `errors.py`, holding everything the package raises, importing nothing
+      from the package so it can never close a cycle.
+- [ ] No exception defined twice under one name. Two classes under one name both
+      work, both get tested, and `except` catches half the cases it names.
+- [ ] Every exception a caller can meet is exported from the package. `except`
+      takes a name, and one that cannot be imported can only be handled by
+      catching everything. A leading underscore is how an internal one says so.
+
+**The record**
+
+- [ ] A `documents` block, each entry naming the file it is, and every citation
+      naming one of those keys. Where it points inside goes in `section`.
+- [ ] Every quote is present in the document it names, not merely in some
+      document. Those come apart exactly when a fact is filed under the wrong
+      source.
+- [ ] A document covering more than this part declares the file pages that are
+      this part's, and every fact citing it names one of them.
+- [ ] Every fact names the parts it governs. Left unsaid it is carried by how the
+      key is spelled, and a claim read from one part's sheet reads like its
+      neighbours.
+- [ ] A value that differs between parts is checked against the model rather than
+      taken on trust.
+
+**The tools**
+
+- [ ] Everything under `conformance/` runs as `python3 -m conformance.name` and
+      imports its siblings through the package. Run as a script, its own
+      directory goes on the import path and shadows any standard library module
+      of the same name.
+- [ ] A throughput floor, several times below what the model does, run
+      uninstrumented and outside the coverage step.
+- [ ] Every worked example in the README is run and its output compared to what
+      the README claims.
+- [ ] Every required field in an issue form is actually required. `validations`
+      indented one level too far is ignored in silence.
+- [ ] The test count the README advertises is the count there is.
+
+**The documents**
+
+- [ ] `README.md`, `AGENTS.md`, `CLAUDE.md` pointing at it, `FAMILY.md`
+      byte-identical above the closing section, and `OPEN-QUESTIONS.md`.
+- [ ] No mention of any system the part was used in. A processor is not the
+      machine somebody put it in, and a package that names one is a catalogue of
+      that machine's parts wearing a processor's name.
+- [ ] Nothing licensed to anybody else is carried, fetched, vendored or
+      generated. A copy belongs on the machine that runs it.
+
 Most of this applies to anything that models hardware: a processor, a coprocessor,
 a mapper, a ROM image format, a peripheral. One section is explicitly about parts
 driven by a clock, and a repository that models something else skips it and keeps
@@ -78,13 +148,22 @@ lower rung never overrules a higher one.
 2. **The artifact itself.** A measurement on real hardware, or the bytes of a
    real dump. Strongest available evidence about the thing rather than about a
    description of it.
-3. **A recording from an independent implementation.** A pinned conformance
+3. **A simulation of the die itself.** A netlist read off die photographs and
+   stepped a half cycle at a time is not a model of the behaviour: nobody wrote
+   down what it should do, so it cannot carry somebody's reading of a manual. It
+   answers what a data sheet drawn at cycle resolution cannot, which is what the
+   part drives during a cycle it spends thinking. Below the artifact because it
+   is one die and a photograph of it, above any recording because a recording
+   says only what its author chose to write down.
+4. **A recording from an independent implementation.** A pinned conformance
    corpus, a reference dump, a published trace. Strong, and still evidence about
    the program that produced it rather than about the hardware.
-4. **Anything else.** Another emulator, a community write-up, a primer. A source
+5. **Anything else.** Another emulator, a community write-up, a primer. Reached
+   for only when every rung above is silent, cited as what it is, and never left
+   as the sole support for a fact a manufacturer would have printed. A source
    with no measurement behind it is not cited at all.
 
-When rungs one and three disagree and rung two is silent, the answer is
+When two rungs disagree and the ones above them are silent, the answer is
 **unknown**. It goes in `conformance/divergences.json` with the measurement that
 would close it, and from there into `OPEN-QUESTIONS.md`. Picking the more
 convenient source and moving on is the one thing no repository here does.
@@ -370,6 +449,21 @@ delete.
 - **A count is not a comparison.** A model can spend the right number of cycles
   reading the wrong addresses, or produce a file of the right length holding the
   wrong bytes.
+- **A check nobody has seen fail is not known to work.** Every check is driven
+  against input that should fail it, once, deliberately, before it is trusted.
+  This is the rule most often skipped here and the one that has cost the most: a
+  duplicate-name check that walked only the modules a package re-exported and so
+  could not see the module where a duplicate was sitting; a restructure whose
+  script never reached its write and left the check reporting clean because there
+  was nothing to check; a path fix that fixed nothing and was believed because the
+  run stayed green. Each looked like a pass.
+- **Silence and success produce the same output.** A check that found no files, no
+  documents, no cases or no records exits zero exactly like one that examined
+  everything. Print what was examined, and when the answer is nothing, say that
+  rather than nothing at all.
+- **A failure path is code.** The branch that reports a fault runs only when there
+  is one, so it is the branch least likely to have run. Make the collector take
+  its input, hand it something broken in a test, and check what it says.
 
 ## Conventions that are not negotiable
 

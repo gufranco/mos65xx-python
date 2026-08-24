@@ -237,6 +237,26 @@ conformance/
 specs/current/   what this does now, as requirements with scenarios
 ```
 
+## Before calling anything finished
+
+[`FAMILY.md`](FAMILY.md) carries a checklist under "What a new repository has to
+have before it is a member". Every line on it was a defect found in one of these
+repositories and fixed in all of them, so it is the list of things that have
+actually gone wrong here rather than a list of good intentions. Read it before
+adding a surface, and read it again before saying a change is done.
+
+Two rules from that file are worth repeating because they are the ones skipped
+most often, and skipping them is how the rest of the list got written:
+
+**A check nobody has seen fail is not known to work.** Drive it, once,
+deliberately, against input that should fail it. Three checks in this family
+reported clean while the thing they guarded was broken, and each was believed
+because the run stayed green.
+
+**Silence and success produce the same output.** A check that found no files, no
+documents or no records exits zero exactly like one that examined everything.
+Print what was examined, and say so when the answer is nothing.
+
 ## What a change is expected to leave behind
 
 A gate that would have caught the bug. A change to instruction behaviour also runs
