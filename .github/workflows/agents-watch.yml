@@ -1,0 +1,125 @@
+name: Agents watch
+
+# This repository keeps one instruction file, AGENTS.md. Most coding agents read
+# it directly and need nothing else; the rest each look for a file of their own,
+# so each of those carries a pointer saying where the instructions are.
+#
+# That arrangement ages the moment a new agent ships, and nothing in a build
+# notices: an agent nobody here has heard of reads nothing, and the silence looks
+# exactly like being covered.
+#
+# So this asks agents.md, weekly, which agents now read AGENTS.md, and proposes
+# adding any name the record does not already hold. Appearing on that list means
+# the agent needs no file here, which is why the change is small enough to
+# propose rather than merely mention.
+#
+# An agent that does not read AGENTS.md never appears on that page, so its
+# pointer is still added by hand. The page says which tools read the file and
+# never says what a tool that does not would read instead, and guessing a path
+# would ship a file nothing opens.
+#
+# The judgement about what counts as a page that was read at all lives in
+# conformance/agents_support.py where the test suite covers it, rather than
+# inline here where nothing would.
+
+on:
+  schedule:
+    # Early Monday, UTC, after the other two watchers so the three do not
+    # compete for a runner or for a reader's attention.
+    - cron: "17 8 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: agents-watch
+  cancel-in-progress: false
+
+jobs:
+  ask:
+    name: Ask which agents now read the instruction file
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Ask
+        id: ask
+        run: |
+          set +e
+          python conformance/agents_support.py | tee /tmp/agents.json
+          echo "new=$?" >> "${GITHUB_OUTPUT}"
+        shell: bash
+
+      - name: Say what the page said without raising it
+        run: |
+          python - <<'REPORT'
+          import json
+          from pathlib import Path
+
+          held = json.loads(Path("/tmp/agents.json").read_text())
+          if not held["read"]:
+              print(f"the page gave {held['found']} names, too few to believe; nothing proposed")
+          else:
+              print(f"{held['found']} agents listed")
+              for name in held["gone"]:
+                  print(f"no longer listed: {name}")
+          REPORT
+        shell: bash
+
+      - uses: pnpm/action-setup@v6
+        if: steps.ask.outputs.new != '0'
+
+      - uses: actions/setup-node@v7
+        if: steps.ask.outputs.new != '0'
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Add the new names to the record
+        if: steps.ask.outputs.new != '0'
+        id: add
+        run: |
+          python - <<'ADD'
+          import json
+          from pathlib import Path
+
+          report = json.loads(Path("/tmp/agents.json").read_text())
+          path = Path("conformance/agent-files.json")
+          record = json.loads(path.read_text())
+          names = record["readsAgentsFile"]["names"]
+          names.extend(name for name in report["new"] if name not in names)
+          names.sort(key=str.casefold)
+          path.write_text(json.dumps(record, indent=2) + "\n")
+          ADD
+          pnpm install --frozen-lockfile --ignore-scripts
+          pnpm run format
+          {
+            echo "added<<NAMES"
+            python -c "import json,pathlib;print(', '.join(json.loads(pathlib.Path('/tmp/agents.json').read_text())['new']))"
+            echo "NAMES"
+          } >> "${GITHUB_OUTPUT}"
+        shell: bash
+
+      - name: Propose it
+        if: steps.ask.outputs.new != '0'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: agents-watch/adopters
+          title: "chore(docs): name the agents that now read AGENTS.md"
+          commit-message: |
+            chore(docs): name the agents that now read AGENTS.md
+
+            ${{ steps.add.outputs.added }} appear on the adopter list published
+            at agents.md and this record did not name them. Each reads AGENTS.md
+            directly, so none needs a file in this repository.
+          body: |
+            ${{ steps.add.outputs.added }} now appear on the adopter list published at https://agents.md/ and this record does not name them. Each reads AGENTS.md directly, so none needs a file in this repository and the only change is to the record itself.
+
+            Worth checking before merging: that each name really is a new adopter rather than a rename of one already listed. A rename would otherwise leave the old name sitting in the record as an agent that no longer exists.
+          delete-branch: true

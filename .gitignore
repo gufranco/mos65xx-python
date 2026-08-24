@@ -13,3 +13,6 @@ specs/
 .venv/
 venv/
 uv.lock
+!.cursor/
+!.cursor/rules/
+!.cursor/rules/*.mdc
