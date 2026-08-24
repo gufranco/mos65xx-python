@@ -123,7 +123,50 @@ class Cpu:
     reproducible, which keeps a differential run comparable, and they are not
     zero, which is what stops code that reads them before writing them from
     looking correct here and failing on a console.
+
+    The slots are the point rather than a saving. This part spells the interrupt
+    disable flag `.irq_disable` where the eight bit parts spell it `.i`, and
+    without them a caller reaching for the wrong one sets a stray attribute in
+    silence while the flag they meant keeps its value.
     """
+
+    __slots__ = (
+        "_emulation",
+        "_s",
+        "a",
+        "address_mask",
+        "c",
+        "cycle_budget",
+        "cycles",
+        "d",
+        "db",
+        "decimal",
+        "irq_disable",
+        "irq_line",
+        "locked",
+        "m8",
+        "memory",
+        "model",
+        "n",
+        "nmi_line",
+        "nmi_seen",
+        "on_cycle",
+        "package_pins",
+        "pb",
+        "pc",
+        "pulling",
+        "ready_line",
+        "reset_cycles",
+        "steps",
+        "stopped",
+        "trace",
+        "v",
+        "waiting",
+        "x",
+        "x8",
+        "y",
+        "z",
+    )
 
     def __init__(
         self,

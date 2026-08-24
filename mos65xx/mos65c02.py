@@ -53,7 +53,12 @@ SHORTCUT_MODIFIES = frozenset({"asl", "lsr", "rol", "ror"})
 
 
 class Cpu(Nmos):
-    """One CMOS 6502, of whichever revision its table describes."""
+    """One CMOS 6502, of whichever revision its table describes.
+    One slot of its own. The rest are the NMOS part's, inherited, because this is
+    that core with the undocumented opcodes replaced.
+    """
+
+    __slots__ = ("waiting",)
 
     @override
     def __init__(self, memory: Any, table: Any = CMOS, **options: Any) -> None:

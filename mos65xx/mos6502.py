@@ -88,7 +88,47 @@ MODIFY = "modify"
 
 
 class Cpu:
-    """One 6502, holding whatever it held until something writes to it."""
+    """One 6502, holding whatever it held until something writes to it.
+    The slots are the point rather than a saving. Two names in this family mean
+    different things on different parts, `.i` here and `.irq_disable` on the
+    65816, and without them a caller reaching for the wrong one sets a stray
+    attribute in silence: the flag they meant keeps its value and the interrupt
+    code they wrote never fires. `status()` and `set_status()` are the portable
+    spelling, and this makes the unportable one fail instead of going nowhere.
+    """
+
+    __slots__ = (
+        "a",
+        "address_mask",
+        "b",
+        "c",
+        "cycles",
+        "d",
+        "decimal",
+        "i",
+        "irq_line",
+        "jammed",
+        "memory",
+        "model",
+        "n",
+        "nmi_line",
+        "nmi_seen",
+        "on_cycle",
+        "package_pins",
+        "pc",
+        "ready_line",
+        "reset_cycles",
+        "s",
+        "stalls_on_write",
+        "steps",
+        "stopped",
+        "table",
+        "trace",
+        "v",
+        "x",
+        "y",
+        "z",
+    )
 
     def __init__(
         self,
