@@ -216,9 +216,25 @@ Source: W65C02S Data Sheet, 3.10 Ready (RDY).
 
 **What exists.** A transistor level simulation of the 6502 die is public, and others use it as an oracle: MAME's NMOS 6502 opcode definitions carry the note "Verified with visual6502". It answers what a data sheet drawn at cycle resolution and a recording written one row per cycle cannot, which is what a discarded read puts on the bus and which cycle of a taken branch carries which address.
 
-**What this project does.** Neither. Nothing here has been run against it, so every entry above that says a logic capture would settle it still says so, even though this would be the nearest thing to one that needs no bench.
+**What this project does.** It runs against it now, for four cases, through
+`conformance/netlist.py`. The simulation drives an address every half cycle and
+the model is compared against it, and on those four they agree. The runner is
+opt-in: `NETLIST` names a built probe and it runs, and without one every case
+reports as skipped rather than as a pass it did not earn. Nothing is fetched,
+built or carried here, because the simulation is somebody else's work under
+their own licence.
 
-**What would settle it.** Running it. The same work is recorded for the Z80 in the other repository of this family, where a port of the Z80Explorer netlist resolver was written and does not converge. Whether this simulation is easier to drive is unknown here, because it has not been tried.
+**What it has settled so far.** The discarded read of an indexed access that
+crosses a page lands at the base plus the index with the carry not yet applied,
+and a taken branch that crosses a page reads that same un-fixed address before
+the corrected one. Both were open above on the grounds that no document states
+them and a recording only says what its author chose to write down.
+
+**What is left.** The other entries. Each needs a case written for it, which is
+the work rather than the tooling now that the tooling exists. The same was tried
+for the Z80 in the other repository of this family, where a port of the
+Z80Explorer netlist resolver was written and does not converge, so that side is
+still unanswered.
 
 
 Not unknown to the world, unverified in this repository.

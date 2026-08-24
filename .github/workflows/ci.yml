@@ -131,6 +131,13 @@ jobs:
       - name: The model has not become several times slower
         run: python -m conformance.speed
 
+      # Opt-in, and silent when nothing is there. A transistor level simulation
+      # of the die answers what no data sheet states and no recording carries,
+      # but it is somebody else's work under their own licence, so a copy belongs
+      # on the machine that runs it rather than in this repository or this job.
+      - name: The model against a simulation of the die, when one is present
+        run: python -m conformance.netlist
+
   conformance:
     name: Conformance against SingleStepTests
     runs-on: ubuntu-latest
