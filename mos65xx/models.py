@@ -2,9 +2,8 @@
 
 A model is more than an opcode set. It is the address bus the part was given, the
 instructions its maker added, and the mistakes its silicon shipped with. The
-Ricoh part in the Famicom has decimal arithmetic disabled because the adder is
-not wired for it. The 6507 in the Atari has thirteen address lines and no
-interrupt pins. The NMOS parts execute undocumented opcodes that programs came to
+Ricoh 2A03 has decimal arithmetic disabled because the adder is not wired for
+it. The 6507 has thirteen address lines and no interrupt pins. The NMOS parts execute undocumented opcodes that programs came to
 rely on. None of that is a defect to be corrected here: a core that quietly fixes
 a hardware bug is wrong for the machine that shipped it.
 

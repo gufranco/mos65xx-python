@@ -27,8 +27,8 @@ the moment anything pulls, and a core that refuses to store it at all disagrees
 with every instruction that leaves the register alone.
 
 Decimal mode is a property of the part rather than of the program. The Ricoh
-variant in the Famicom has the adder wired without it, so setting the flag there
-changes nothing, which is why the model decides and not the flag.
+2A03 has the adder wired without it, so setting the flag there changes nothing,
+which is why the model decides and not the flag.
 
 Nothing starts clean. Registers and memory hold arbitrary but reproducible values
 after a reset, because the hardware defines only the program counter, and a core

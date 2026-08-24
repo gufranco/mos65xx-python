@@ -11,13 +11,17 @@ review question; whether `run_for` exists is not.
 
 from __future__ import annotations
 
+import ast
 import inspect
+import json
 import re
+import subprocess
 import sys
 import tempfile
 import tomllib
 import types
 import unittest
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -731,6 +735,324 @@ class WrittenTheSameWayTest(unittest.TestCase):
         self.assertTrue(held["mypy"]["strict"])
         self.assertEqual(held["coverage"]["report"]["fail_under"], 100)
         self.assertEqual(held["ruff"]["line-length"], 100)
+
+
+MACHINES = {
+    "zilog-z80-python": (
+        "ZX Spectrum",
+        "Game Boy",
+        "GameBoy",
+        "MSX",
+        "Amstrad",
+        "Master System",
+        "Mega Drive",
+        "Genesis",
+        "TRS-80",
+        "Sega",
+        "Nintendo",
+        "SNES",
+    ),
+    "mos65xx-python": (
+        "NES",
+        "SNES",
+        "Super Famicom",
+        "Famicom",
+        "Nintendo",
+        "Commodore 64",
+        "C64",
+        "VIC-20",
+        "Apple II",
+        "Atari 2600",
+        "Atari 800",
+        "BBC Micro",
+    ),
+    "upd7725": (
+        "SNES",
+        "Super Famicom",
+        "Famicom",
+        "Nintendo",
+        "DSP-1",
+        "DSP-2",
+        "DSP-3",
+        "DSP-4",
+        "ST010",
+        "ST011",
+        "Seta",
+        "console",
+        "cartridge",
+    ),
+}
+"""The machines and product names each member must not carry.
+
+Named per repository because the list is: a Z80 went into different boxes than a
+6502 did. The entries are specific products, never categories, because a category
+is what an honest sentence about the part uses and flagging one would report
+prose rather than a leak.
+"""
+
+
+DECLARES_MACHINES = "conformance/family.test.py"
+"""The one file allowed to write the names down, because it is the list itself."""
+
+
+def unquoted(text: str, suffix: str) -> str:
+    """The same text with a record's quoted passages blanked out.
+
+    A quote is a document's words, and a document is free to name whatever
+    machine it likes. The rule here governs what this package says about the
+    part, so a manufacturer's sentence about a disk controller is not a mention
+    by this package. Blanking rather than dropping keeps every line number.
+    """
+    if suffix != ".json":
+        return text
+    try:
+        record = json.loads(text)
+    except json.JSONDecodeError:
+        return text
+    blanked = text
+    for passage in _passages(record):
+        if len(passage) > 8:
+            blanked = blanked.replace(
+                json.dumps(passage)[1:-1], " " * len(json.dumps(passage)[1:-1])
+            )
+    return blanked
+
+
+def _passages(node: Any) -> list[str]:
+    """Every string a record holds under a key naming it a quote."""
+    found: list[str] = []
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key.endswith(("quote", "Quote")) and isinstance(value, str):
+                found.append(value)
+            elif key.endswith(("quotes", "Quotes")) and isinstance(value, list):
+                found.extend(one for one in value if isinstance(one, str))
+            elif key.endswith(("quotes", "Quotes")) and isinstance(value, dict):
+                found.extend(one for one in value.values() if isinstance(one, str))
+            else:
+                found.extend(_passages(value))
+    elif isinstance(node, list):
+        for one in node:
+            found.extend(_passages(one))
+    return found
+
+
+def machine_mentions(where: Path, names: tuple[str, ...], run: Any = None) -> list[str]:
+    """Every tracked file that names a machine this part was put in.
+
+    A processor is not the machine somebody put it in, and a package that names
+    one becomes a catalogue of that machine's parts wearing a processor's name.
+
+    Three things are out of scope and each says something. Untracked files are
+    not checked, because what a copy of a document says is the document's
+    business and it is not published from here. A record's quoted passages are
+    not checked, for the same reason one step closer in. And the file declaring
+    these names is not checked, because it is the list.
+    """
+    runner = subprocess.run if run is None else run
+    listed = runner(
+        ["git", "ls-files"], cwd=where, capture_output=True, text=True, check=False
+    ).stdout.split()
+    found = []
+    for rel in listed:
+        if rel == DECLARES_MACHINES:
+            continue
+        path = where / rel
+        if path.suffix in {".png", ".jpg", ".ico", ".pdf"} or not path.is_file():
+            continue
+        try:
+            text = path.read_text()
+        except (UnicodeDecodeError, OSError):
+            continue
+        searched = unquoted(text, path.suffix)
+        for name in names:
+            for hit in re.finditer(rf"(?<![\w-]){re.escape(name)}(?![\w-])", searched):
+                found.append(f"{rel}:{text[: hit.start()].count(chr(10)) + 1} names {name}")
+    return found
+
+
+def imported_by(path: Path) -> set[str]:
+    """Every module a source file imports, as written."""
+    tree = ast.parse(path.read_text())
+    found: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            found.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            found.add("." * node.level + (node.module or ""))
+    return found
+
+
+def reaching_inside(names: Iterable[str], package: str) -> list[str]:
+    """The imports in that set that come from this package rather than outside it.
+
+    A relative import counts however deep it goes, and an absolute one counts
+    when it is the package or a module under it. A package whose name merely
+    begins the same way is somebody else's, which is why the dot is required.
+    """
+    return sorted(
+        name
+        for name in names
+        if name.startswith(".") or name == package or name.startswith(package + ".")
+    )
+
+
+class ErrorsCloseNoCycleTest(unittest.TestCase):
+    """That the one home for exceptions imports nothing from the package.
+
+    Everything here raises, so everything here imports `errors`. If `errors`
+    imports back, the cycle is closed and the order modules happen to load in
+    decides whether an import works. The standard says it imports nothing from
+    the package, and until now nothing checked the second half of that sentence.
+    """
+
+    def errors(self) -> Path:
+        return Path(PACKAGE.__file__ or "").resolve().parent / "errors.py"
+
+    def test_it_imports_nothing_from_this_package(self) -> None:
+        self.assertEqual(reaching_inside(imported_by(self.errors()), PACKAGE.__name__), [])
+
+    def test_the_reader_of_that_tells_the_package_from_the_standard_library(self) -> None:
+        """Driven on both, because a filter that matched nothing would also pass."""
+        held = {"__future__", "re", "typing", PACKAGE.__name__, f"{PACKAGE.__name__}.core", "."}
+
+        self.assertEqual(
+            reaching_inside(held, PACKAGE.__name__),
+            [".", PACKAGE.__name__, f"{PACKAGE.__name__}.core"],
+        )
+
+    def test_and_a_package_whose_name_merely_starts_the_same_is_not_inside(self) -> None:
+        """`z80asm` is somebody else's package, and so is `mos65xxtools`."""
+        held = {f"{PACKAGE.__name__}asm", f"{PACKAGE.__name__}_tools"}
+
+        self.assertEqual(reaching_inside(held, PACKAGE.__name__), [])
+
+    def test_the_reader_of_that_sees_the_imports_that_are_there(self) -> None:
+        """Or an empty answer would pass for a file it never opened."""
+        with tempfile.TemporaryDirectory() as where:
+            written = Path(where) / "sample.py"
+            written.write_text(
+                "from __future__ import annotations\nimport re\nfrom . import core\n"
+            )
+
+            found = imported_by(written)
+
+        self.assertEqual(found, {"__future__", "re", "."})
+
+    def test_and_would_name_one_reaching_back_into_the_package(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            written = Path(where) / "sample.py"
+            written.write_text(f"from {PACKAGE.__name__}.core import Cpu\n")
+
+            found = imported_by(written)
+
+        self.assertIn(f"{PACKAGE.__name__}.core", found)
+
+
+class QuotedPassageTest(unittest.TestCase):
+    """That a document's own words are blanked before the sweep reads a record.
+
+    Without this the rule would ask a manufacturer to stop naming a disk
+    controller in a sentence it printed in 1984.
+    """
+
+    def test_a_quote_is_blanked_and_the_line_numbers_survive(self) -> None:
+        held = '{"quote": "the SNES is named here", "note": "and here too"}'
+
+        found = unquoted(held, ".json")
+
+        self.assertEqual(len(found), len(held))
+        self.assertNotIn("SNES", found[: found.index("note")])
+        self.assertIn("and here too", found)
+
+    def test_a_plural_key_holding_a_list_is_blanked_as_well(self) -> None:
+        held = '{"aboutQuotes": ["the SNES is named here", "and so it is here"]}'
+
+        self.assertNotIn("SNES", unquoted(held, ".json"))
+
+    def test_and_one_holding_a_map_of_numbered_notes(self) -> None:
+        held = '{"noteQuotes": {"1": "the SNES is named here"}}'
+
+        self.assertNotIn("SNES", unquoted(held, ".json"))
+
+    def test_a_short_passage_is_left_alone(self) -> None:
+        """Blanking a handful of characters would blank them everywhere else too."""
+        held = '{"quote": "SNES", "note": "SNES"}'
+
+        self.assertEqual(unquoted(held, ".json"), held)
+
+    def test_a_file_that_is_not_a_record_is_read_as_it_stands(self) -> None:
+        held = "the SNES is named here"
+
+        self.assertEqual(unquoted(held, ".md"), held)
+
+    def test_and_so_is_one_that_claims_to_be_and_is_not(self) -> None:
+        """A malformed record is a finding for another check, not silence here."""
+        held = "{this is not json at all, and it names the SNES"
+
+        self.assertEqual(unquoted(held, ".json"), held)
+
+    def test_a_value_that_is_not_a_passage_is_stepped_over(self) -> None:
+        held = '{"quote": 5, "quotes": [1, 2], "noteQuotes": {"1": 3}, "cycles": [1]}'
+
+        self.assertEqual(_passages(json.loads(held)), [])
+
+
+class NamesNoMachineTest(unittest.TestCase):
+    """That this package does not name the machines its part went into.
+
+    The rule is in FAMILY.md and was kept by hand until a sweep found five
+    mentions of a product line in one member's own section of that file, and
+    twenty uses of a word for a host that presumed which kind of machine it was.
+    """
+
+    def names(self) -> tuple[str, ...]:
+        return MACHINES[PACKAGE.__name__ if PACKAGE.__name__ in MACHINES else ROOT.name]
+
+    def test_no_tracked_file_names_one(self) -> None:
+        self.assertEqual(machine_mentions(ROOT, self.names()), [])
+
+    def test_the_sweep_would_report_one_if_it_were_there(self) -> None:
+        """Driven against a name that is certainly present, so silence means checked."""
+        found = machine_mentions(ROOT, ("README",))
+
+        self.assertNotEqual(found, [])
+
+    def test_a_name_inside_a_longer_word_is_not_a_mention(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            folder = Path(where)
+            (folder / "a.md").write_text("SNESLIKE and pre-SNES-era are not mentions\n")
+            found = machine_mentions(folder, ("SNES",), self.listing("a.md"))
+
+        self.assertEqual(found, [])
+
+    def test_but_the_bare_name_is(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            folder = Path(where)
+            (folder / "a.md").write_text("first\nthis one names the SNES outright\n")
+            found = machine_mentions(folder, ("SNES",), self.listing("a.md"))
+
+        self.assertEqual(found, ["a.md:2 names SNES"])
+
+    def test_a_file_that_is_not_text_is_stepped_over(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            folder = Path(where)
+            (folder / "a.bin").write_bytes(b"\xff\xfe\x00SNES")
+            found = machine_mentions(folder, ("SNES",), self.listing("a.bin"))
+
+        self.assertEqual(found, [])
+
+    def test_and_so_is_one_git_lists_that_is_not_on_disk(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            found = machine_mentions(Path(where), ("SNES",), self.listing("gone.md"))
+
+        self.assertEqual(found, [])
+
+    def listing(self, *names: str) -> Any:
+        def run(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
+            return subprocess.CompletedProcess([], 0, stdout="\n".join(names), stderr="")
+
+        return run
 
 
 if __name__ == "__main__":

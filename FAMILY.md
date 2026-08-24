@@ -62,7 +62,9 @@ checks the ones a test can reach.
 **Errors**
 
 - [ ] One `errors.py`, holding everything the package raises, importing nothing
-      from the package so it can never close a cycle.
+      from the package so it can never close a cycle. Both halves are checked.
+      A cycle that breaks outright announces itself, and the one worth a check is
+      the import that works today because of the order modules happen to load in.
 - [ ] No exception defined twice under one name. Two classes under one name both
       work, both get tested, and `except` catches half the cases it names.
 - [ ] Every exception a caller can meet is exported from the package. `except`
@@ -120,9 +122,14 @@ checks the ones a test can reach.
 
 - [ ] `README.md`, `AGENTS.md`, `CLAUDE.md` pointing at it, `FAMILY.md`
       byte-identical above the closing section, and `OPEN-QUESTIONS.md`.
-- [ ] No mention of any system the part was used in. A processor is not the
-      machine somebody put it in, and a package that names one is a catalogue of
-      that machine's parts wearing a processor's name.
+- [ ] No mention of any system the part was used in, in any tracked file. A
+      processor is not the machine somebody put it in, and a package that names
+      one is a catalogue of that machine's parts wearing a processor's name.
+      Identify a variant by its part number, never by the box it shipped in.
+      Whatever drives the part is the `host`, whichever kind of machine it was.
+- [ ] Two things are outside that and each says something. A quoted passage is a
+      document's words, and a document may name whatever it likes. The file
+      declaring the names to search for is the list rather than a mention.
 - [ ] Nothing licensed to anybody else is carried, fetched, vendored or
       generated. A copy belongs on the machine that runs it.
 

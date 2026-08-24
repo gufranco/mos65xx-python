@@ -413,7 +413,7 @@
         "measured": "Nothing. Every case runs one instruction with no pin asserted, so no recording in any published corpus covers an instruction executed while an interrupt is pending."
       },
       "whatThisProjectDoes": "Spends an ordinary internal cycle, with no dependence on whether an interrupt is waiting. Two widely used implementations do something else: ares and bsnes replace that cycle with a read of the program counter, without incrementing it, for a named list of two cycle opcodes covering the flag instructions, the register transfers, the increments and decrements, the shifts and rotates, NOP and XCE.",
-      "whatWouldSettleIt": "A logic capture of a real part executing one of those opcodes with the interrupt line already low. Every implementation read so far consulted bsnes, so counting them adds confidence in the reading and no evidence about the part. A future reader looking for a second source should know that checking another SNES implementation is not one.",
+      "whatWouldSettleIt": "A logic capture of a real part executing one of those opcodes with the interrupt line already low. Every implementation read so far consulted bsnes, so counting them adds confidence in the reading and no evidence about the part. A future reader looking for a second source should know that checking another implementation from the same community is not one.",
       "whyItMatters": "A device watching the bus sees a read that this model does not perform, at the exact moment an interrupt is being taken. It changes nothing a program can compute, and everything a cycle for cycle comparison against real hardware would show.",
       "status": "open",
       "severity": "unstated",
