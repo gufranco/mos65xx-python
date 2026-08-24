@@ -1,24 +1,31 @@
 # The family standard
 
-One standard, carried identically by every repository in this workspace. It is
-not a style guide. It is the set of decisions that were expensive to reach, so
-that a repository starting today does not have to reach them again and a
-repository already running does not drift away from them quietly.
+One standard, carried identically by every repository in the family. It is not a
+style guide. It is the set of decisions that were expensive to reach, so that a
+repository starting today does not have to reach them again and a repository
+already running does not drift away from them quietly.
 
-Two repositories are the worked examples. Where they differ from each other, the
+The family is three repositories. Where they differ from each other, the
 difference is something the hardware forces rather than something nobody got
 round to.
 
-| Reference | What it models |
+| Member | What it models |
 |:--|:--|
 | [mos65xx-python](https://github.com/gufranco/mos65xx-python) | The 65xx family: sixteen parts, from the 6502 to the 65816 |
 | [zilog-z80-python](https://github.com/gufranco/zilog-z80-python) | The Z80: three parts, NMOS and CMOS |
+| [nec-upd7725-python](https://github.com/gufranco/nec-upd7725-python) | The NEC uPD7725 and uPD96050 digital signal processors |
 
-## How to use this in another repository
+Nothing else is a member. A copy of this file sitting in a repository outside
+that list is a working note somebody left there; it binds nothing and it is not
+expected to match. Membership is a decision, not something a repository acquires
+by holding a copy.
 
-Copy this file in unchanged and follow it. The published copies live in the two
-reference repositories above and are byte-identical to each other, so any copy
-can be checked against one of them:
+## How a repository joins
+
+Copy this file in unchanged, follow it, and add the repository to the table
+above in every member in the same task. The published copies live in the three
+repositories listed there and are byte-identical to each other, so any copy can
+be checked against any other:
 
 ```bash
 WORK=$(mktemp -d)
@@ -26,10 +33,10 @@ git clone --depth=1 https://github.com/gufranco/zilog-z80-python.git "$WORK/refe
 diff "$WORK/reference/FAMILY.md" FAMILY.md
 ```
 
-Everything above the repository's own closing section is shared and must match. A
-rule that needs changing is changed in both references first and then in every
-copy, in the same task. A copy that has drifted is worse than no copy, because a
-reader trusts it.
+Everything above the repository's own closing section is shared and must match
+across the members. A rule that needs changing is changed in every member in the
+same task. A copy that has drifted is worse than no copy, because a reader trusts
+it.
 
 Most of this applies to anything that models hardware: a processor, a coprocessor,
 a mapper, a ROM image format, a peripheral. One section is explicitly about parts
