@@ -223,6 +223,69 @@ say the claim narrowly enough that it stays true.
 The README is for a reader who wants to use the thing. Reasoning about why a
 source was believed belongs with the record it reasons about, not in the README.
 
+## Reading a document that is a photograph
+
+Most of these documents are scans of printed books. A scan has two descriptions
+of the same page, and neither is trustworthy on its own:
+
+- **The text layer**, if the file carries one. It was produced by somebody else's
+  recogniser, years ago, at whatever quality that recogniser managed. The NEC
+  data sheet's layer prints `lhe` for `the` and `OP` for `DP`. Searching it for a
+  sentence that is plainly on the page returns nothing, and the absence means
+  nothing.
+- **The page as an image**, read now. This is usually cleaner, and on a table it
+  is the only option, because a table is a picture in most of these files. It
+  still drops a lone digit, and it misses a faint line outright.
+
+So a figure taken from a document is read **twice**, once each way, and what goes
+in the record is what both readings agree on. Where one reading dropped a cell,
+the other supplies it. Where neither can, that cell is re-rendered on its own and
+read again until two crops agree, and if they never do, the gap is recorded
+rather than filled.
+
+### What this costs when it is skipped
+
+Reading one description and trusting it is how the z80 timing table came to name
+forty three of its rows after whatever text sat nearest the table, lose rows from
+every group page, and omit two instruction groups entirely. Nothing failed. The
+numbers were right, the file parsed, and the tests passed for months.
+
+### The traps, in the order they bite
+
+| Trap | What it looks like |
+|:--|:--|
+| More than one page layout | A page describing one instruction prints three columns; a page describing a group prints four. A parser that assumes one silently reads the wrong column as the name |
+| The heading is on the previous page | A continuation page carries the table and names nothing. The nearest text is a running head, and taking it gives a row called `Z80 Instruction Set` |
+| A header spelled inconsistently | Two pages of one manual head a column `MCycle` and `M Cycle` where the rest print `M Cycles`. A matcher keyed to the plural walks past both, and two whole instruction groups go missing |
+| Homoglyphs | Cyrillic `С` for `C`, `І` for `I`, lowercase `l` for `I`, `O` for `0`. `BІT b, r` looks correct and matches nothing |
+| A dropped digit | A lone `1` in a wide column is the single most common loss. Never infer it from the row above |
+| Two columns | Reading in `y` order splices the left column into the right mid-sentence, and every quote spanning a line break fails to match |
+| Printed number against file position | They differ by the front matter. Record the relationship once, and cite the printed number |
+
+### What the record carries
+
+- The file's **SHA-256**, because two scans of one book paginate differently and
+  a page number means nothing without saying which scan.
+- The **printed page** beside every quote, and the rule relating it to the
+  position in the file.
+- **How it was read**, naming both passes, so a later reader knows the reading
+  can be repeated rather than having to trust it.
+
+### Column boundaries come from the header
+
+Do not hardcode where a column starts. Find the header row, take each column's
+position from the header cell that names it, and assign every cell below to the
+nearest one. That is what makes a parser survive a page whose layout differs from
+the one it was written against.
+
+### Verifying a quote afterwards
+
+Match on flattened text: strip everything that is not a letter or a digit, and
+lowercase it. That survives hyphenation across a line break, collapsed spaces and
+inconsistent punctuation. It does not survive a homoglyph or a misread digit, so
+a quote that fails to match is a quote to read on the page rather than a quote to
+delete.
+
 ## Verification
 
 - **100% of statements and branches, enforced.** Not a target.

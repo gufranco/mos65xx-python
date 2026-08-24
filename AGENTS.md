@@ -172,6 +172,15 @@ contradicted itself, those two were the ones that matched the silicon.
 
 ## Things that will bite you
 
+**A figure taken from a document is read twice.** Almost every document behind
+these projects is a photograph of a printed book. Its text layer, where it has
+one, was produced by somebody else's recogniser and prints `lhe` for `the`; the
+page read as an image now is cleaner but drops a lone digit and misses a faint
+line outright. Read it both ways and record what both agree on. `FAMILY.md`, under
+"Reading a document that is a photograph", carries the traps and what the record
+has to hold. Skipping this is how a timing table came to name forty three of its
+rows after the text sitting next to them.
+
 **Import conformance modules package-qualified.** `from conformance import fetch`,
 never `importlib.import_module("fetch")` with the directory on the path. The
 importlib form gives the checker a bare module object with no attributes, so every
