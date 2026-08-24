@@ -1,6 +1,6 @@
 {
   "note": "Table 6-7 of the W65C816S data sheet, which prints all eight output lines for every cycle of every addressing mode: vector pull, memory lock, the two address qualifiers, the address bus, what is on the data bus and the read write line. Nothing else here states the sixteen bit part's bus behaviour at rung one, so this is what its timing is held to when no recording is on the machine.",
-  "document": "manufacturer/w65c816s.pdf",
+  "document": "wdc816",
   "section": "Table 6-7 Instruction Operation",
   "printedPages": "42 to 48",
   "pdfPages": "42 to 48",

@@ -1,6 +1,6 @@
 {
   "note": "The forty-four opcodes the W65C02S leaves reserved, with the length and timing its data sheet gives each one. The NMOS parts leave these undefined and some of them hang the part until reset; the CMOS parts turned every one into a no-operation of a stated length, which makes them checkable in a way the NMOS undocumented opcodes are not.",
-  "document": "manufacturer/w65c02s.pdf",
+  "document": "wdc02",
   "section": "Table 7-1 Microprocessor Operational Enhancements, the Execution of invalid OpCodes row",
   "printedPage": 30,
   "pdfPage": 30,

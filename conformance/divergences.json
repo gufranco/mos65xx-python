@@ -12,10 +12,11 @@
     {
       "subject": "the data bank register after a software interrupt in emulation mode",
       "documentSays": {
-        "document": "W65C816S Data Sheet, 8.11.2",
+        "document": "wdc816",
         "quote": "In the Emulation mode, the PBR and DBR registers are cleared to 00 when a hardware interrupt, BRK or COP is executed. In this case, previous contents of the PBR are not automatically saved.",
         "pdfPage": 58,
-        "readIn": "w65c816s.pdf"
+        "readIn": "w65c816s.pdf",
+        "section": "8.11.2"
       },
       "suiteSays": {
         "corpus": "SingleStepTests/ProcessorTests 65816 v1",
@@ -39,11 +40,12 @@
     {
       "subject": "whether a multi-byte pointer read out of the direct page stays inside the page, in emulation mode with the direct register page aligned",
       "documentSays": {
-        "document": "W65C816S Data Sheet, 8.2.1 and 8.2.2",
+        "document": "wdc816",
         "quote": "When in the Emulation mode, the direct addressing range is 000000 to 0000FF, except for [Direct] and [Direct],Y addressing modes and the PEI instruction which will increment from 0000FE or 0000FF into the Stack area.",
         "pdfPage": 57,
         "readIn": "w65c816s.pdf",
-        "meaning": "Three named exceptions leave the page and everything else wraps inside it."
+        "meaning": "Three named exceptions leave the page and everything else wraps inside it.",
+        "section": "8.2.1 and 8.2.2"
       },
       "suiteSays": {
         "corpus": "SingleStepTests/ProcessorTests 65816 v1",
@@ -93,10 +95,11 @@
     {
       "subject": "which address the NMOS 6502 puts on the bus during a taken branch",
       "documentSays": {
-        "document": "MCS6500 Microcomputer Family Hardware Manual, Appendix A.5.8",
+        "document": "mos6500",
         "quote": "T2* PC + 2 + offset (w/o carry), OP CODE, R/W 1, Offset Added to Program Counter; T3** PC + 2 + offset (with carry), OP CODE, R/W 1, Carry Added. *Skip if branch not taken. **Skip if branch not taken; skip if branch operation doesn't cross page boundary.",
         "assembled": true,
-        "readFrom": "The scanned page A-13, read as an image rather than through the text layer, so this is what the manual prints rather than an artefact of the scan."
+        "readFrom": "The scanned page A-13, read as an image rather than through the text layer, so this is what the manual prints rather than an artefact of the scan.",
+        "section": "Appendix A.5.8"
       },
       "suiteSays": {
         "corpus": "SingleStepTests/65x02 6502 v1",
@@ -127,11 +130,12 @@
     {
       "subject": "which address a CMOS 65C02 puts on the bus during its spare cycles, and how long three of its instructions take",
       "documentSays": {
-        "document": "W65C02S Data Sheet, Table 7-1 Microprocessor Operational Enhancements",
+        "document": "wdc02",
         "quote": "Indexed addressing across page boundary: NMOS 6502, extra read of invalid address; W65C02S, extra read of last instruction byte. Read/Modify/Write instruction at effective address: NMOS 6502, one read and two write cycles; W65C02S, two read and one write cycle. Jump indirect, operand = XXFF: NMOS 6502, page address does not increment; W65C02S, page address increments, one additional cycle. Flags after decimal operation: NMOS 6502, invalid N, V and Z flags; W65C02S, valid flags. One additional cycle.",
         "assembled": true,
         "note": "Every one of those is exactly what the recordings show, and the model follows all of them. The caveats table is the reliable part of this document.",
-        "andYetTable6_5": "The timing chart in the same document gives different addresses for three of those spare cycles: the half-formed address for an indexed access, the address after the target for a read-modify-write, and PC+2 for both indirect jumps. All three are contradicted by the caveats table above and by the recordings."
+        "andYetTable6_5": "The timing chart in the same document gives different addresses for three of those spare cycles: the half-formed address for an indexed access, the address after the target for a read-modify-write, and PC+2 for both indirect jumps. All three are contradicted by the caveats table above and by the recordings.",
+        "section": "Table 7-1 Microprocessor Operational Enhancements"
       },
       "suiteSays": {
         "corpus": "SingleStepTests/65x02, all three CMOS suites",
@@ -160,10 +164,11 @@
     {
       "subject": "the address of the extra cycle a CMOS 65C02 spends on decimal arithmetic",
       "documentSays": {
-        "document": "W65C02S Data Sheet, Table 6-5 note 6, with 8.5 of the W65C816S data sheet for what an internal cycle's address means",
+        "document": "wdc02",
         "quote": "Add 1 cycle for decimal mode.",
         "assembled": true,
-        "andAlso": "Note that when VDA and VPA are both low, invalid addresses may be generated. The Page and Bank addresses could also be invalid."
+        "andAlso": "Note that when VDA and VPA are both low, invalid addresses may be generated. The Page and Bank addresses could also be invalid.",
+        "section": "Table 6-5 note 6, with 8.5 of the W65C816S data sheet for what an internal cycle's address means"
       },
       "suiteSays": {
         "corpus": "SingleStepTests/65x02 wdc65c02 v1",
@@ -186,17 +191,19 @@
     {
       "subject": "the address on the bus during the discarded read of an indexed access",
       "documentSays": {
-        "document": "MCS6500 Hardware Manual, Appendix A, tables A.2.5, A.2.7, A.3.4 and A.4.4",
+        "document": "mos6500",
         "quote": "T3 ADL: BAL + index register / ADH: BAH + C. Carry is 0 or 1 as required from previous add operation.",
         "pdfPage": 171,
-        "readIn": "mcs6500-hardware-manual-1976.pdf"
+        "readIn": "mcs6500-hardware-manual-1976.pdf",
+        "section": "Appendix A, tables A.2.5, A.2.7, A.3.4 and A.4.4"
       },
       "andAlsoSays": {
-        "document": "MCS6500 Hardware Manual, Appendix A, table A.3.6",
+        "document": "mos6500",
         "quote": "T4 ADL: BAL + Y / ADH: BAH. Data (Discarded).",
         "assembled": true,
         "why": "The same cycle of the same kind of access, written without the carry two pages later. The appendix gives the discarded read two different addresses.",
-        "inASecondPrinting": "Synertek reprinted the same appendix under its own name, and both forms appear there unchanged, on the same page numbers. Two publishers printed the same inconsistency, so it is the document rather than a slip in one copy."
+        "inASecondPrinting": "Synertek reprinted the same appendix under its own name, and both forms appear there unchanged, on the same page numbers. Two publishers printed the same inconsistency, so it is the document rather than a slip in one copy.",
+        "section": "Appendix A, table A.3.6"
       },
       "suiteSays": {
         "corpus": "SingleStepTests 65x02 6502 v1",
@@ -211,9 +218,10 @@
     {
       "subject": "which cycle of a taken branch carries which address",
       "documentSays": {
-        "document": "MCS6500 Hardware Manual, Appendix A, table A.5.8",
+        "document": "mos6500",
         "quote": "T2 PC + 2 + offset (w/o carry), Offset Added to Program Counter. T3 PC + 2 + offset (with carry), Carry Added.",
-        "assembled": true
+        "assembled": true,
+        "section": "Appendix A, table A.5.8"
       },
       "suiteSays": {
         "corpus": "SingleStepTests 65x02 6502 v1",
@@ -228,9 +236,10 @@
     {
       "subject": "the stack addresses of a pull, written as plain sums",
       "documentSays": {
-        "document": "MCS6500 Hardware Manual, Appendix A, tables A.5.2, A.5.5 and A.5.7",
+        "document": "mos6500",
         "quote": "T3 Stack Ptr. + 1. T4 Stack Ptr. + 2. T5 Stack Ptr. + 3.",
-        "assembled": true
+        "assembled": true,
+        "section": "Appendix A, tables A.5.2, A.5.5 and A.5.7"
       },
       "suiteSays": {
         "corpus": "SingleStepTests 65x02 6502 v1",
@@ -245,15 +254,17 @@
     {
       "subject": "the page-crossing cycle on the indirect indexed rows of AND and ORA",
       "documentSays": {
-        "document": "MCS6500 Programming Manual, Appendix B, pages B-3 and B-20",
+        "document": "mos6500_programming",
         "quote": "AND (Oper), Y  31  2  5. ORA (Oper), Y  11  2  5.",
-        "assembled": true
+        "assembled": true,
+        "section": "Appendix B, pages B-3 and B-20"
       },
       "andAlsoSays": {
-        "document": "MCS6500 Programming Manual, Appendix B, the same two pages",
+        "document": "mos6500_programming",
         "quote": "AND Oper, X  3D  3  4*. ORA Oper, X  1D  3  4*. * Add 1 if page boundary is crossed.",
         "assembled": true,
-        "why": "Both instructions carry the mark on their absolute indexed rows, on the same page as the row that lacks it, so the omission is one row rather than a claim about the instruction. The six other Group One instructions carry it on all three indexed rows."
+        "why": "Both instructions carry the mark on their absolute indexed rows, on the same page as the row that lacks it, so the omission is one row rather than a claim about the instruction. The six other Group One instructions carry it on all three indexed rows.",
+        "section": "Appendix B, the same two pages"
       },
       "suiteSays": {
         "corpus": "SingleStepTests 65x02 6502 v1",
@@ -268,9 +279,10 @@
     {
       "subject": "how many cycles the reserved opcode 5C spends on a CMOS part",
       "documentSays": {
-        "document": "W65C02S Data Sheet, Table 7-1, the Execution of invalid OpCodes row",
+        "document": "wdc02",
         "quote": "All are NOP's (reserved for future use). OpCode 5C, Bytes 3, Cycles 8.",
-        "assembled": true
+        "assembled": true,
+        "section": "Table 7-1, the Execution of invalid OpCodes row"
       },
       "suiteSays": {
         "corpus": "SingleStepTests 65x02, the wdc65c02, synertek65c02 and rockwell65c02 sets",
@@ -285,9 +297,10 @@
     {
       "subject": "which address the modify cycle and the push drive when the register is eight bits",
       "documentSays": {
-        "document": "W65C816S Data Sheet, Table 6-7, groups 1d, 6b, 10b, 16b and 22c",
+        "document": "wdc816",
         "quote": "1d. Absolute (R-M-W) a, cycle 5: DBR,AA+1, IO. 22c. Stack s, cycle 3: 0,S-1, REG Low.",
-        "assembled": true
+        "assembled": true,
+        "section": "Table 6-7, groups 1d, 6b, 10b, 16b and 22c"
       },
       "suiteSays": {
         "corpus": "SingleStepTests/ProcessorTests 65816 v1",
@@ -302,15 +315,17 @@
     {
       "subject": "whether the new program counter of an indexed indirect jump is a program address",
       "documentSays": {
-        "document": "W65C816S Data Sheet, Table 6-7, groups 2a and 2b",
+        "document": "wdc816",
         "quote": "2a. Absolute Indexed Indirect (a,x), cycle 5: VDA 0, VPA 1, PBR,AA+X, New PCL.",
-        "assembled": true
+        "assembled": true,
+        "section": "Table 6-7, groups 2a and 2b"
       },
       "andAlsoSays": {
-        "document": "W65C816S Data Sheet, Table 6-7, group 3b",
+        "document": "wdc816",
         "quote": "3b. Absolute Indirect (a), cycle 4: VDA 1, VPA 0, 0,AA, New PCL.",
         "assembled": true,
-        "why": "The same operation, reading a new program counter through a pointer, marked the other way two groups later. The two differ only in which bank holds the pointer: the program bank for the indexed form, bank zero for the plain one."
+        "why": "The same operation, reading a new program counter through a pointer, marked the other way two groups later. The two differ only in which bank holds the pointer: the program bank for the indexed form, bank zero for the plain one.",
+        "section": "Table 6-7, group 3b"
       },
       "suiteSays": {
         "corpus": "SingleStepTests/ProcessorTests 65816 v1",
@@ -326,10 +341,11 @@
     {
       "subject": "what a reset drives on the bus during its six delay cycles",
       "documentSays": {
-        "document": "MCS6500 Microcomputer Family Hardware Manual, 1976, 1.4.1.2.11 RES--Reset",
+        "document": "mos6500",
         "quote": "When the line goes high, the microprocessor will delay 6 cycles and then fetch the new program count vectors from specific locations in memory (PCL from location FFFC and PCH from location FFFD).",
         "pdfPage": 53,
-        "readIn": "mcs6500-hardware-manual-1976.pdf"
+        "readIn": "mcs6500-hardware-manual-1976.pdf",
+        "section": "1976, 1.4.1.2.11 RES--Reset"
       },
       "suiteSays": {
         "corpus": "SingleStepTests 65x02 6502 v1",
@@ -344,10 +360,11 @@
     {
       "subject": "how many cycles STP and WAI cost on a W65C02",
       "documentSays": {
-        "document": "Programming the 65816, including the 6502, 65C02 and 65802, WDC, instruction tables for STP and WAI",
+        "document": "wdc816_book",
         "quote": "Uses 3 cycles to shut the processor down; additional cycles are required by reset to restart it",
         "pdfPage": 402,
-        "readIn": "wdc-programming-the-65816-2007.pdf"
+        "readIn": "wdc-programming-the-65816-2007.pdf",
+        "section": "including the 6502, 65C02 and 65802, WDC, instruction tables for STP and WAI"
       },
       "suiteSays": {
         "corpus": "SingleStepTests 65x02 wdc65c02 v1",
@@ -362,10 +379,11 @@
     {
       "subject": "what a halted W65C02 holds on its address lines",
       "documentSays": {
-        "document": "W65C02S Data Sheet, 3.10 Ready (RDY)",
+        "document": "wdc02",
         "quote": "A negative transition to the low state prior to the falling edge of PHI2 will halt the microprocessor with the output address lines reflecting the current address being fetched. This assumes the processor setup time is met. This condition will remain through a subsequent PHI2 in which the ready signal is low. The WAI instruction pulls RDY low signaling the WAit-for-Interrupt condition, thus RDY is a bi-directional pin.",
         "pdfPage": 10,
-        "readIn": "w65c02s.pdf"
+        "readIn": "w65c02s.pdf",
+        "section": "3.10 Ready (RDY)"
       },
       "suiteSays": {
         "corpus": "SingleStepTests 65x02 wdc65c02 v1",
@@ -380,7 +398,7 @@
     {
       "subject": "whether a two cycle opcode turns its internal cycle into a bus read when an interrupt is pending",
       "documentSays": {
-        "document": "W65C816S Data Sheet",
+        "document": "wdc816",
         "quote": "Nothing. The data sheet does not describe what an internal cycle does differently while an interrupt is waiting to be taken.",
         "saysNothing": true
       },
@@ -397,8 +415,7 @@
     {
       "subject": "the transistor level simulation that could settle most of the NMOS questions, and why it is not being used",
       "documentSays": {
-        "document": "not applicable",
-        "quote": "Nothing. This is about a source rather than about the part.",
+        "quote": "Nothing. This is about a source rather than about the part, so there is no document to name and none is named.",
         "saysNothing": true
       },
       "suiteSays": {
@@ -414,10 +431,11 @@
     {
       "subject": "how long a reset takes, which two manufacturers give differently",
       "documentSays": {
-        "document": "MCS6500 Hardware Manual, 1976, 1.4.1.2.11, and W65C02S Data Sheet, 3.11 Reset (RESB)",
+        "document": "mos6500",
         "quote": "MOS: 'the microprocessor will delay 6 cycles and then fetch the new program count vectors'. WDC: 'When a positive edge is detected, there will be a reset sequence lasting seven clock cycles.'",
         "pdfPage": 10,
-        "readIn": "w65c02s.pdf"
+        "readIn": "w65c02s.pdf",
+        "section": "1976, 1.4.1.2.11, and W65C02S Data Sheet, 3.11 Reset (RESB)"
       },
       "suiteSays": {
         "corpus": "SingleStepTests 65x02",

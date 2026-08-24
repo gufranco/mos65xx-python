@@ -275,6 +275,45 @@ def verify(
     return found
 
 
+def undeclared(records: Iterable[tuple[str, Any]] | None = None) -> list[str]:
+    """Every citation that names something the record does not declare as a document.
+
+    A citation is only worth as much as the reader's ability to follow it. When
+    the same field holds a declared key in one place, a file path in another and
+    a prose title with a section glued on in a third, nothing can check any of
+    them: a check written against keys silently skips the other two, and reports
+    a clean run over the half it understood.
+
+    So `document` always names a key in a `documents` block, and where the
+    citation points inside that document goes in `section`. A record with no such
+    block declares nothing and is left alone.
+    """
+    found: list[str] = []
+    for name, held in loaded() if records is None else records:
+        declared = _declared(held)
+        if not declared:
+            continue
+        for where, document, _page in _cited(held, name):
+            if document not in declared:
+                found.append(f"{where}: cites {document!r}, which is not a declared document")
+    return found
+
+
+def _declared(node: Any) -> set[str]:
+    """The keys of every documents block in a record."""
+    found: set[str] = set()
+    if isinstance(node, dict):
+        held = node.get("documents")
+        if isinstance(held, dict):
+            found.update(held)
+        for value in node.values():
+            found.update(_declared(value))
+    elif isinstance(node, list):
+        for one in node:
+            found.update(_declared(one))
+    return found
+
+
 def sections(records: Iterable[tuple[str, Any]] | None = None) -> list[str]:
     """Every fact that cites a multi-part document without landing in this part's section.
 
@@ -391,7 +430,7 @@ def main(
     books = library() if books is None else books
     found = verify(held, books)
     print(report(found, len(books)))
-    wandered = sections() if astray is None else astray
+    wandered = list(sections() if astray is None else astray) + undeclared()
     for one in wandered:
         print(f"  {one}")
     if wandered:

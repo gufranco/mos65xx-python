@@ -1,6 +1,6 @@
 {
   "note": "Appendix A of the MCS6500 Hardware Manual, which prints the address bus, the data bus and the read write line for every cycle of every addressing mode. It is the only manufacturer statement of NMOS cycle behaviour this project has found, so it is the rung one source for what the part puts on its bus and when. Each shape below carries the manual's own address expressions rather than a paraphrase, so a reader can hold the page beside the record. Where the part drives something other than what the page prints, the row carries partDrives and the disagreement is in divergences.json.",
-  "document": "manufacturer/mcs6500-hardware-manual-1976.pdf",
+  "document": "mos6500",
   "section": "Appendix A, Summary of Single Cycle Execution",
   "readOn": "2026-08-21",
   "readHow": "Every page of the appendix read as printed, at pdf pages 168 to 180, rather than through the extracted text, which drops the read write column on four tables and garbles two others.",

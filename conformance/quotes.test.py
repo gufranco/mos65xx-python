@@ -409,5 +409,58 @@ class SectionTest(unittest.TestCase):
         self.assertTrue(any("names file page 105" in line for line in said))
 
 
+class DeclaredDocumentTest(unittest.TestCase):
+    """That every citation names a document the record declares.
+
+    The field held three vocabularies at once here: a declared key, a bare file
+    name, and a prose title with the section glued on the end. Nothing could
+    check any of them, because a check written against keys skipped the other two
+    in silence and reported a clean run over the third.
+    """
+
+    def a_record(self, cited: str, declared: object = None) -> tuple[str, object]:
+        held: dict[str, object] = {"facts": {"a": {"document": cited, "quote": "words"}}}
+        if declared is not None:
+            held["documents"] = declared
+        return ("held.json", held)
+
+    def test_a_declared_key_is_accepted(self) -> None:
+        found = quotes.undeclared([self.a_record("book", {"book": {}})])
+
+        self.assertEqual(found, [])
+
+    def test_a_prose_title_is_reported(self) -> None:
+        found = quotes.undeclared([self.a_record("Some Data Sheet, 8.2", {"book": {}})])
+
+        self.assertEqual(len(found), 1)
+        self.assertIn("not a declared document", found[0])
+
+    def test_a_bare_file_name_is_reported(self) -> None:
+        found = quotes.undeclared([self.a_record("manual.pdf", {"book": {}})])
+
+        self.assertIn("not a declared document", found[0])
+
+    def test_a_record_declaring_nothing_is_left_alone(self) -> None:
+        found = quotes.undeclared([self.a_record("anything at all")])
+
+        self.assertEqual(found, [])
+
+    def test_a_documents_block_nested_in_a_part_is_found(self) -> None:
+        held = {
+            "parts": [{"documents": {"book": {}}}],
+            "facts": {"a": {"document": "elsewhere", "quote": "w"}},
+        }
+
+        self.assertIn("not a declared document", quotes.undeclared([("held.json", held)])[0])
+
+    def test_a_documents_block_that_is_not_a_mapping_declares_nothing(self) -> None:
+        found = quotes.undeclared([self.a_record("anything", ["book"])])
+
+        self.assertEqual(found, [])
+
+    def test_the_records_on_disk_all_cite_declared_documents(self) -> None:
+        self.assertEqual(quotes.undeclared(), [])
+
+
 if __name__ == "__main__":
     unittest.main()

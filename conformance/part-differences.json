@@ -1,6 +1,6 @@
 {
   "note": "Table 8-1 of the W65C816S data sheet, which sets the four parts side by side and says where they differ. It is the only manufacturer document here that compares them directly, which makes it the one place a claim about a difference can be checked rather than inferred from two documents that never mention each other. Every row below is driven on every model this project covers.",
-  "document": "manufacturer/w65c816s.pdf",
+  "document": "wdc816",
   "section": "Table 8-1 Caveats",
   "printedPage": 56,
   "pdfPage": 56,

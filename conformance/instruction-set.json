@@ -1,6 +1,6 @@
 {
   "note": "Appendix B of the MCS6500 Programming Manual, which gives every instruction its own page: the flags it touches, and for each addressing mode the opcode, the byte count and the cycle count. Read as printed rather than through the extracted text, because the flag row is a line of check marks, dashes and digits that no text layer survives. This is the manufacturer's own statement of the instruction set, so it is what the opcode table and the cycle counts are held to.",
-  "document": "manufacturer/mcs6500-programming-manual-1976.pdf",
+  "document": "mos6500_programming",
   "section": "Appendix B, Instruction List Alphabetic by Mnemonic",
   "printedPages": "B-3 to B-29",
   "pdfPages": "200 to 226",

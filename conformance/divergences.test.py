@@ -56,9 +56,18 @@ class ShapeTest(unittest.TestCase):
     """That every entry says the four things a reader needs."""
 
     def test_each_one_names_the_document_and_quotes_it(self) -> None:
+        """Every entry quotes something, and names the document unless there is none.
+
+        A `saysNothing` entry usually still names the document that is silent,
+        which is the more useful record: it says where somebody looked. One entry
+        here is about the transistor level simulation and why it is not used, so
+        there is no document behind it at all and none is named.
+        """
         for one in declared()["divergences"]:
-            self.assertIn("document", one["documentSays"], one["subject"])
             self.assertIn("quote", one["documentSays"], one["subject"])
+            if one["documentSays"].get("saysNothing"):
+                continue
+            self.assertIn("document", one["documentSays"], one["subject"])
 
     def test_each_one_says_what_was_measured(self) -> None:
         for one in declared()["divergences"]:
@@ -112,7 +121,7 @@ class AppendixBusTest(unittest.TestCase):
     def test_the_entry_about_it_names_the_table_that_gets_it_right(self) -> None:
         recorded = about("discarded read of an indexed access")
 
-        self.assertIn("A.3.6", recorded["andAlsoSays"]["document"])
+        self.assertIn("A.3.6", recorded["andAlsoSays"]["section"])
 
     def test_a_taken_branch_drives_the_counter_before_the_offset(self) -> None:
         found = self.bus(bytes((0xD0, 0x17)))
