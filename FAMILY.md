@@ -13,7 +13,7 @@ round to.
 |:--|:--|
 | [mos65xx-python](https://github.com/gufranco/mos65xx-python) | The 65xx family: sixteen parts, from the 6502 to the 65816 |
 | [zilog-z80-python](https://github.com/gufranco/zilog-z80-python) | The Z80: three parts, NMOS and CMOS |
-| [nec-upd7725-python](https://github.com/gufranco/nec-upd7725-python) | The NEC uPD7725 and uPD96050 digital signal processors |
+| [nec-upd7725-96050-python](https://github.com/gufranco/nec-upd7725-96050-python) | The NEC uPD7725 and uPD96050 digital signal processors |
 
 Nothing else is a member. A copy of this file sitting in a repository outside
 that list is a working note somebody left there; it binds nothing and it is not
