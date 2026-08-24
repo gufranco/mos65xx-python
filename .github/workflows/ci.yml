@@ -46,8 +46,25 @@ jobs:
       - name: Install the formatter
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Check that every JSON file is formatted
+      - name: Check that every JSON and YAML file is formatted
         run: pnpm run format:check
+
+      # The workflows are the one thing here nothing else checks, and a mistake
+      # in them is only visible once a run has already gone wrong. The archive
+      # is verified by digest before anything in it runs, for the same reason
+      # every document this project reads is.
+      - name: Check the workflows themselves
+        run: |
+          curl -fsSL -o actionlint.tar.gz \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          echo "${ACTIONLINT_SHA256}  actionlint.tar.gz" | sha256sum -c -
+          tar -xzf actionlint.tar.gz actionlint
+          ./actionlint -color
+          rm -f actionlint actionlint.tar.gz
+        shell: bash
+        env:
+          ACTIONLINT_VERSION: "1.7.12"
+          ACTIONLINT_SHA256: "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8"
 
   types:
     name: Types

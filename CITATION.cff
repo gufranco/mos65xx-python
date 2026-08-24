@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+title: mos65xx-python
+message: >-
+  If you use this work, or the states it was settled against, please cite it.
+type: software
+authors:
+  - given-names: Gustavo
+    family-names: Franco
+    alias: gufranco
+repository-code: https://github.com/gufranco/mos65xx-python
+url: https://github.com/gufranco/mos65xx-python
+abstract: >-
+  A model of the MOS 6502 family and the WDC 65C816, the processors inside the machines
+  that defined eight-bit and sixteen-bit home computing. Every documented instruction,
+  addressing mode, cycle and bus line is settled against recorded states and against the
+  manufacturers' own data sheets rather than against its author's confidence, and nothing
+  in it starts from a clean machine, because silicon powers up holding whatever it holds.
+keywords:
+  - emulation
+  - 6502
+  - 65816
+  - mos-technology
+  - wdc
+  - hardware-model
+  - conformance
+  - cycle-accurate
+license: MIT
+version: 3.2.0

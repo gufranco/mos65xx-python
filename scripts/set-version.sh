@@ -7,6 +7,8 @@ readonly VERSION_PATTERN='^[0-9]+\.[0-9]+\.[0-9]+([-+].*)?$'
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 readonly VERSION_FILE="${root}/mos65xx/version.py"
 
+readonly CITATION_FILE="${root}/CITATION.cff"
+
 fail() {
   printf '%s\n' "$1" >&2
   exit 1
@@ -26,17 +28,37 @@ replace_recorded_version() {
   rm -f "${scratch}"
 }
 
+version_recorded_in_citation() {
+  sed -n 's/^version: \(.*\)$/\1/p' "${CITATION_FILE}"
+}
+
+replace_citation_version() {
+  local wanted=$1
+  local scratch
+  scratch=$(mktemp "${TMPDIR:-/tmp}/citation-version-XXXXXX")
+
+  sed "s/^version: .*$/version: ${wanted}/" "${CITATION_FILE}" >"${scratch}"
+  cat "${scratch}" >"${CITATION_FILE}"
+  rm -f "${scratch}"
+}
+
 main() {
   local wanted=${1:?version required}
 
   [[ ${wanted} =~ ${VERSION_PATTERN} ]] || fail "not a version: ${wanted}"
   [[ -n $(version_recorded_in_file) ]] || fail "no VERSION assignment in ${VERSION_FILE}"
+  [[ -n $(version_recorded_in_citation) ]] || fail "no version in ${CITATION_FILE}"
 
   replace_recorded_version "${wanted}"
+  replace_citation_version "${wanted}"
 
   local written
   written=$(version_recorded_in_file)
   [[ ${written} == "${wanted}" ]] || fail "wanted ${wanted} in ${VERSION_FILE}, found ${written}"
+
+  local cited
+  cited=$(version_recorded_in_citation)
+  [[ ${cited} == "${wanted}" ]] || fail "wanted ${wanted} in ${CITATION_FILE}, found ${cited}"
 
   printf 'version set to %s\n' "${written}"
 }
