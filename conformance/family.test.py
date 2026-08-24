@@ -370,5 +370,76 @@ class ClaimedCountTest(unittest.TestCase):
         self.assertEqual(int(claimed.group(1).replace(",", "")), self.counted())
 
 
+def as_a_script(text: str) -> list[int]:
+    """The line numbers where a conformance tool is invoked as a script."""
+    return [
+        number
+        for number, line in enumerate(text.splitlines(), start=1)
+        if re.search(r"python3? conformance/[a-z_]+\.py", line)
+    ]
+
+
+class StandardIsKeptTest(unittest.TestCase):
+    """That the conventions the standard added are the ones this repository follows.
+
+    A standard is prose, and prose about code goes stale silently. These are the
+    claims the file makes that a check can settle, so it settles them rather than
+    trusting that a convention written down once is a convention still kept.
+    """
+
+    def test_the_standard_names_the_errors_module_as_the_one_home(self) -> None:
+        self.assertIn("errors.py", FAMILY)
+
+    def test_and_this_repository_has_one(self) -> None:
+        self.assertTrue((Path(PACKAGE.__file__ or "").resolve().parent / "errors.py").exists())
+
+    def test_the_standard_says_a_tool_runs_as_a_module(self) -> None:
+        self.assertIn("python3 -m conformance.name", FAMILY)
+
+    def test_and_no_workflow_runs_one_as_a_script(self) -> None:
+        """The invocation is what actually decides, so it is what is read.
+
+        Run as a script, the tool's own directory goes on the import path and a
+        file there shadows a standard library module of the same name.
+        """
+        astray = [
+            f"{path.name}:{number}"
+            for path in sorted((ROOT / ".github" / "workflows").glob("*.yml"))
+            for number in as_a_script(path.read_text())
+        ]
+
+        self.assertEqual(astray, [])
+
+    def test_and_no_document_tells_a_reader_to(self) -> None:
+        astray = [
+            name
+            for name in ("README.md", "AGENTS.md", "CONTRIBUTING.md")
+            if (ROOT / name).exists() and as_a_script((ROOT / name).read_text())
+        ]
+
+        self.assertEqual(astray, [])
+
+    def test_the_reader_of_those_two_finds_a_script_invocation(self) -> None:
+        """Both checks rest on one reader, so the reader is what is tested."""
+        self.assertEqual(as_a_script("run: python conformance/speed.py\n"), [1])
+        self.assertEqual(as_a_script("run: python3 -m conformance.speed\n"), [])
+        self.assertEqual(as_a_script("a\nb\npython conformance/links.py\n"), [3])
+
+    def test_the_standard_promises_a_throughput_floor(self) -> None:
+        self.assertIn("throughput floor", FAMILY)
+
+    def test_and_this_repository_has_one_with_a_floor_to_beat(self) -> None:
+        from conformance import speed
+
+        self.assertGreater(speed.FLOOR, 0)
+
+    def test_the_floor_is_checked_outside_the_coverage_step(self) -> None:
+        """Under a tracer the check measures the tracer, so it must not run there."""
+        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+
+        self.assertIn("python -m conformance.speed", workflow)
+        self.assertNotIn("coverage run -a conformance/speed.py", workflow)
+
+
 if __name__ == "__main__":
     unittest.main()

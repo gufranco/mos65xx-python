@@ -196,6 +196,17 @@ works: `except Stopped` is written against one part, tested against it, and sail
 straight through against another. Every shared name has exactly one definition,
 in its own module, and every user of it imports that one.
 
+That module is `errors.py`. Everything a package raises lives there, whatever
+raises it, and it imports nothing from the package so it can never be the far end
+of a cycle. An exception a caller can meet is exported from the package as well,
+because `except` takes a name and one that cannot be imported can only be handled
+by catching everything. A leading underscore is how a genuinely internal one says
+so.
+
+`conformance/family.test.py` holds both halves. It imports every module file in
+the package directory rather than the ones the package re-exports, because a
+module left out of that list is exactly where a second definition hides.
+
 The same applies to an attribute. Where two parts genuinely need one name for
 different things, as `.d` is the decimal flag on a 6502 and the direct page
 register on a 65816, the collision is documented in the README with the portable
@@ -219,6 +230,35 @@ code with a test wherever that is possible: a promised interface, a model that
 must appear in the README, a count that must match. Where a test cannot reach,
 say the claim narrowly enough that it stays true.
 
+Four rules make a citation checkable rather than decorative.
+
+**One vocabulary for naming a document.** Every record declares its sources in a
+`documents` block, each with the file it is, and `document` on a fact names one
+of those keys. Where the fact sits inside that document goes in `section`. Held
+in one field, a key here, a file name there and a prose title with the section
+glued on somewhere else, nothing can check any of them: a check written against
+keys skips the rest in silence and reports a clean run over the part it
+understood.
+
+**A quote belongs to the document it names.** Searching every source and keeping
+whichever placed it best answers "did somebody publish this sentence", not "did
+the one this record cites publish it". Those come apart precisely when a fact is
+filed under the wrong source, and then the words are real, the run is green, and
+the citation sends a reader somewhere the sentence is not.
+
+**A part's pages, when a document covers several parts.** A data book carries a
+dozen chips, and close relatives print the same table under the same name with
+the same column headings. The flattened text holds every section at once, so the
+search cannot tell them apart. A document that covers more than this part
+declares the file pages that are this part's, and a fact citing it names one of
+them.
+
+**Every fact names the parts it governs.** Left unsaid it is carried by how the
+key is spelled and by which document it cites, and a claim read from one part's
+sheet and filed among another's reads exactly like its neighbours. Where a value
+differs between parts, the record is checked against the model rather than taken
+on trust.
+
 ## What every repository carries
 
 | File | Holds |
@@ -227,6 +267,19 @@ say the claim narrowly enough that it stays true.
 | `AGENTS.md` | The document for an agent. `CLAUDE.md` points at it so the two cannot drift |
 | `FAMILY.md` | This file, identical in every repository |
 | `OPEN-QUESTIONS.md` | Every place fidelity is still a claim, and the measurement that would close it |
+| `conformance/speed.py` | A throughput floor, so the model cannot get several times slower without a failure |
+| `conformance/readme.test.py` | Every worked example in the README, run, with its output compared to what the README claims |
+
+A tool under `conformance/` is run as a module, `python3 -m conformance.name`,
+and imports its siblings through the package. Run as a script, its own directory
+goes on the import path and a file there shadows any standard library module of
+the same name, which is a fault that reads as the code being broken.
+
+The throughput floor sits several times below what the model does, so a shared
+runner having a bad minute passes and a real regression does not. It runs
+uninstrumented and outside the coverage step, because a coverage tracer costs
+about ten times what the model does and a throughput assertion under one measures
+the tracer.
 
 The README is for a reader who wants to use the thing. Reasoning about why a
 source was believed belongs with the record it reasons about, not in the README.
