@@ -81,11 +81,19 @@ checks the ones a test can reach.
       correct in every part a check reads and still send a reader to a table
       only a different sheet has.
 - [ ] Every passage taken from a document sits under a key ending in `quote`,
-      which is the only kind the checker reads. A second passage beside a first
-      one is its own entry with its own document, section and page, never a
-      field named for being second: a marker saying the words are the
-      document's but the order is not belongs to one passage and silences every
-      quote on its node.
+      or `quotes` for a numbered set of them. Those are the only kinds the
+      checker reads, so a passage under any other name is a document's words
+      that nothing holds to the document, and it drifts the way a comment
+      drifts: quietly, while still reading as evidence. Twenty-one were found
+      here in one pass under names like `footnote`, `notes` and `pushedBytes`.
+- [ ] A second passage beside a first one is its own entry with its own
+      document, section and page, never a field named for being second. The
+      marker saying the words are the document's but the order is not belongs
+      to a single passage and silences every quote on its node, which is how a
+      sentence from one manufacturer's sheet sat unchecked under another's.
+- [ ] A long run of words that a pinned document carries verbatim is that
+      document's, whatever the key is called, and a check says so rather than
+      trusting the name.
 - [ ] A document covering more than this part declares the file pages that are
       this part's, and every fact citing it names one of them.
 - [ ] Every fact names the parts it governs. Left unsaid it is carried by how the

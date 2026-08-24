@@ -329,12 +329,12 @@
       "quote": "The VP output is low during the two cycles used for vector location access. When an interrupt is executed, D=0 and I=1 in Status Register P.",
       "pdfPage": 30,
       "readIn": "w65c816s-2024.pdf",
-      "pushedBytes": "The IRQB signal going low causes 4 bytes of information to be pushed onto the stack before jumping to the interrupt handler. The first byte is PBR followed by PCH, PCL and P (Processor Status Register).",
       "breakBitOnHardwareInterrupt": "Table 6-7 note 11, against the cycle that pushes P for ABORT, IRQ, NMI and RES: BRK bit 4 equals \"0\" in Emulation mode.",
       "oneFewerCycleInEmulation": "Table 6-7 note 7: Subtract 1 cycle for 6502 emulation mode (E=1).",
       "note": "So a hardware interrupt in emulation mode pushes three bytes rather than four, and the status it pushes has bit 4 clear, which is the one thing that distinguishes it from a BRK. In native mode the program bank goes out first and the same bit carries the index width instead.",
       "appliesTo": ["65802", "65816"],
-      "appliesToCore": "wide"
+      "appliesToCore": "wide",
+      "pushedBytesQuote": "The IRQB signal going low causes 4 bytes of information to be pushed onto the stack before jumping to the interrupt handler. The first byte is PBR followed by PCH, PCL and P (Processor Status Register)."
     },
     "programBankOnInterrupt": {
       "document": "wdc816",

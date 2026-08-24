@@ -38,6 +38,9 @@ RECORDS = ROOT / "conformance"
 
 WINDOW = 5
 
+BORROWED = 12
+"""How long a run of words has to be before a document carrying it is not chance."""
+
 TABLE = re.compile(r"Table\s+(\d+(?:[-.]\d+)*)")
 """How a numbered table is named, in either family the documents here use."""
 """Words per window. Short enough to survive a misread word, long enough that
@@ -104,6 +107,12 @@ def windows(quote: str) -> list[str]:
 def said(node: Any, trail: str = "") -> list[tuple[str, str]]:
     """Every quoted sentence in a record that a document should carry contiguously.
 
+    A key ending in `quote` holds one passage. A key ending in `quotes` holds
+    several, either as a list or as a map from the number a document prints
+    beside each one. The plural form is what a page of numbered notes is, and
+    holding it under a name of its own is what keeps it inside the checker
+    rather than beside it.
+
     Two markers take a quote out of scope, and each says something a reader can
     check. ``assembled`` means the words are the document's but the order is not:
     a table or a figure flattened into a sentence, which no search for a run of
@@ -117,9 +126,13 @@ def said(node: Any, trail: str = "") -> list[tuple[str, str]]:
             if key.endswith(("quote", "Quote")) and isinstance(value, str):
                 if not (node.get("assembled") or node.get("saysNothing")):
                     found.append((here, value))
-            elif key == "quotes" and isinstance(value, list):
+            elif key.endswith(("quotes", "Quotes")) and isinstance(value, list):
                 found.extend(
                     (f"{here}[{at}]", one) for at, one in enumerate(value) if isinstance(one, str)
+                )
+            elif key.endswith(("quotes", "Quotes")) and isinstance(value, dict):
+                found.extend(
+                    (f"{here}.{at}", one) for at, one in value.items() if isinstance(one, str)
                 )
             else:
                 found.extend(said(value, here))
@@ -467,6 +480,55 @@ def _sectioned(node: Any, trail: str = "") -> list[tuple[str, str, str]]:
     return found
 
 
+def borrowed(
+    records: Iterable[tuple[str, Any]] | None = None,
+    books: dict[str, str] | None = None,
+) -> list[str]:
+    """Every passage a document carries, under a key this checker does not read.
+
+    A quote is verified because of the name it sits under. A passage under any
+    other name is a document's words that nothing holds to the document, and it
+    drifts the way a comment drifts: quietly, while still reading as evidence.
+    Twenty-one of them were found here in one pass, under `footnote`, under
+    `notes`, and under `pushedBytes`.
+
+    The rule is that a long run of words appearing verbatim in a pinned document
+    is that document's, whatever the key is called. Short strings are left alone
+    because a record repeats a mnemonic, a register name or a column heading
+    legitimately, and reporting those would bury the finding among them.
+    """
+    held = library() if books is None else books
+    found: list[str] = []
+    for name, record in loaded() if records is None else records:
+        for trail, text in _plain(record, name):
+            if len(text.split()) < BORROWED:
+                continue
+            carried = sorted(one for one, body in held.items() if flatten(text) in body)
+            if carried:
+                found.append(
+                    f"{trail}: {', '.join(carried)} carries these words, and the key"
+                    f" is not one this checker reads"
+                )
+    return found
+
+
+def _plain(node: Any, trail: str = "") -> list[tuple[str, str]]:
+    """Every string in a record that is not already held as a quote."""
+    found: list[tuple[str, str]] = []
+    if isinstance(node, dict):
+        for key, value in node.items():
+            here = f"{trail}.{key}" if trail else key
+            if key.endswith(("quote", "Quote", "quotes", "Quotes")):
+                continue
+            found.extend(_plain(value, here))
+    elif isinstance(node, list):
+        for at, one in enumerate(node):
+            found.extend(_plain(one, f"{trail}[{at}]"))
+    elif isinstance(node, str):
+        found.append((trail, node))
+    return found
+
+
 def undeclared(records: Iterable[tuple[str, Any]] | None = None) -> list[str]:
     """Every citation that names something the record does not declare as a document.
 
@@ -623,7 +685,7 @@ def main(
     found = verify(held, books)
     print(report(found, len(books)))
     wandered = list(sections() if astray is None else astray)
-    wandered += undeclared() + misattributed() + phantom()
+    wandered += undeclared() + misattributed() + phantom() + borrowed()
     for one in wandered:
         print(f"  {one}")
     if wandered:

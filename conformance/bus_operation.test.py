@@ -277,7 +277,7 @@ class RecordTest(unittest.TestCase):
             note for group in self.groups for row in group["bus"] for note in row.get("notes", ())
         }
 
-        self.assertLessEqual(cited, set(HELD["notes"]))
+        self.assertLessEqual(cited, set(HELD["noteQuotes"]))
 
     def test_every_row_says_what_all_four_qualifying_lines_did(self) -> None:
         missing = [

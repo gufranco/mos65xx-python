@@ -185,7 +185,7 @@
       "printedPage": "A-4",
       "pdfPage": 171,
       "cycles": [4, 5],
-      "footnote": "If the page boundary is crossed in the indexing operation, the data fetched in T3 is ignored. If page boundary is not crossed, the T4 cycle is bypassed.",
+      "footnoteQuote": "If the page boundary is crossed in the indexing operation, the data fetched in T3 is ignored. If page boundary is not crossed, the T4 cycle is bypassed.",
       "bus": [
         {
           "state": "T0",
@@ -260,7 +260,7 @@
       "printedPage": "A-5",
       "pdfPage": 172,
       "cycles": [5, 6],
-      "footnote": "If page boundary is crossed in indexing operation, the data fetch in T4 is ignored. If page boundary is not crossed, the T5 cycle is bypassed.",
+      "footnoteQuote": "If page boundary is crossed in indexing operation, the data fetch in T4 is ignored. If page boundary is not crossed, the T5 cycle is bypassed.",
       "bus": [
         {
           "state": "T0",
@@ -1028,7 +1028,7 @@
       "pdfPage": 180,
       "cycles": [2, 3, 4],
       "instructions": ["BCC", "BCS", "BEQ", "BMI", "BNE", "BPL", "BVC", "BVS"],
-      "footnote": "Skip if branch not taken. Skip if branch not taken; skip if branch operation doesn't cross page boundary.",
+      "footnoteQuote": "Skip if branch not taken. Skip if branch not taken; skip if branch operation doesn't cross page boundary.",
       "bus": [
         {
           "state": "T0",

@@ -68,6 +68,22 @@ class ReadingTest(unittest.TestCase):
 
         self.assertEqual(len(found), 1)
 
+    def test_a_plural_key_of_its_own_name_holds_several(self) -> None:
+        found = quotes.said({"aboutQuotes": ["one", "two"]})
+
+        self.assertEqual(found, [("aboutQuotes[0]", "one"), ("aboutQuotes[1]", "two")])
+
+    def test_and_a_numbered_map_of_them_keeps_the_number_printed_beside_each(self) -> None:
+        """A page of notes is numbered, and the number is how a row cites one."""
+        found = quotes.said({"noteQuotes": {"1": "first", "14": "fourteenth"}})
+
+        self.assertEqual(found, [("noteQuotes.1", "first"), ("noteQuotes.14", "fourteenth")])
+
+    def test_a_numbered_map_carrying_something_that_is_not_a_passage_skips_it(self) -> None:
+        found = quotes.said({"noteQuotes": {"1": "first", "2": 2}})
+
+        self.assertEqual(found, [("noteQuotes.1", "first")])
+
     def test_a_quote_inside_a_list_of_objects_is_reached(self) -> None:
         found = quotes.said([{"quote": "hello"}])
 
@@ -718,6 +734,66 @@ class TableCatalogueTest(unittest.TestCase):
             found = quotes.catalogue(folder, self.answering("Table 1-1"))
 
         self.assertEqual(found, {"one.pdf": {"1-1"}, "two.pdf": {"1-1"}})
+
+
+class BorrowedTextTest(unittest.TestCase):
+    """That a document's words are found wherever a record puts them.
+
+    A quote is checked because of the key it sits under, so a passage under any
+    other name was document text nothing held to the document. Twenty-one of
+    them were here at once.
+    """
+
+    LONG = "the quick brown fox jumps over the lazy dog and then turns around and runs home"
+    BOOKS: ClassVar[dict[str, str]] = {"right.pdf": quotes.flatten(LONG)}
+
+    def a_record(self, key: str, text: str) -> tuple[str, dict[str, Any]]:
+        return ("held.json", {"facts": {"a": {key: text}}})
+
+    def test_a_passage_under_a_key_the_checker_reads_is_left_alone(self) -> None:
+        found = quotes.borrowed([self.a_record("quote", self.LONG)], self.BOOKS)
+
+        self.assertEqual(found, [])
+
+    def test_and_so_is_one_under_a_plural_key(self) -> None:
+        held = ("held.json", {"facts": {"a": {"noteQuotes": {"1": self.LONG}}}})
+
+        self.assertEqual(quotes.borrowed([held], self.BOOKS), [])
+
+    def test_a_passage_under_any_other_key_is_reported(self) -> None:
+        found = quotes.borrowed([self.a_record("footnote", self.LONG)], self.BOOKS)
+
+        self.assertEqual(len(found), 1)
+        self.assertIn("right.pdf", found[0])
+
+    def test_a_short_string_is_left_alone_however_it_is_keyed(self) -> None:
+        """A record repeats a mnemonic or a column heading legitimately."""
+        found = quotes.borrowed([self.a_record("title", "the quick brown fox")], self.BOOKS)
+
+        self.assertEqual(found, [])
+
+    def test_a_long_string_no_document_carries_is_left_alone(self) -> None:
+        held = self.a_record(
+            "note", "this sentence was written here and appears in no document " * 2
+        )
+
+        self.assertEqual(quotes.borrowed([held], self.BOOKS), [])
+
+    def test_the_walk_reaches_a_string_inside_a_list(self) -> None:
+        held = ("held.json", {"facts": {"a": {"about": ["x", self.LONG]}}})
+
+        found = quotes.borrowed([held], self.BOOKS)
+
+        self.assertEqual(len(found), 1)
+        self.assertIn("about[1]", found[0])
+
+    def test_a_value_that_is_not_a_string_is_stepped_over(self) -> None:
+        held = ("held.json", {"facts": {"a": {"cycles": [2, 3], "ok": True, "n": None}}})
+
+        self.assertEqual(quotes.borrowed([held], self.BOOKS), [])
+
+    def test_the_records_on_disk_keep_no_document_text_out_of_reach(self) -> None:
+        self.assertEqual(quotes.borrowed(), [])
 
 
 if __name__ == "__main__":
