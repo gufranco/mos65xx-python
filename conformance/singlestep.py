@@ -19,12 +19,12 @@ does not own.
     git clone --filter=blob:none --sparse --depth=1 \\
         https://github.com/SingleStepTests/ProcessorTests.git
     git -C ProcessorTests sparse-checkout set 65816
-    python3 conformance/singlestep.py ProcessorTests/65816/v1
+    python3 -m conformance.singlestep ProcessorTests/65816/v1
 
     git clone --filter=blob:none --sparse --depth=1 \\
         https://github.com/SingleStepTests/65x02.git
     git -C 65x02 sparse-checkout set 6502
-    python3 conformance/singlestep.py 65x02/6502/v1 --model 6502
+    python3 -m conformance.singlestep 65x02/6502/v1 --model 6502
 """
 
 from __future__ import annotations
@@ -168,7 +168,7 @@ def run_file(
     return run_tests(tests, model)
 
 
-USAGE = "usage: singlestep.py <suite directory> [tests per file] [filter] [--model name]"
+USAGE = "usage: python3 -m conformance.singlestep <suite directory> [tests per file] [filter] [--model name]"
 
 
 class Usage(Exception):

@@ -44,7 +44,7 @@ jobs:
         id: ask
         run: |
           set +e
-          python conformance/links.py | tee /tmp/links.json
+          python -m conformance.links | tee /tmp/links.json
           echo "broken=$?" >> "${GITHUB_OUTPUT}"
         shell: bash
 

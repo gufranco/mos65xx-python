@@ -49,7 +49,7 @@ jobs:
       - name: Ask
         id: ask
         run: |
-          moved=$(python conformance/watch.py --moved)
+          moved=$(python -m conformance.watch --moved)
           echo "moved=${moved}" >> "${GITHUB_OUTPUT}"
           if [ "${moved}" = "[]" ]; then
             echo "any=false" >> "${GITHUB_OUTPUT}"
@@ -132,7 +132,7 @@ jobs:
             # pipeline, because a pipeline runs in a subshell and an assignment
             # made there is lost. Reporting a pass for a suite that failed is
             # exactly the failure this file exists to stop.
-            if ! python conformance/singlestep.py "${path}" | tee -a /tmp/report.txt; then
+            if ! python -m conformance.singlestep "${path}" | tee -a /tmp/report.txt; then
               status=1
             fi
             echo "::endgroup::"

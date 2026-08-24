@@ -10,7 +10,7 @@ Nothing is inferred from a cycle count here. The comparison is address by addres
 value by value, read against write, in order. A model that takes the right number
 of cycles by reading the wrong address fails.
 
-    python3 conformance/cycles.py 65x02/6502/v1 --model 6502
+    python3 -m conformance.cycles 65x02/6502/v1 --model 6502
 
 One thing is outside the comparison and it is named in the output: a cycle whose
 recorded address is a placeholder rather than a measurement. Nothing else is
@@ -219,7 +219,7 @@ def options(argv: Sequence[str]) -> tuple[list[str], str]:
     return rest, model
 
 
-USAGE = "usage: cycles.py <suite directory> [tests per file] [filter] [--model name]"
+USAGE = "usage: python3 -m conformance.cycles <suite directory> [tests per file] [filter] [--model name]"
 
 
 def report(examples: Sequence[Example]) -> None:

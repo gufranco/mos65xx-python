@@ -95,8 +95,8 @@ python3 -m coverage report
 The conformance run needs the suites, which are fetched rather than vendored:
 
 ```bash
-python3 conformance/fetch.py
-python3 conformance/singlestep.py
+python3 -m conformance.fetch
+python3 -m conformance.singlestep
 ```
 
 ## The cycle claim, and what it rests on
@@ -104,7 +104,7 @@ python3 conformance/singlestep.py
 Every part is held to the bus, not only to state:
 
 ```bash
-python3 conformance/cycles.py <suite>/65816/v1 --model 65816
+python3 -m conformance.cycles <suite>/65816/v1 --model 65816
 ```
 
 17,870,080 cases agree, across all eight parts. On the eight-bit parts every cycle

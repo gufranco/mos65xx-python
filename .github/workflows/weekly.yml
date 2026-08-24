@@ -89,5 +89,5 @@ jobs:
       # The conformance suites are pinned by commit. This asks upstream what the
       # newest is, so a suite that gained cases is noticed here rather than never.
       - name: What the pinned suites look like upstream
-        run: python conformance/fetch.py --latest
+        run: python -m conformance.fetch --latest
         continue-on-error: true

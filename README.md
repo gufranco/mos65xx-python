@@ -240,9 +240,9 @@ False
 Every core is checked against the per-opcode suite published for the part it models, 10,000 cases per opcode: **17,900,000 cases, no failures**. The comparison then goes further and checks what the part put on the bus, cycle by cycle, address by address, and on the 65816 pin by pin: **17,870,080 cases, no failures**.
 
 ```bash
-python3 conformance/fetch.py ~/.cache/conformance-suites
-python3 conformance/singlestep.py ~/.cache/conformance-suites/6502/6502/v1 --model 6502
-python3 conformance/cycles.py ~/.cache/conformance-suites/6502/6502/v1 --model 6502
+python3 -m conformance.fetch ~/.cache/conformance-suites
+python3 -m conformance.singlestep ~/.cache/conformance-suites/6502/6502/v1 --model 6502
+python3 -m conformance.cycles ~/.cache/conformance-suites/6502/6502/v1 --model 6502
 ```
 
 Every eight-bit part drives an address in every cycle it runs, including the ones it spends thinking, so the recorded list of accesses is timing and side effects at once. The 65816 lowers both address lines instead, and those cycles are compared too, pins included. A cycle count alone would settle nothing: a model can spend the right number of cycles reading the wrong addresses.

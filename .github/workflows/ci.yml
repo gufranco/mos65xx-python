@@ -123,7 +123,7 @@ jobs:
       # somebody running it with the documents on disk gets a real answer, and
       # that a run without them cannot be mistaken for one.
       - name: Every quoted sentence, against the document it came from
-        run: python conformance/quotes.py
+        run: python -m conformance.quotes
 
   conformance:
     name: Conformance against SingleStepTests
@@ -147,7 +147,7 @@ jobs:
 
       - name: Fetch the suite
         if: steps.cache.outputs.cache-hit != 'true'
-        run: python conformance/fetch.py ~/.cache/conformance-suites
+        run: python -m conformance.fetch ~/.cache/conformance-suites
 
       # A pull request runs a tenth of each suite for a quick answer. A push to
       # main runs every case, because the number of them is what the claim of
@@ -162,7 +162,7 @@ jobs:
           status=0
           while read -r suite model; do
             echo "::group::${suite} as a ${model}"
-            python conformance/singlestep.py \
+            python -m conformance.singlestep \
               "${HOME}/.cache/conformance-suites/${suite}" "${limit}" --model "${model}" || status=1
             echo "::endgroup::"
           done <<'SUITES'
@@ -198,7 +198,7 @@ jobs:
 
       - name: Fetch the suite
         if: steps.cache.outputs.cache-hit != 'true'
-        run: python conformance/fetch.py ~/.cache/conformance-suites
+        run: python -m conformance.fetch ~/.cache/conformance-suites
 
       # Every cycle of an eight-bit part is a bus cycle, so this compares timing
       # and side effects at once: address, value, and read against write, in
@@ -214,7 +214,7 @@ jobs:
           status=0
           while read -r suite model; do
             echo "::group::${suite} as a ${model}"
-            python conformance/cycles.py \
+            python -m conformance.cycles \
               "${HOME}/.cache/conformance-suites/${suite}" "${limit}" --model "${model}" || status=1
             echo "::endgroup::"
           done <<'SUITES'
