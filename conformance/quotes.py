@@ -275,6 +275,91 @@ def verify(
     return found
 
 
+def misattributed(
+    records: Iterable[tuple[str, Any]] | None = None,
+    books: dict[str, str] | None = None,
+) -> list[str]:
+    """Every quote absent from the document its own record names.
+
+    `verify` scores a quote against whichever document places it best, which
+    answers "did somebody publish this sentence" and not "did the document this
+    record cites publish it". Those come apart exactly when a fact is filed under
+    the wrong source, and then the words are real, the check is green, and the
+    citation sends a reader to a document that does not contain the sentence.
+
+    Three facts about the CMOS part were filed under the 16-bit part's data sheet
+    for that reason. Both sheets have a Table 7-1 and they are about different
+    things.
+
+    The rule is deliberately narrow: report only when the quote is absent from the
+    document it names and present in another one. That is the signature of a fact
+    filed under the wrong source, and it stays true for a table flattened into a
+    sentence, where a search may legitimately find nothing anywhere. Reporting a
+    quote that is simply unfindable would flag every such table and say nothing
+    about where it came from.
+
+    A document with no file on this machine is skipped, the same as everywhere
+    else here: a check that cannot run says so rather than reporting a pass.
+    """
+    held = library() if books is None else books
+    found: list[str] = []
+    for name, record in loaded() if records is None else records:
+        files = _files(record)
+        if not files:
+            continue
+        for where, document, quote in _quoted_with_document(record, name):
+            wanted = files.get(document)
+            if wanted is None or wanted not in held:
+                continue
+            parts = windows(quote)
+            if not parts or any(one in held[wanted] for one in parts):
+                continue
+            elsewhere = [
+                title
+                for title, body in held.items()
+                if title != wanted and any(one in body for one in parts)
+            ]
+            if elsewhere:
+                found.append(
+                    f"{where}: cites {document}, and the words are in"
+                    f" {', '.join(sorted(elsewhere))} rather than in {wanted}"
+                )
+    return found
+
+
+def _files(node: Any) -> dict[str, str]:
+    """The file each declared document names, so a quote can be held to it."""
+    found: dict[str, str] = {}
+    if isinstance(node, dict):
+        declared = node.get("documents")
+        if isinstance(declared, dict):
+            for key, value in declared.items():
+                if isinstance(value, dict) and isinstance(value.get("file"), str):
+                    found[key] = value["file"]
+        for value in node.values():
+            found.update(_files(value))
+    elif isinstance(node, list):
+        for one in node:
+            found.update(_files(one))
+    return found
+
+
+def _quoted_with_document(node: Any, trail: str = "") -> list[tuple[str, str, str]]:
+    """Every quote that names a document, skipping the ones nothing can search."""
+    found: list[tuple[str, str, str]] = []
+    if isinstance(node, dict):
+        document = node.get("document")
+        quote = node.get("quote")
+        if isinstance(document, str) and isinstance(quote, str) and not node.get("saysNothing"):
+            found.append((trail, document, quote))
+        for key, value in node.items():
+            found.extend(_quoted_with_document(value, f"{trail}.{key}" if trail else key))
+    elif isinstance(node, list):
+        for at, one in enumerate(node):
+            found.extend(_quoted_with_document(one, f"{trail}[{at}]"))
+    return found
+
+
 def undeclared(records: Iterable[tuple[str, Any]] | None = None) -> list[str]:
     """Every citation that names something the record does not declare as a document.
 
@@ -430,7 +515,7 @@ def main(
     books = library() if books is None else books
     found = verify(held, books)
     print(report(found, len(books)))
-    wandered = list(sections() if astray is None else astray) + undeclared()
+    wandered = list(sections() if astray is None else astray) + undeclared() + misattributed()
     for one in wandered:
         print(f"  {one}")
     if wandered:

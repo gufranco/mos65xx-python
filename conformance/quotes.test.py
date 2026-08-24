@@ -12,7 +12,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from typing import Any, override
+from typing import Any, ClassVar, override
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -460,6 +460,107 @@ class DeclaredDocumentTest(unittest.TestCase):
 
     def test_the_records_on_disk_all_cite_declared_documents(self) -> None:
         self.assertEqual(quotes.undeclared(), [])
+
+
+class AttributionTest(unittest.TestCase):
+    """That a quote is in the document its own record names.
+
+    Scoring a quote against whichever document places it best answers "did
+    somebody publish this sentence" and not "did the document this record cites
+    publish it". The two come apart exactly when a fact is filed under the wrong
+    source, and then the words are real, the run is green, and the citation sends
+    a reader somewhere the sentence is not.
+    """
+
+    def a_record(self, cited: str, quote: str) -> tuple[str, object]:
+        return (
+            "held.json",
+            {
+                "documents": {
+                    "right": {"file": "right.pdf"},
+                    "wrong": {"file": "wrong.pdf"},
+                },
+                "facts": {"a": {"document": cited, "quote": quote}},
+            },
+        )
+
+    BOOKS: ClassVar[dict[str, str]] = {
+        "right.pdf": quotes.flatten(
+            "the quick brown fox jumps over the lazy dog and keeps running"
+        ),
+        "wrong.pdf": quotes.flatten("nothing here resembles the sentence above in any way at all"),
+    }
+
+    def test_a_quote_in_the_document_it_names_is_accepted(self) -> None:
+        found = quotes.misattributed(
+            [self.a_record("right", "the quick brown fox jumps over the lazy dog")], self.BOOKS
+        )
+
+        self.assertEqual(found, [])
+
+    def test_a_quote_that_lives_in_another_document_is_reported(self) -> None:
+        found = quotes.misattributed(
+            [self.a_record("wrong", "the quick brown fox jumps over the lazy dog")], self.BOOKS
+        )
+
+        self.assertEqual(len(found), 1)
+        self.assertIn("right.pdf", found[0])
+
+    def test_a_quote_in_no_document_at_all_is_left_to_the_other_check(self) -> None:
+        found = quotes.misattributed(
+            [self.a_record("right", "a sentence that appears in neither of them anywhere")],
+            self.BOOKS,
+        )
+
+        self.assertEqual(found, [])
+
+    def test_a_document_with_no_file_on_this_machine_is_skipped(self) -> None:
+        held = (
+            "held.json",
+            {
+                "documents": {"right": {"file": "absent.pdf"}},
+                "facts": {"a": {"document": "right", "quote": "the quick brown fox jumps"}},
+            },
+        )
+
+        self.assertEqual(quotes.misattributed([held], self.BOOKS), [])
+
+    def test_a_record_declaring_no_files_is_left_alone(self) -> None:
+        held = ("held.json", {"facts": {"a": {"document": "x", "quote": "the quick brown fox"}}})
+
+        self.assertEqual(quotes.misattributed([held], self.BOOKS), [])
+
+    def test_an_entry_saying_nothing_has_no_quote_to_place(self) -> None:
+        held = (
+            "held.json",
+            {
+                "documents": {"right": {"file": "right.pdf"}},
+                "facts": {
+                    "a": {"document": "right", "quote": "nothing at all", "saysNothing": True}
+                },
+            },
+        )
+
+        self.assertEqual(quotes.misattributed([held], self.BOOKS), [])
+
+    def test_a_declared_document_naming_no_file_cannot_be_checked(self) -> None:
+        """The block may hold an entry with no file, and it is simply skipped.
+
+        A record can declare a document it has never had a copy of. There is
+        nothing to search, so there is nothing to say about a quote citing it.
+        """
+        held = (
+            "held.json",
+            {
+                "documents": {"right": {"file": "right.pdf"}, "paperOnly": {"title": "no file"}},
+                "facts": {"a": {"document": "paperOnly", "quote": "the quick brown fox jumps"}},
+            },
+        )
+
+        self.assertEqual(quotes.misattributed([held], self.BOOKS), [])
+
+    def test_the_records_on_disk_are_all_where_they_say_they_are(self) -> None:
+        self.assertEqual(quotes.misattributed(), [])
 
 
 if __name__ == "__main__":
