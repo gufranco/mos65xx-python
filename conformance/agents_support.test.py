@@ -9,7 +9,9 @@ rather than to holding rules of its own.
 import contextlib
 import io
 import json
+import re
 import sys
+import tempfile
 import unittest
 import urllib.error
 from pathlib import Path
@@ -55,10 +57,17 @@ def failing(trouble: type[Exception]) -> Any:
     return opener
 
 
-def climb(pointer: str) -> str:
-    """The relative address of AGENTS.md from where a pointer sits."""
-    depth = len(Path(pointer).parts) - 1
-    return "/".join([".."] * depth + ["AGENTS.md"])
+def reached(pointer: Path) -> Path:
+    """Where the link inside a pointer file actually lands.
+
+    Checking that the text names AGENTS.md is not the same as checking that a
+    reader clicking it arrives somewhere, and the two part company the moment a
+    pointer moves into a directory and keeps its old relative address.
+    """
+    found = re.search(r"\]\(([^)]+)\)", pointer.read_text())
+    if found is None:
+        return pointer.parent / "there is no link here"
+    return (pointer.parent / found.group(1)).resolve()
 
 
 class ReadingTest(unittest.TestCase):
@@ -213,14 +222,20 @@ class RecordTest(unittest.TestCase):
 
         self.assertEqual(fat, [])
 
-    def test_the_link_in_each_pointer_resolves_to_the_instruction_file(self) -> None:
-        wrong = [
+    def test_the_link_in_each_pointer_lands_on_the_instruction_file(self) -> None:
+        astray = [
             tool["pointer"]
             for tool in self.record["tools"]
-            if f"({climb(tool['pointer'])})" not in (ROOT / tool["pointer"]).read_text()
+            if reached(ROOT / tool["pointer"]) != (ROOT / "AGENTS.md").resolve()
         ]
 
-        self.assertEqual(wrong, [])
+        self.assertEqual(astray, [])
+
+    def test_and_a_pointer_with_no_link_at_all_is_caught_rather_than_passed(self) -> None:
+        bare = Path(self.enterContext(tempfile.TemporaryDirectory())) / "bare.md"
+        bare.write_text("go and read the other file")
+
+        self.assertFalse(reached(bare).exists())
 
     def test_every_tool_says_where_its_path_was_documented(self) -> None:
         silent = [tool["name"] for tool in self.record["tools"] if not tool.get("documented")]
