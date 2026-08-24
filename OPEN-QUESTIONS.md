@@ -124,9 +124,9 @@ The same operation, reading a new program counter through a pointer, marked the 
 
 **What would settle it.** A logic analyser on the VPA and VDA pins of a real W65C816S executing JMP (a,x). Those pins exist precisely so a system can tell the two apart, so the answer is directly observable on hardware and on nothing less.
 
-## Where nobody wrote it down
+## Where the recordings cannot reach
 
-Behaviour no manufacturer documented. The recordings are the only evidence, and a recording is evidence about the program that made it.
+Behaviour the corpus is silent on, either because no manufacturer wrote it down or because it is not a quantity a recording of one instruction can hold. A part that halts its own clock produces nothing to record, a reset happens before any case begins, and an address a document calls invalid is a placeholder in whatever made the recording. Where a document does speak here it is quoted, and where it speaks about something adjacent rather than about the thing asked, that is said too.
 
 ### Which address a CMOS 65C02 puts on the bus during its spare cycles, and how long three of its instructions take
 
@@ -144,7 +144,7 @@ Source: W65C02S Data Sheet, Table 7-1 Microprocessor Operational Enhancements.
 
 **The document says.** Add 1 cycle for decimal mode.
 
-Source: W65C02S Data Sheet, Table 6-5 note 6, with 8.5 of the W65C816S data sheet for what an internal cycle's address means.
+Source: W65C02S Data Sheet, Table 7-1 Microprocessor Operational Enhancements, the Flags after decimal operation row, with 8.5 of the W65C816S data sheet for what an internal cycle's address means. That sheet has no Table 6-5, which an earlier version of this entry cited; the number belongs to the sixteen bit sheet.
 
 **The recordings say.** Every recorded decimal ADC and SBC spends its extra cycle reading 00007F, whatever the program counter, the operands or the flags are. Four cases at four different program counters all carry 00007F.
 
@@ -172,9 +172,15 @@ Source: Programming the 65816, including the 6502, 65C02 and 65802, WDC, instruc
 
 **The recordings say.** Nothing. The suite files for DB and CB hold no cases, because a part that halts its own clock produces nothing to record.
 
-**What this project does.** Charges three cycles on the 65816, which is what the book states, and two on the W65C02. The book's own tables mark both instructions as reaching the 65802 and 65816 and not the 65C02, so its three-cycle note is not a claim about the W65C02, and the cycle-count column of the W65C02S data sheet is a graphic that did not survive text extraction.
+**The other document says.** "Implied i ... 2". Every page of the W65C02S data sheet has now been read from the page rather than from an extraction, and there is no per-instruction cycle column in it at all. Table 5-1 lists the instructions, Table 5-2 places their opcodes, and Table 6-4 gives opcodes against status bits; none of the three carries a time. Every cycle figure in the document is either per addressing mode, in Table 4-1, or specific to the reserved opcodes, in Table 7-1. Table 5-2 puts STP at DB and WAI at CB in implied mode, Table 4-1 gives implied mode two cycles on the W65C02S, and none of that table's five notes excepts an instruction from its row.
 
-**What would settle it.** That column, read from the page rather than from an extraction, or any recording of a real W65C02 executing DB or CB.
+Source: W65C02S Data Sheet, Table 4-1 Addressing Mode Table row 8, with Table 5-2 for the addressing mode of each opcode.
+
+**What this project does.** Charges three cycles on the 65816, which is what the book states, and two on the W65C02, which is what the data sheet gives their addressing mode. The book's own tables mark both instructions as reaching the 65802 and 65816 and not the 65C02, so its three-cycle note is not a claim about the W65C02.
+
+The two is weaker evidence than it looks and is written down as what it is. It is a figure for implied mode rather than a figure for these two instructions, and an instruction that halts its own clock is the case a blanket per-mode number is least likely to have been written with in mind. It is the document's answer, and the document may not have been asked the question.
+
+**What would settle it.** WDC publishes a synthesizable Verilog model of this part and states of it that "The behavior of this model is equivalent to the original W65C02S hardcore", alongside "The timing of the W65C02S core is the same as the W65C02S". A model the manufacturer both wrote and vouches for on timing would answer this, and would answer it without a bench. It is WDC's to license and is not carried, fetched or reproduced here. Failing that, a recording of a real W65C02 executing DB or CB.
 
 ### What a halted W65C02 holds on its address lines
 

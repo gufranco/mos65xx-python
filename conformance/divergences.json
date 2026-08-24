@@ -165,10 +165,16 @@
       "subject": "the address of the extra cycle a CMOS 65C02 spends on decimal arithmetic",
       "documentSays": {
         "document": "wdc02",
-        "quote": "Add 1 cycle for decimal mode.",
-        "assembled": true,
-        "andAlso": "Note that when VDA and VPA are both low, invalid addresses may be generated. The Page and Bank addresses could also be invalid.",
-        "section": "Table 6-5 note 6, with 8.5 of the W65C816S data sheet for what an internal cycle's address means"
+        "quote": "Valid flags.  One additional cycle.",
+        "alsoSays": [
+          {
+            "document": "wdc816",
+            "quote": "Note that when VDA and VPA are both low, invalid addresses may be generated. The Page and Bank addresses could also be invalid.",
+            "section": "8.5 VDA and VPA Valid Memory Address Output Signals"
+          }
+        ],
+        "section": "Table 7-1 Microprocessor Operational Enhancements, the Flags after decimal operation row",
+        "note": "This replaced a citation to Table 6-5 note 6 of this data sheet, which has no Table 6-5: its tables run 3-1, 3-2, 4-1, 5-1, 5-2, 6-1 to 6-4 and 7-1. The sixteen bit sheet does have one, which is where that number came from. The row quoted here is the same part's own statement of the extra cycle, and unlike the old one it is a contiguous sentence a search can find."
       },
       "suiteSays": {
         "corpus": "SingleStepTests/65x02 wdc65c02 v1",

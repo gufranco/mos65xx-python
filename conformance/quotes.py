@@ -222,6 +222,15 @@ def readable(path: Path, run: Any = None) -> str:
     the documents: nothing can be checked, and saying so is the whole point.
     Letting the missing binary raise would turn a check that cannot run into a
     run that failed.
+
+    ``-layout`` is what makes a table readable at all, and it is also the reason
+    a quote can be in a document and unfindable here. Reading proceeds by visual
+    row, so a heading stacked over two lines interleaves with whatever sits
+    beside it: page 20 of the W65C02S data sheet carries "Instruction Times in
+    Memory Cycle" over two lines next to another two-line heading, and comes out
+    as the two first lines followed by the two second ones. Quote a single line
+    of such a heading, or mark the entry ``assembled``. Without ``-layout`` the
+    columns of every opcode table run together instead, which loses more.
     """
     runner = subprocess.run if run is None else run
     try:
@@ -357,6 +366,91 @@ def _quoted_with_document(node: Any, trail: str = "") -> list[tuple[str, str, st
     elif isinstance(node, list):
         for at, one in enumerate(node):
             found.extend(_quoted_with_document(one, f"{trail}[{at}]"))
+    return found
+
+
+def labelled(path: Path, run: Any = None) -> set[str]:
+    """Every table a document names, spelled the way it prints them.
+
+    Read from the text rather than from the flattened body. Flattening removes
+    the separator that tells `Table 6-7` from `Table 6-76`, so a containment
+    test on the flattened form reports the shorter one as present because the
+    longer one starts the same way.
+    """
+    runner = subprocess.run if run is None else run
+    try:
+        done = runner(
+            ["pdftotext", "-layout", str(path), "-"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return set()
+    return set(re.findall(r"Table \d+-\d+", done.stdout + second(path)))
+
+
+def catalogue(where: Path | None = None, run: Any = None) -> dict[str, set[str]]:
+    """The tables each pinned document names."""
+    folder = DOCUMENTS if where is None else where
+    if not folder.is_dir():
+        return {}
+    return {path.name: labelled(path, run) for path in sorted(folder.glob("*.pdf"))}
+
+
+def phantom(
+    records: Iterable[tuple[str, Any]] | None = None,
+    tables: dict[str, set[str]] | None = None,
+) -> list[str]:
+    """Every section that sends a reader to a table its document does not have.
+
+    A quote is held to the document beside it. The section was held to nothing,
+    and four citations here named a Table 6-5 of the W65C02S data sheet. That
+    sheet's tables are 3-1, 3-2, 4-1, 5-1, 5-2, 6-1 through 6-4 and 7-1; the
+    sixteen bit sheet is the one with a 6-5, and that is where the number came
+    from. The words quoted were right, the document named was right, and the
+    table pointed at did not exist, so nothing failed and a reader looking for
+    it found the wrong sheet or nothing.
+
+    Only `Table N-M` is checked, because a table is named the same way in every
+    document here and its presence is decidable. A section named in prose is
+    left alone, and a document with no file on this machine is skipped rather
+    than counted as a pass.
+    """
+    held = catalogue() if tables is None else tables
+    found: list[str] = []
+    for name, record in loaded() if records is None else records:
+        files = _files(record)
+        if not files:
+            continue
+        for where, document, section in _sectioned(record, name):
+            wanted = files.get(document)
+            if wanted is None or wanted not in held:
+                continue
+            for label in re.findall(r"Table \d+-\d+", section):
+                if label in held[wanted]:
+                    continue
+                elsewhere = sorted(one for one, has in held.items() if label in has)
+                tail = f", and it is in {', '.join(elsewhere)}" if elsewhere else ""
+                found.append(
+                    f"{where}: cites {document} {label}, which {wanted} does not have{tail}"
+                )
+    return found
+
+
+def _sectioned(node: Any, trail: str = "") -> list[tuple[str, str, str]]:
+    """Every section that names a document, so the tables in it can be held to one."""
+    found: list[tuple[str, str, str]] = []
+    if isinstance(node, dict):
+        document = node.get("document")
+        section = node.get("section")
+        if isinstance(document, str) and isinstance(section, str):
+            found.append((trail, document, section))
+        for key, value in node.items():
+            found.extend(_sectioned(value, f"{trail}.{key}" if trail else key))
+    elif isinstance(node, list):
+        for at, one in enumerate(node):
+            found.extend(_sectioned(one, f"{trail}[{at}]"))
     return found
 
 
@@ -515,7 +609,8 @@ def main(
     books = library() if books is None else books
     found = verify(held, books)
     print(report(found, len(books)))
-    wandered = list(sections() if astray is None else astray) + undeclared() + misattributed()
+    wandered = list(sections() if astray is None else astray)
+    wandered += undeclared() + misattributed() + phantom()
     for one in wandered:
         print(f"  {one}")
     if wandered:

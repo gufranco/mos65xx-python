@@ -424,5 +424,50 @@ class CoreScopeTest(unittest.TestCase):
         self.assertEqual(silent, [])
 
 
+class ClosingConditionTest(unittest.TestCase):
+    """That evidence named as reachable is named honestly and is not carried.
+
+    The section exists so a question can point at something better than a bench
+    nobody has. That only helps if each entry names a document this record
+    declares, says what it would settle, and says plainly that it is not here.
+    """
+
+    def held(self) -> dict[str, Any]:
+        return {
+            name: one for name, one in declared()["closingConditions"].items() if name != "note"
+        }
+
+    def test_every_condition_names_a_document_the_record_declares(self) -> None:
+        known = set(declared()["documents"])
+
+        unknown = sorted(name for name, one in self.held().items() if one["document"] not in known)
+
+        self.assertEqual(unknown, [])
+
+    def test_and_the_question_it_would_settle(self) -> None:
+        questions = (ROOT / "OPEN-QUESTIONS.md").read_text()
+
+        missing = sorted(
+            name for name, one in self.held().items() if one["settles"] not in questions
+        )
+
+        self.assertEqual(missing, [])
+
+    def test_and_says_it_is_not_carried_here(self) -> None:
+        carried = sorted(name for name, one in self.held().items() if one["carried"])
+
+        self.assertEqual(carried, [])
+
+    def test_none_of_them_is_scoped_as_though_it_were_a_fact(self) -> None:
+        """A fact covers the models of a core. A thing somebody sells covers one part."""
+        scoped = sorted(
+            name
+            for name, one in self.held().items()
+            if "appliesTo" in one or "appliesToCore" in one
+        )
+
+        self.assertEqual(scoped, [])
+
+
 if __name__ == "__main__":
     unittest.main()

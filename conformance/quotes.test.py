@@ -8,6 +8,7 @@ run says so rather than reporting a pass it did not earn.
 import builtins
 import contextlib
 import io
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -561,6 +562,147 @@ class AttributionTest(unittest.TestCase):
 
     def test_the_records_on_disk_are_all_where_they_say_they_are(self) -> None:
         self.assertEqual(quotes.misattributed(), [])
+
+
+class PhantomTableTest(unittest.TestCase):
+    """That a section naming a table is held to the document beside it.
+
+    The words of a quote were checked and the table pointed at was not, so a
+    citation could name the right document, quote it correctly, and send a
+    reader to a table only a different sheet has.
+    """
+
+    TABLES: ClassVar[dict[str, set[str]]] = {
+        "right.pdf": {"Table 4-1", "Table 7-1"},
+        "other.pdf": {"Table 6-5", "Table 6-76"},
+    }
+
+    def a_record(self, document: str, section: str) -> tuple[str, dict[str, Any]]:
+        return (
+            "held.json",
+            {
+                "documents": {"right": {"file": "right.pdf"}, "other": {"file": "other.pdf"}},
+                "facts": {"a": {"document": document, "section": section}},
+            },
+        )
+
+    def test_a_table_the_named_document_has_is_accepted(self) -> None:
+        found = quotes.phantom([self.a_record("right", "Table 4-1 Addressing Mode")], self.TABLES)
+
+        self.assertEqual(found, [])
+
+    def test_a_table_only_another_document_has_is_reported(self) -> None:
+        found = quotes.phantom([self.a_record("right", "Table 6-5 note 6")], self.TABLES)
+
+        self.assertEqual(len(found), 1)
+        self.assertIn("other.pdf", found[0])
+
+    def test_a_table_no_document_has_is_reported_without_a_destination(self) -> None:
+        found = quotes.phantom([self.a_record("right", "Table 9-9")], self.TABLES)
+
+        self.assertEqual(len(found), 1)
+        self.assertNotIn("and it is in", found[0])
+
+    def test_a_section_naming_two_tables_is_checked_on_both(self) -> None:
+        found = quotes.phantom(
+            [self.a_record("right", "Table 7-1, with Table 6-5 for the cycle counts")], self.TABLES
+        )
+
+        self.assertEqual(len(found), 1)
+        self.assertIn("Table 6-5", found[0])
+
+    def test_a_section_named_in_prose_is_left_alone(self) -> None:
+        found = quotes.phantom([self.a_record("right", "3.13 Reset (RESB)")], self.TABLES)
+
+        self.assertEqual(found, [])
+
+    def test_a_longer_table_number_does_not_pass_off_as_a_shorter_one(self) -> None:
+        """`Table 6-7` is absent from a document whose only near name is `Table 6-76`."""
+        found = quotes.phantom([self.a_record("other", "Table 6-7")], self.TABLES)
+
+        self.assertEqual(len(found), 1)
+
+    def test_a_document_with_no_file_on_this_machine_is_skipped(self) -> None:
+        held = (
+            "held.json",
+            {
+                "documents": {"gone": {"file": "absent.pdf"}},
+                "facts": {"a": {"document": "gone", "section": "Table 6-5"}},
+            },
+        )
+
+        self.assertEqual(quotes.phantom([held], self.TABLES), [])
+
+    def test_a_record_declaring_no_files_is_left_alone(self) -> None:
+        held = ("held.json", {"facts": {"a": {"document": "right", "section": "Table 6-5"}}})
+
+        self.assertEqual(quotes.phantom([held], self.TABLES), [])
+
+    def test_a_document_the_record_never_declared_is_skipped(self) -> None:
+        found = quotes.phantom([self.a_record("unheard-of", "Table 6-5")], self.TABLES)
+
+        self.assertEqual(found, [])
+
+    def test_the_walk_reaches_a_section_inside_a_list(self) -> None:
+        held = (
+            "held.json",
+            {
+                "documents": {"right": {"file": "right.pdf"}},
+                "facts": {"a": {"alsoSays": [{"document": "right", "section": "Table 6-5"}]}},
+            },
+        )
+
+        found = quotes.phantom([held], self.TABLES)
+
+        self.assertEqual(len(found), 1)
+        self.assertIn("alsoSays[0]", found[0])
+
+    def test_the_records_on_disk_name_no_table_their_document_lacks(self) -> None:
+        self.assertEqual(quotes.phantom(), [])
+
+
+class TableCatalogueTest(unittest.TestCase):
+    """That the table names come off the page rather than off the flattened body."""
+
+    def answering(self, text: str) -> Any:
+        def run(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
+            return subprocess.CompletedProcess([], 0, stdout=text, stderr="")
+
+        return run
+
+    def refuse(self, *_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
+        raise OSError("no pdftotext here")
+
+    def test_the_tables_a_document_names_are_collected(self) -> None:
+        found = quotes.labelled(ROOT / "one.pdf", self.answering("see Table 4-1 and Table 7-1"))
+
+        self.assertEqual(found, {"Table 4-1", "Table 7-1"})
+
+    def test_a_machine_without_the_reader_reports_nothing_rather_than_raising(self) -> None:
+        self.assertEqual(quotes.labelled(ROOT / "one.pdf", self.refuse), set())
+
+    def test_a_second_reading_beside_the_document_is_pooled_in(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            folder = Path(where)
+            (folder / "one.pdf").write_bytes(b"")
+            (folder / "one.txt").write_text("and Table 9-9 from the scanned pages")
+
+            found = quotes.labelled(folder / "one.pdf", self.answering("Table 4-1"))
+
+        self.assertEqual(found, {"Table 4-1", "Table 9-9"})
+
+    def test_a_folder_that_is_not_there_yields_no_catalogue(self) -> None:
+        self.assertEqual(quotes.catalogue(ROOT / "no such folder"), {})
+
+    def test_every_pinned_document_is_catalogued(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            folder = Path(where)
+            (folder / "one.pdf").write_bytes(b"")
+            (folder / "two.pdf").write_bytes(b"")
+
+            found = quotes.catalogue(folder, self.answering("Table 1-1"))
+
+        self.assertEqual(found, {"one.pdf": {"Table 1-1"}, "two.pdf": {"Table 1-1"}})
 
 
 if __name__ == "__main__":
