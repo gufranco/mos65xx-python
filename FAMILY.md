@@ -108,6 +108,29 @@ checks the ones a test can reach.
 - [ ] Nothing licensed to anybody else is carried, fetched, vendored or
       generated. A copy belongs on the machine that runs it.
 
+**How it is written**
+
+- [ ] The readme carries the same twelve sections under the same names in the
+      same order. A reader who learned where something lives in one member finds
+      it in the same place in the next, which is most of what a shared shape buys.
+- [ ] It opens with a line of numbers somebody ran, before any prose: what was
+      compared, how much of it failed, the test count, the coverage, and what it
+      costs to install. A count of what was compared with no result beside it is
+      half a claim.
+- [ ] No comment in any source file that no tool reads. Reasoning goes in the
+      docstring, where it sits with the thing it explains and is read by anyone
+      who asks for help on it. A comment is the one part of a file nothing checks,
+      so it is the one part free to drift, and once it has drifted it misleads
+      every later reader rather than merely failing to help.
+- [ ] `noqa`, `type:`, `ruff:` and the rest stay, because a tool parses them and
+      reports them when they go stale. Nothing else does.
+- [ ] Every test is named as a sentence about behaviour, continuing the one its
+      class began. `test_step` names the function that was called, which a failure
+      message already told you.
+- [ ] The checkers are set the same way: strict types, a hundred percent floor on
+      statements and branches, one line length. A member that grades itself more
+      gently is not held to the standard, it is exempt from it.
+
 Most of this applies to anything that models hardware: a processor, a coprocessor,
 a mapper, a ROM image format, a peripheral. One section is explicitly about parts
 driven by a clock, and a repository that models something else skips it and keeps

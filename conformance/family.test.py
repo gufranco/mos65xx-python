@@ -14,6 +14,8 @@ from __future__ import annotations
 import inspect
 import re
 import sys
+import tempfile
+import tomllib
 import types
 import unittest
 from pathlib import Path
@@ -556,6 +558,179 @@ class NoStrayAttributeTest(unittest.TestCase):
 
     def test_there_are_classes_to_check(self) -> None:
         self.assertGreater(len(self.published()), 3)
+
+
+SECTIONS = (
+    "Install",
+    "The interface",
+    "Running it at a real speed",
+    "Models",
+    "Nothing starts clean",
+    "Is it right",
+    "Working on it",
+    "References",
+    "Citing this",
+    "License",
+)
+"""The sections every readme carries, in the order it carries them.
+
+Two more sit among them and are not listed because their titles name the part:
+one about driving it a cycle at a time, where a Z80's cycle is a T state, and one
+about reading a program without running it. Both are checked for separately.
+"""
+
+DIRECTIVE = ("noqa", "type:", "pragma", "ruff:", "mypy:", "isort:", "fmt:")
+"""The comment forms a tool reads. Everything else is banned in source."""
+
+
+def prose_comments(where: Path) -> list[str]:
+    """Every comment in a source file that no tool parses.
+
+    Reasoning belongs in a docstring, where it sits with the thing it explains and
+    is read by anybody asking for help on it. A comment is the one part of a file
+    nothing checks, so it is the one part free to drift.
+
+    `**/*.py` never reaches into `__pycache__`, which holds `.pyc` and nothing
+    else, so there is no directory to skip.
+    """
+    found = []
+    for path in sorted(where.glob("**/*.py")):
+        for number, line in enumerate(path.read_text().splitlines(), start=1):
+            bare = line.strip()
+            if not bare.startswith("#"):
+                continue
+            body = bare.lstrip("#").strip()
+            if body and not body.startswith(DIRECTIVE):
+                found.append(f"{path.name}:{number}")
+    return found
+
+
+def mute_names(where: Path) -> list[str]:
+    """Every test named for the function it calls rather than the behaviour.
+
+    The floor is two words, which is as low as a floor goes. Length is not the
+    measure: several names here are short because they continue the sentence
+    their class began, which is the point of writing them that way.
+    """
+    found = []
+    for path in sorted(where.glob("**/*.test.py")):
+        for name in re.findall(r"^    def test_(\w+)", path.read_text(), re.M):
+            if len(name.split("_")) < 2:
+                found.append(f"{path.name}:test_{name}")
+    return found
+
+
+class WrittenTheSameWayTest(unittest.TestCase):
+    """That this repository is written the way the others are.
+
+    Not taste. Every item here was settled once across the family, and a member
+    that drifts from it costs a reader the assumption that what they learned in
+    one repository holds in the next.
+    """
+
+    def readme(self) -> str:
+        return (ROOT / "README.md").read_text()
+
+    def test_the_readme_carries_the_sections_the_family_carries(self) -> None:
+        held = re.findall(r"^## (.+)$", self.readme(), re.M)
+
+        missing = [one for one in SECTIONS if one not in held]
+
+        self.assertEqual(missing, [])
+
+    def test_and_in_the_order_the_family_carries_them(self) -> None:
+        held = [one for one in re.findall(r"^## (.+)$", self.readme(), re.M) if one in SECTIONS]
+
+        self.assertEqual(held, list(SECTIONS))
+
+    def test_and_a_section_on_driving_it_a_cycle_at_a_time(self) -> None:
+        """Named for the part: a Z80's cycle is a T state and it says so."""
+        held = re.findall(r"^## (.+)$", self.readme(), re.M)
+
+        self.assertTrue(any(one.startswith("Driving it one") for one in held), held)
+
+    def test_and_one_on_reading_a_program_without_running_it(self) -> None:
+        self.assertIn("Reading without running", re.findall(r"^## (.+)$", self.readme(), re.M))
+
+    def test_the_readme_opens_with_what_was_measured(self) -> None:
+        """A line of numbers somebody ran, before any prose about the part.
+
+        It sits under the title block, so a reader who stops after the first
+        screen still leaves knowing what was compared and how much of it failed.
+        """
+        held = self.readme().split("## ")[0]
+
+        self.assertTrue(re.search(r"^\*\*[0-9,]+\*\* parts", held, re.M), held[:400])
+
+    def test_and_says_how_much_of_it_failed(self) -> None:
+        """A count of what was compared with no result is half a claim."""
+        held = self.readme().split("## ")[0]
+
+        self.assertTrue(re.search(r"\*\*0\*\* (failures|disagreements)", held), held[:400])
+
+    def test_and_what_it_costs_to_install(self) -> None:
+        held = self.readme().split("## ")[0]
+
+        self.assertIn("no dependencies", held)
+
+    def test_no_source_file_carries_a_comment_a_tool_does_not_read(self) -> None:
+        self.assertEqual(prose_comments(Path(PACKAGE.__file__ or "").resolve().parent), [])
+
+    def test_nor_does_any_conformance_file(self) -> None:
+        self.assertEqual(prose_comments(ROOT / "conformance"), [])
+
+    def test_the_reader_of_that_tells_a_directive_from_prose(self) -> None:
+        """Fed both, because a reader that found nothing prints what a clean one does.
+
+        Every line below is a form that turned up in this family: a directive on
+        its own line, one with the reason a linter wants after it, a trailing
+        comment that is part of a statement rather than a line of its own, and a
+        divider of bare hashes. Only the sentence is prose.
+        """
+        with tempfile.TemporaryDirectory() as where:
+            written = Path(where) / "sample.py"
+            written.write_text(
+                "# ruff: noqa: E501\n"
+                "# noqa: E743 -- the register really is called l\n"
+                "x = 1  # type: ignore[assignment]\n"
+                "#\n"
+                "# the accumulator is eight bits wide\n"
+            )
+
+            found = prose_comments(Path(where))
+
+        self.assertEqual(found, ["sample.py:5"])
+
+    def test_and_the_reader_of_names_tells_a_sentence_from_a_function(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            written = Path(where) / "sample.test.py"
+            written.write_text(
+                "class T:\n"
+                "    def test_step(self) -> None:\n"
+                "        pass\n"
+                "\n"
+                "    def test_a_step_costs_what_the_sheet_says(self) -> None:\n"
+                "        pass\n"
+            )
+
+            found = mute_names(Path(where))
+
+        self.assertEqual(found, ["sample.test.py:test_step"])
+
+    def test_every_test_is_named_as_a_sentence_about_behaviour(self) -> None:
+        """A name that states what the part does, not which function was called.
+
+        It catches `test_step` and `test_irq`, which say nothing a failure
+        message could use, and leaves the judgement of a good name to a reader.
+        """
+        self.assertEqual(mute_names(ROOT), [])
+
+    def test_the_checker_is_strict_everywhere_the_family_is(self) -> None:
+        held = tomllib.loads((ROOT / "pyproject.toml").read_text())["tool"]
+
+        self.assertTrue(held["mypy"]["strict"])
+        self.assertEqual(held["coverage"]["report"]["fail_under"], 100)
+        self.assertEqual(held["ruff"]["line-length"], 100)
 
 
 if __name__ == "__main__":

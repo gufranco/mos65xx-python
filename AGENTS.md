@@ -245,6 +245,21 @@ repositories and fixed in all of them, so it is the list of things that have
 actually gone wrong here rather than a list of good intentions. Read it before
 adding a surface, and read it again before saying a change is done.
 
+A change to `FAMILY.md` is a change to every member. Nothing here can catch it
+being made in one of them and forgotten in the others, because a test in this
+repository cannot see the others, so the check is a command rather than a suite:
+
+```sh
+for other in ../*/FAMILY.md; do
+  cmp <(head -518 FAMILY.md) <(head -518 "$other") && echo "match: $other"
+done
+```
+
+518 is where the shared part ends. A member may add sections after it about its
+own state, and nothing may be added before it that the others do not also get.
+Run this after any edit to the file, and read the output rather than the exit
+code: a loop over a pattern that matched nothing prints nothing and succeeds.
+
 Two rules from that file are worth repeating because they are the ones skipped
 most often, and skipping them is how the rest of the list got written:
 
