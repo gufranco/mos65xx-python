@@ -109,6 +109,9 @@ checks the ones a test can reach.
 
 **The record**
 
+- [ ] An `authority` block in the record, naming the rungs this member actually
+      reaches, in order, and why that is the order. The rungs differ enormously
+      between members and a reader cannot tell without being told.
 - [ ] A `documents` block, each entry naming the file it is, and every citation
       naming one of those keys. Where it points inside goes in `section`.
 - [ ] Every quote is present in the document it names, not merely in some
@@ -346,6 +349,14 @@ lower rung never overrules a higher one.
    for only when every rung above is silent, cited as what it is, and never left
    as the sole support for a fact a manufacturer would have printed. A source
    with no measurement behind it is not cited at all.
+
+Which rungs a member reaches differs enormously, so each record names its own
+in an `authority` block rather than leaving a reader to infer them. One member
+holds every claim to 2,781 retail cartridges, which is rung 2. One compares
+against a simulation of the die, which is rung 3. One models a chip for which no
+document is known to exist and says so. Nine stated their ladder and one did not,
+and nothing noticed, which left a reader of that record unable to tell a figure
+quoted from a manufacturer from a figure somebody found convenient.
 
 When two rungs disagree and the ones above them are silent, the answer is
 **unknown**. It goes in `conformance/divergences.json` with the measurement that

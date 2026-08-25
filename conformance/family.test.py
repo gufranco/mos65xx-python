@@ -1000,6 +1000,51 @@ class NothingOutsideTheStandardLibraryTest(unittest.TestCase):
         self.assertEqual(self.imports(where), set())
 
 
+class EveryRecordStatesItsAuthorityTest(unittest.TestCase):
+    """That a record says which rung each of its facts came from.
+
+    The ladder in FAMILY.md is the family's whole argument: a manufacturer's
+    page beats a dump, a dump beats a die simulation, and all of them beat a
+    recording. It only means something if each record says where it actually
+    stands, because the rungs a member reaches differ enormously. One holds its
+    claims to 2,781 retail cartridges. One reaches no rung below the page at all
+    and walks the format instead. One has no document in existence.
+
+    Nine members said so and one did not, and nothing noticed, so a reader of
+    that record had no way to tell a figure quoted from Nintendo from a figure
+    somebody found convenient.
+
+    `whatIsMissing` is required only where a rung above the highest one reached
+    is empty, which the member itself decides. What is not optional is naming
+    the order and saying why it is that order.
+    """
+
+    def record(self) -> Any:
+        return json.loads(RECORD.read_text())
+
+    def authority(self) -> Any:
+        held = self.record().get("authority")
+        return held if isinstance(held, dict) else {}
+
+    def test_the_record_states_the_order_it_answers_in(self) -> None:
+        self.assertTrue(self.authority().get("order"))
+
+    def test_and_the_order_is_a_list_of_rungs_rather_than_a_sentence(self) -> None:
+        self.assertIsInstance(self.authority().get("order"), list)
+
+    def test_and_says_why_it_is_that_order(self) -> None:
+        self.assertTrue(str(self.authority().get("why", "")).strip())
+
+    def test_the_standard_carries_the_ladder_this_is_measured_against(self) -> None:
+        self.assertIn("The authority ladder", FAMILY)
+
+    def test_a_record_with_no_ladder_at_all_is_reported(self) -> None:
+        """Driven against the shape the one member that had none actually had."""
+        held = {"note": "layouts, pinned to the figures", "documents": {}}
+
+        self.assertEqual(held.get("authority"), None)
+
+
 class SharedFileTest(unittest.TestCase):
     """That every file the standard's table names is here.
 
