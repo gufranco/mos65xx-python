@@ -116,6 +116,10 @@ checks the ones a test can reach.
 - [ ] An `authority` block in the record, naming the rungs this member actually
       reaches, in order, and why that is the order. The rungs differ enormously
       between members and a reader cannot tell without being told.
+- [ ] `comparedAgainst` in that block, naming what this member is held to
+      outside itself and the runner that does the holding. A member compared only
+      against itself proves its two halves agree, which they do just as perfectly
+      when both are wrong.
 - [ ] A `documents` block, each entry naming the file it is, and every citation
       naming one of those keys. Where it points inside goes in `section`.
 - [ ] A record that quotes a document ships `conformance/quotes.py` and the
@@ -364,6 +368,18 @@ against a simulation of the die, which is rung 3. One models a chip for which no
 document is known to exist and says so. Nine stated their ladder and one did not,
 and nothing noticed, which left a reader of that record unable to tell a figure
 quoted from a manufacturer from a figure somebody found convenient.
+
+**Every member is held to something it does not own.** Four are measured against
+real cartridges or real images. Three are compared against a suite recorded from
+an independent implementation, one of those also against a simulation of the die.
+Three are compared against an independent implementation built from a pinned
+commit. Which one is named in `comparedAgainst`, with the runner that does it.
+
+That line exists because one member had nothing. It walked its whole input space
+and proved its decoder and its encoder agreed, and a decoder and an encoder wrong
+in exactly opposite ways agree perfectly: swapping two bits in the record and in
+the code together passed every gate it had. A round trip is evidence about
+self-consistency. It is not evidence about the figure it was read from.
 
 When two rungs disagree and the ones above them are silent, the answer is
 **unknown**. It goes in `conformance/divergences.json` with the measurement that

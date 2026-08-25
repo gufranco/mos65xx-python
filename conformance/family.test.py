@@ -1133,6 +1133,27 @@ class EveryRecordStatesItsAuthorityTest(unittest.TestCase):
     def test_and_says_why_it_is_that_order(self) -> None:
         self.assertTrue(str(self.authority().get("why", "")).strip())
 
+    def test_the_record_names_what_this_member_is_held_to(self) -> None:
+        """Something outside itself, or the checks only prove self-consistency.
+
+        Every member here is compared against something it does not own: retail
+        cartridges, a recorded suite, a simulation of the die, or an independent
+        implementation. One was not. It walked its whole input space and proved
+        the decoder and the encoder agreed with each other, which they do just as
+        perfectly when both are wrong, and a swapped pair of flip bits passed
+        every gate it had.
+        """
+        held = self.authority().get("comparedAgainst")
+        assert isinstance(held, dict)
+
+        self.assertTrue(str(held.get("what", "")).strip())
+
+    def test_and_the_runner_that_does_the_comparing_is_here(self) -> None:
+        held = self.authority().get("comparedAgainst")
+        assert isinstance(held, dict)
+
+        self.assertTrue((ROOT / str(held.get("runner"))).is_file(), held.get("runner"))
+
     def test_the_standard_carries_the_ladder_this_is_measured_against(self) -> None:
         self.assertIn("The authority ladder", FAMILY)
 
