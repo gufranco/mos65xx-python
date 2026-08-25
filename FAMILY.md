@@ -14,8 +14,8 @@ round to.
 | [mos65xx-python](https://github.com/gufranco/mos65xx-python) | The 65xx family: sixteen parts, from the 6502 to the 65816 | Clocked part |
 | [zilog-z80-python](https://github.com/gufranco/zilog-z80-python) | The Z80: three parts, NMOS and CMOS | Clocked part |
 | [nec-upd7725-96050-python](https://github.com/gufranco/nec-upd7725-96050-python) | The NEC uPD7725 and uPD96050 digital signal processors | Clocked part |
-| [snes-obc1-python](https://github.com/gufranco/snes-obc1-python) | The OBC1 sprite remapper | Clocked part |
-| [snes-rtc-python](https://github.com/gufranco/snes-rtc-python) | The two real-time clocks a cartridge could carry | Clocked part |
+| [snes-obc1-python](https://github.com/gufranco/snes-obc1-python) | The OBC1 sprite remapper | Part |
+| [snes-rtc-python](https://github.com/gufranco/snes-rtc-python) | The two real-time clocks a cartridge could carry | Part |
 | [snes-mapper-python](https://github.com/gufranco/snes-mapper-python) | The cartridge memory map and its transfer engine | Board |
 | [snes-graphics-python](https://github.com/gufranco/snes-graphics-python) | The graphics formats: tiles, palettes, tilemaps, sprites and mode 7 | Format |
 | [snes-rom-image-python](https://github.com/gufranco/snes-rom-image-python) | The forms a cartridge image is stored and shipped in | Format |
@@ -23,10 +23,20 @@ round to.
 | [star-ocean-nochip-fix](https://github.com/gufranco/star-ocean-nochip-fix) | A header correction for two rebuilt images | Tool |
 
 The kind decides which parts of this file apply. A clocked part answers to all of
-it. A board, a format or a tool skips the section about a clock and keeps
+it. A part, a board, a format or a tool skips the section about a clock and keeps
 everything else, which is most of it: the authority ladder, the record, the
 tools, the documents and how it is written do not care whether the thing being
 modelled has a clock.
+
+Clocked means running a program, not having a crystal. A clocked part is driven
+by a budget of cycles and reports what it spent, which is the interface the
+section about a clock describes. A part answers accesses instead: a chip that
+remaps an address, or one that hands back a time, is asked a question and
+answers it, and has no instruction to step through and no cycle count to hand
+back. A real-time clock ticks and is still not a clocked part, because nothing a
+host does to it is measured in cycles. Naming those two the same thing would ask
+one of them for a `step` it has no meaning for, and a stub is an invented
+interface rather than a kept promise.
 
 Nothing else is a member. A copy of this file sitting in a repository outside
 that list is a working note somebody left there; it binds nothing and it is not

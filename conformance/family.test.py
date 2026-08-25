@@ -144,9 +144,9 @@ class ModelsAClockedPartTest(unittest.TestCase):
         self.assertEqual(KIND, self.row())
 
     def test_the_table_only_uses_kinds_the_standard_explains(self) -> None:
-        kinds = set(re.findall(r"\|\s*(Clocked part|Board|Format|Tool)\s*\|", FAMILY))
+        kinds = set(re.findall(r"\|\s*(Clocked part|Part|Board|Format|Tool)\s*\|", FAMILY))
 
-        self.assertTrue(kinds <= {"Clocked part", "Board", "Format", "Tool"})
+        self.assertTrue(kinds <= {"Clocked part", "Part", "Board", "Format", "Tool"})
         self.assertIn(KIND, kinds)
 
     def test_the_standard_says_what_a_kind_that_is_not_clocked_skips(self) -> None:
@@ -649,12 +649,23 @@ class NoStrayAttributeTest(unittest.TestCase):
     """
 
     def published(self) -> list[type]:
+        """Every class this package hands a caller, whether directly or through a module.
+
+        The first condition is one test rather than two nested ones because the
+        inner one has no false case in a member that publishes only its own
+        classes, and a branch nothing can take reads as a gap in the gate. A type
+        from outside the package now falls through to the second condition, which
+        is false for it, so the outcome is unchanged.
+        """
         found = []
         for name in dir(PACKAGE):
             held = getattr(PACKAGE, name)
-            if isinstance(held, type) and not issubclass(held, BaseException):
-                if held.__module__.startswith(PACKAGE.__name__):
-                    found.append(held)
+            if (
+                isinstance(held, type)
+                and not issubclass(held, BaseException)
+                and held.__module__.startswith(PACKAGE.__name__)
+            ):
+                found.append(held)
             elif isinstance(held, types.ModuleType) and held.__name__.startswith(PACKAGE.__name__):
                 for attr, one in vars(held).items():
                     if attr.startswith("_"):
@@ -836,10 +847,15 @@ class WrittenTheSameWayTest(unittest.TestCase):
 
         It sits under the title block, so a reader who stops after the first
         screen still leaves knowing what was compared and how much of it failed.
+
+        It opens with a count and the word for what is being counted, and the
+        word is the member's own: a processor covers parts, a board covers
+        layouts, a header fix covers images. Demanding one noun would make every
+        member that is not a processor write down something it does not model.
         """
         held = self.readme().split("## ")[0]
 
-        self.assertTrue(re.search(r"^\*\*[0-9,]+\*\* parts", held, re.M), held[:400])
+        self.assertTrue(re.search(r"^\*\*[0-9,]+\*\* [a-z]", held, re.M), held[:400])
 
     def test_and_says_how_much_of_it_failed(self) -> None:
         """A count of what was compared with no result is half a claim.
