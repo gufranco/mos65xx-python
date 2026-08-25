@@ -5,15 +5,28 @@ style guide. It is the set of decisions that were expensive to reach, so that a
 repository starting today does not have to reach them again and a repository
 already running does not drift away from them quietly.
 
-The family is three repositories. Where they differ from each other, the
+The family is ten repositories. Where they differ from each other, the
 difference is something the hardware forces rather than something nobody got
 round to.
 
-| Member | What it models |
-|:--|:--|
-| [mos65xx-python](https://github.com/gufranco/mos65xx-python) | The 65xx family: sixteen parts, from the 6502 to the 65816 |
-| [zilog-z80-python](https://github.com/gufranco/zilog-z80-python) | The Z80: three parts, NMOS and CMOS |
-| [nec-upd7725-96050-python](https://github.com/gufranco/nec-upd7725-96050-python) | The NEC uPD7725 and uPD96050 digital signal processors |
+| Member | What it models | Kind |
+|:--|:--|:--|
+| [mos65xx-python](https://github.com/gufranco/mos65xx-python) | The 65xx family: sixteen parts, from the 6502 to the 65816 | Clocked part |
+| [zilog-z80-python](https://github.com/gufranco/zilog-z80-python) | The Z80: three parts, NMOS and CMOS | Clocked part |
+| [nec-upd7725-96050-python](https://github.com/gufranco/nec-upd7725-96050-python) | The NEC uPD7725 and uPD96050 digital signal processors | Clocked part |
+| [snes-obc1-python](https://github.com/gufranco/snes-obc1-python) | The OBC1 sprite remapper | Clocked part |
+| [snes-rtc-python](https://github.com/gufranco/snes-rtc-python) | The two real-time clocks a cartridge could carry | Clocked part |
+| [snes-mapper-python](https://github.com/gufranco/snes-mapper-python) | The cartridge memory map and its transfer engine | Board |
+| [snes-graphics-python](https://github.com/gufranco/snes-graphics-python) | The graphics formats: tiles, palettes, tilemaps, sprites and mode 7 | Format |
+| [snes-rom-image-python](https://github.com/gufranco/snes-rom-image-python) | The forms a cartridge image is stored and shipped in | Format |
+| [snes-driver-python](https://github.com/gufranco/snes-driver-python) | What a cartridge says to its coprocessor, read out of the cartridge's own code | Tool |
+| [star-ocean-nochip-fix](https://github.com/gufranco/star-ocean-nochip-fix) | A header correction for two rebuilt images | Tool |
+
+The kind decides which parts of this file apply. A clocked part answers to all of
+it. A board, a format or a tool skips the section about a clock and keeps
+everything else, which is most of it: the authority ladder, the record, the
+tools, the documents and how it is written do not care whether the thing being
+modelled has a clock.
 
 Nothing else is a member. A copy of this file sitting in a repository outside
 that list is a working note somebody left there; it binds nothing and it is not
@@ -149,11 +162,18 @@ checks the ones a test can reach.
       settled and the gates, so the shared spine reads the same everywhere.
 - [ ] The number of open questions it claims is the number the file holds. Two
       of the three said a figure that had stopped being true, one by six.
-- [ ] No mention of any system the part was used in, in any tracked file. A
-      processor is not the machine somebody put it in, and a package that names
+- [ ] No mention of any system the part was used in, in any tracked file, when
+      the part existed independently of any system. A processor sold as a
+      component is not the machine somebody put it in, and a package that names
       one is a catalogue of that machine's parts wearing a processor's name.
       Identify a variant by its part number, never by the box it shipped in.
       Whatever drives the part is the `host`, whichever kind of machine it was.
+- [ ] The rule above is about parts that outlived their first customer. A member
+      that models something which only ever existed as part of one machine, a
+      cartridge memory map, an image format, a board, names that machine because
+      that is what it models, and there is no more general thing to name instead.
+      The test is whether the part could be bought and designed into something
+      else. A Z80 could. A cartridge bus could not.
 - [ ] Two things are outside that and each says something. A quoted passage is a
       document's words, and a document may name whatever it likes. The file
       declaring the names to search for is the list rather than a mention.
@@ -189,6 +209,43 @@ checks the ones a test can reach.
 - [ ] The checkers are set the same way: strict types, a hundred percent floor on
       statements and branches, one line length. A member that grades itself more
       gently is not held to the standard, it is exempt from it.
+
+### When a member depends on another member
+
+Four members do. A driver needs a memory map to know which address a write
+lands on; an image format needs one to know where a header sits; a header fix
+needs the image format. That is the hardware's shape, not a failure to keep
+things separate, and the dependency runs one way in every case.
+
+The dependency is a git submodule on the import path, never a published package:
+
+```yaml
+env:
+  PYTHONPATH: .:snes-mapper-python
+```
+
+```bash
+git clone --recurse-submodules https://github.com/gufranco/<member>.git
+```
+
+That choice has a price and the price is paid deliberately rather than
+discovered later:
+
+- **A source archive cannot carry a submodule.** The download-zip link on the
+  repository page produces a checkout that cannot run. Say so in the readme, at
+  the install step, rather than letting somebody find out.
+- **The member is not installable from an index** while it consumes another this
+  way, so it carries no `[project]` block and publishes nothing. A member that
+  wants to be installable takes the dependency as a version range instead and
+  says which.
+- **A submodule pins a commit, and a pin can go stale exactly as a corpus pin
+  can.** The same rule applies: the repository it names must still be one
+  somebody can push to, and the pin is checked against its head rather than
+  assumed current.
+
+What must not happen is a module-level import of a sibling with nothing
+declaring it. That is how a package looks installable, is not, and fails at
+import time on the first machine that is not the author's.
 
 Most of this applies to anything that models hardware: a processor, a coprocessor,
 a mapper, a ROM image format, a peripheral. One section is explicitly about parts

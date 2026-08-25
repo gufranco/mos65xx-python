@@ -32,6 +32,22 @@ import mos65xx  # noqa: E402
 
 FAMILY = (ROOT / "FAMILY.md").read_text()
 
+KIND = "Clocked part"
+"""What this member models, in the words the membership table uses.
+
+The table in FAMILY.md gives every member a kind, and the kind decides which of
+these checks apply. A clocked part answers to all of them. A board, a format or
+a tool has no clock to drive and no `Cpu` to hand back, so the section about
+that is skipped and everything else is not: the record, the documents, the
+tools and how it is written do not care whether the thing has a clock.
+
+Skipping is not the same as passing. `ModelsAClockedPartTest` holds this string
+to what the table says, so a member cannot quietly opt out of the interface by
+calling itself something else.
+"""
+
+CLOCKED = KIND == "Clocked part"
+
 INTERFACE = (
     "step",
     "run_for",
@@ -85,6 +101,39 @@ def a_running_part() -> Part:
     return checked
 
 
+class ModelsAClockedPartTest(unittest.TestCase):
+    """That the kind this member claims is the kind the table gives it.
+
+    The kind decides which checks run, so a member could otherwise skip the
+    whole interface section by calling itself a format. Holding the string to
+    the table means changing it means changing the standard, in every member,
+    which is the point.
+    """
+
+    def row(self) -> str:
+        pattern = rf"^\|\s*\[{re.escape(ROOT.name)}\]\([^)]*\)\s*\|(.+)\|(.+)\|\s*$"
+        found = re.search(pattern, FAMILY, re.M)
+
+        assert found is not None, f"{ROOT.name} is not in the membership table"
+        return found.group(2).strip()
+
+    def test_this_member_is_in_the_membership_table(self) -> None:
+        self.assertIn(ROOT.name, FAMILY)
+
+    def test_and_the_kind_it_declares_is_the_kind_the_table_gives_it(self) -> None:
+        self.assertEqual(KIND, self.row())
+
+    def test_the_table_only_uses_kinds_the_standard_explains(self) -> None:
+        kinds = set(re.findall(r"\|\s*(Clocked part|Board|Format|Tool)\s*\|", FAMILY))
+
+        self.assertTrue(kinds <= {"Clocked part", "Board", "Format", "Tool"})
+        self.assertIn(KIND, kinds)
+
+    def test_the_standard_says_what_a_kind_that_is_not_clocked_skips(self) -> None:
+        self.assertIn("skips the section about a clock", FAMILY)
+
+
+@unittest.skipUnless(CLOCKED, "not a clocked part")
 class PromisedInterfaceTest(unittest.TestCase):
     def test_every_call_the_standard_names_exists_here(self) -> None:
         part = a_part()
@@ -106,6 +155,7 @@ class PromisedInterfaceTest(unittest.TestCase):
         self.assertEqual(unnamed, [])
 
 
+@unittest.skipUnless(CLOCKED, "not a clocked part")
 class PromisedBehaviourTest(unittest.TestCase):
     def test_a_step_reports_what_it_cost(self) -> None:
         part = a_running_part()
@@ -459,6 +509,7 @@ class StandardIsKeptTest(unittest.TestCase):
         self.assertNotIn("coverage run -a conformance/speed.py", workflow)
 
 
+@unittest.skipUnless(CLOCKED, "not a clocked part")
 class SuppliedMemoryTest(unittest.TestCase):
     """That what a core runs on is handed in the same way in every package.
 
@@ -799,8 +850,16 @@ prose rather than a leak.
 """
 
 
-DECLARES_MACHINES = "conformance/family.test.py"
-"""The one file allowed to write the names down, because it is the list itself."""
+NOT_THIS_PACKAGES_WORDS = ("conformance/family.test.py", "FAMILY.md")
+"""Two files the machine sweep does not read, and why each is out of scope.
+
+`conformance/family.test.py` is the list of names to search for, so finding them
+there is finding the list. `FAMILY.md` is the standard every member carries
+identically, and it describes members that model a cartridge memory map, an
+image format and a board. Those exist only as part of one machine and name it
+because that is what they model. A shared file cannot be held to one member's
+vocabulary.
+"""
 
 
 def unquoted(text: str, suffix: str) -> str:
@@ -863,7 +922,7 @@ def machine_mentions(where: Path, names: tuple[str, ...], run: Any = None) -> li
     ).stdout.split()
     found = []
     for rel in listed:
-        if rel == DECLARES_MACHINES:
+        if rel in NOT_THIS_PACKAGES_WORDS:
             continue
         path = where / rel
         if path.suffix in {".png", ".jpg", ".ico", ".pdf"} or not path.is_file():
