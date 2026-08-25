@@ -178,6 +178,16 @@ class CheckerTest(unittest.TestCase):
     run in which they have never been seen to fail says nothing about them.
     """
 
+    def test_an_example_that_runs_is_not_reported(self) -> None:
+        """Driven rather than inherited from whichever readme this member has.
+
+        On a member whose every example needs a file it may not ship, no example
+        succeeds on a runner, so this arc was covered here and uncovered there.
+        """
+        readme = "```python\nprint(1)\n```\n"
+
+        self.assertEqual(broken(examples(readme)), [])
+
     def test_an_example_that_raises_is_reported(self) -> None:
         readme = '```python\nraise ValueError("nope")\n```\n'
 
