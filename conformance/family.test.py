@@ -618,20 +618,32 @@ class NoStrayAttributeTest(unittest.TestCase):
 SECTIONS = (
     "Install",
     "The interface",
-    "Running it at a real speed",
-    "Models",
-    "Nothing starts clean",
     "Is it right",
     "Working on it",
     "References",
     "Citing this",
     "License",
 )
-"""The sections every readme carries, in the order it carries them.
+"""The sections every readme carries, whatever the member models.
 
-Two more sit among them and are not listed because their titles name the part:
+Seven, in this order, with anything a member adds sitting between the interface
+and the evidence. A reader who learned where something lives in one member finds
+it in the same place in the next, which is most of what a shared shape buys.
+"""
+
+CLOCKED_SECTIONS = (
+    "Running it at a real speed",
+    "Models",
+    "Nothing starts clean",
+)
+"""Three more that only a clocked part has, in this order, after the interface.
+
+Two others sit among them and are not listed because their titles name the part:
 one about driving it a cycle at a time, where a Z80's cycle is a T state, and one
 about reading a program without running it. Both are checked for separately.
+
+A board, a format or a tool has no clock to pace, no power-on state to scramble
+and no models to choose between, so it carries none of these and is not asked to.
 """
 
 DIRECTIVE = ("noqa", "type:", "pragma", "ruff:", "mypy:", "isort:", "fmt:")
@@ -686,26 +698,44 @@ class WrittenTheSameWayTest(unittest.TestCase):
     def readme(self) -> str:
         return (ROOT / "README.md").read_text()
 
-    def test_the_readme_carries_the_sections_the_family_carries(self) -> None:
-        held = re.findall(r"^## (.+)$", self.readme(), re.M)
+    def headings(self) -> list[str]:
+        return re.findall(r"^## (.+)$", self.readme(), re.M)
 
-        missing = [one for one in SECTIONS if one not in held]
+    def test_the_readme_carries_the_sections_the_family_carries(self) -> None:
+        missing = [one for one in SECTIONS if one not in self.headings()]
 
         self.assertEqual(missing, [])
 
     def test_and_in_the_order_the_family_carries_them(self) -> None:
-        held = [one for one in re.findall(r"^## (.+)$", self.readme(), re.M) if one in SECTIONS]
+        held = [one for one in self.headings() if one in SECTIONS]
 
         self.assertEqual(held, list(SECTIONS))
 
+    @unittest.skipUnless(CLOCKED, "not a clocked part")
+    def test_a_clocked_part_also_carries_the_three_a_clock_needs(self) -> None:
+        missing = [one for one in CLOCKED_SECTIONS if one not in self.headings()]
+
+        self.assertEqual(missing, [])
+
+    @unittest.skipUnless(CLOCKED, "not a clocked part")
     def test_and_a_section_on_driving_it_a_cycle_at_a_time(self) -> None:
         """Named for the part: a Z80's cycle is a T state and it says so."""
-        held = re.findall(r"^## (.+)$", self.readme(), re.M)
+        self.assertTrue(any(one.startswith("Driving it one") for one in self.headings()))
 
-        self.assertTrue(any(one.startswith("Driving it one") for one in held), held)
-
+    @unittest.skipUnless(CLOCKED, "not a clocked part")
     def test_and_one_on_reading_a_program_without_running_it(self) -> None:
-        self.assertIn("Reading without running", re.findall(r"^## (.+)$", self.readme(), re.M))
+        self.assertIn("Reading without running", self.headings())
+
+    def test_anything_it_adds_sits_between_the_interface_and_the_evidence(self) -> None:
+        """So the spine reads the same in every member, whatever fills the middle."""
+        held = self.headings()
+        added = [one for one in held if one not in SECTIONS and one not in CLOCKED_SECTIONS]
+        interface = held.index("The interface")
+        evidence = held.index("Is it right")
+
+        stray = [one for one in added if not interface < held.index(one) < evidence]
+
+        self.assertEqual(stray, [])
 
     def test_the_readme_opens_with_what_was_measured(self) -> None:
         """A line of numbers somebody ran, before any prose about the part.

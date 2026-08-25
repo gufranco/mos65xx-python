@@ -189,8 +189,14 @@ checks the ones a test can reach.
 
 **How it is written**
 
-- [ ] The readme carries the same twelve sections under the same names in the
-      same order. A reader who learned where something lives in one member finds
+- [ ] The readme carries the same seven sections under the same names in the
+      same order, whatever the member models: install, the interface, is it
+      right, working on it, references, citing this, license. A clocked part
+      carries five more between the interface and the evidence, about pacing it
+      against a real clock, driving it a cycle at a time, its models, reading a
+      program without running it, and why nothing starts clean. Anything else a
+      member adds sits in that same middle, so the spine reads the same
+      everywhere. A reader who learned where something lives in one member finds
       it in the same place in the next, which is most of what a shared shape buys.
 - [ ] It opens with a line of numbers somebody ran, before any prose: what was
       compared, how much of it failed, the test count, the coverage, and what it
