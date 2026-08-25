@@ -98,7 +98,12 @@ class Part(Protocol):
 
 
 def a_part() -> Part:
-    part: Part = mos65xx.Cpu(mos65xx.DEFAULT_MODEL)
+    """One part, built the way the standard says every member builds one.
+
+    A member that is not a clocked part has no `Cpu` at all, and the checks
+    that call this are skipped there.
+    """
+    part: Part = PACKAGE.Cpu(PACKAGE.DEFAULT_MODEL)
     return part
 
 
@@ -108,7 +113,7 @@ def a_running_part() -> Part:
     Left in scrambled memory a part reaches a halting opcode within a few dozen
     instructions, which is correct behaviour and useless for testing a limit.
     """
-    part = mos65xx.Cpu("65816", mos65xx.Memory(image=bytes([0xEA] * 256)))
+    part = PACKAGE.Cpu("65816", PACKAGE.Memory(image=bytes([0xEA] * 256)))
     part.pb = 0x00
     part.pc = 0x0000
     checked: Part = part
@@ -202,7 +207,7 @@ class PromisedBehaviourTest(unittest.TestCase):
     def test_a_bounded_run_gives_up_rather_than_hanging(self) -> None:
         part = a_running_part()
 
-        with self.assertRaises(mos65xx.RunLimit):
+        with self.assertRaises(PACKAGE.RunLimit):
             part.run_until(lambda _: False, limit=32)
 
     def test_a_running_part_is_not_held(self) -> None:
@@ -274,7 +279,7 @@ class PublishedSurfaceTest(unittest.TestCase):
     @unittest.skipUnless(CLOCKED, "not a clocked part")
     def test_the_memory_type_is_reachable_without_a_private_import(self) -> None:
         for name in ("Memory", "SparseMemory"):
-            self.assertIn(name, mos65xx.__all__, name)
+            self.assertIn(name, PACKAGE.__all__, name)
 
     def test_and_so_is_everything_it_can_raise(self) -> None:
         """Read from the errors module rather than a list somebody keeps in step.
@@ -297,12 +302,21 @@ class PublishedSurfaceTest(unittest.TestCase):
         self.assertEqual([name for name in public if name not in PACKAGE.__all__], [])
 
     def test_nothing_is_promised_that_is_not_there(self) -> None:
-        absent = [name for name in mos65xx.__all__ if not hasattr(mos65xx, name)]
+        absent = [name for name in PACKAGE.__all__ if not hasattr(PACKAGE, name)]
 
         self.assertEqual(absent, [])
 
 
-PACKAGE = mos65xx
+PACKAGE: Any = mos65xx
+"""The package under test, deliberately untyped.
+
+What a member publishes depends on what it models: a clocked part has a `Cpu`,
+a `Memory` and a `RunLimit`, and a board, a format or a tool has none of them.
+A checker cannot know which of those it is looking at, so naming the attributes
+here would make it refuse a repository the standard never asked for one from.
+The checks that reach for those attributes are skipped on members without them,
+and every assertion below is made against the value at run time.
+"""
 
 
 class OneDefinitionTest(unittest.TestCase):
@@ -420,7 +434,7 @@ class DocumentedModelTest(unittest.TestCase):
     def test_every_model_has_a_worked_construction(self) -> None:
         readme = (ROOT / "README.md").read_text()
 
-        undocumented = [name for name in mos65xx.MODELS if f'Cpu("{name}")' not in readme]
+        undocumented = [name for name in PACKAGE.MODELS if f'Cpu("{name}")' not in readme]
 
         self.assertEqual(undocumented, [])
 
@@ -429,7 +443,7 @@ class DocumentedModelTest(unittest.TestCase):
 
         unnamed = [
             alias
-            for model in mos65xx.MODELS.values()
+            for model in PACKAGE.MODELS.values()
             for alias in model.aliases
             if alias not in readme
         ]

@@ -249,7 +249,23 @@ discovered later:
 - **A submodule pins a commit, and a pin can go stale exactly as a corpus pin
   can.** The same rule applies: the repository it names must still be one
   somebody can push to, and the pin is checked against its head rather than
-  assumed current.
+  assumed current. It is not enough to be checkable. Every member consuming
+  another tracks its head, the weekly job reports how far behind each pin has
+  fallen, and a pin is moved because the report says so rather than because
+  somebody happened to look.
+
+  One pin was a hundred and twenty four commits behind when this was written,
+  so a member was reading a cartridge's code with a processor model carrying a
+  defect fixed that morning. Another was eight behind, and moving it changed
+  the bytes a tool writes, because one of those commits corrected a checksum
+  for images whose length is not a power of two. Both were found by asking
+  rather than by anything failing.
+
+- **Moving a pin is a change to this member's behaviour until proven otherwise.**
+  Run the suite against the newer copy before committing the bump, and when the
+  output changes, find out which upstream commit changed it and why before
+  touching anything that records what the output should be. A digest updated to
+  make a check pass is the failure this whole standard exists to prevent.
 
 What must not happen is a module-level import of a sibling with nothing
 declaring it. That is how a package looks installable, is not, and fails at
