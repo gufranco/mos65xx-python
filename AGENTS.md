@@ -127,7 +127,6 @@ and zilog-z80. When one of them needs a pattern, the pattern is here:
 | Comparing state against a per-opcode corpus | [`conformance/singlestep.py`](conformance/singlestep.py) |
 | Comparing the bus, cycle by cycle and pin by pin | [`conformance/cycles.py`](conformance/cycles.py) |
 | Pinning and fetching a corpus nobody vendors | [`conformance/fetch.py`](conformance/fetch.py) and [`conformance/suites.json`](conformance/suites.json) |
-| Requirements with checkable scenarios | [`specs/current/`](specs/current/) |
 | Strict typing, every optional error class | the `[tool.mypy]` block in `pyproject.toml` |
 
 The one thing to copy first is the pair of JSON files. A number in a docstring is
@@ -205,7 +204,6 @@ conformance/
   hardware.json  what the manufacturers printed, with the sentence
   divergences.json  where a document and a recording part, and what would settle it
   links.py       the weekly check that every cited address still answers
-specs/current/   what this does now, as requirements with scenarios
 ```
 
 ## Things that will bite you

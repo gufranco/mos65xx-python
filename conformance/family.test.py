@@ -24,7 +24,7 @@ import tomllib
 import types
 import unittest
 from collections.abc import Iterable
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Protocol
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -811,17 +811,43 @@ class EveryLinkResolvesTest(unittest.TestCase):
         )
         return [ROOT / one for one in held.stdout.split()]
 
-    def unresolved(self, where: Path) -> list[str]:
-        """Every link in that file naming something in this repository that is absent."""
+    def tracked(self) -> set[str]:
+        """Every path this repository tracks, and every directory along the way.
+
+        Tracked rather than present, because the two differ on exactly the
+        machine that matters. `specs/` and `docs/` are ignored here, so a link
+        into one resolves on the author's disk and 404s for everybody who clones.
+        One member linked its agent brief at `specs/current/` and only CI said so.
+        """
+        held = subprocess.run(
+            ["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True
+        )
+        found: set[str] = set()
+        for one in held.stdout.split():
+            found.add(one)
+            for parent in PurePosixPath(one).parents:
+                if str(parent) != ".":
+                    found.add(str(parent))
+        return found
+
+    def targets(self, where: Path) -> list[str]:
+        """Every link in that file that names something in this repository."""
         found = []
         for target in self.LINK.findall(where.read_text()):
             held = target.split("#", 1)[0].split(" ", 1)[0]
             if not held or "://" in held or held.startswith(("mailto:", "#")):
                 continue
-            if not (where.parent / held).exists():
-                named = where.relative_to(ROOT) if where.is_relative_to(ROOT) else where.name
-                found.append(f"{named} -> {held}")
+            found.append(held)
         return found
+
+    def unresolved(self, where: Path, known: set[str]) -> list[str]:
+        """Those of them the repository does not track, said against its root."""
+        inside = PurePosixPath(where.parent.relative_to(ROOT))
+        return [
+            f"{where.relative_to(ROOT)} -> {one}"
+            for one in self.targets(where)
+            if str(inside / one).rstrip("/") not in known
+        ]
 
     def test_every_markdown_file_here_is_checked(self) -> None:
         """So a run over nothing cannot read as a run that found nothing."""
@@ -830,39 +856,43 @@ class EveryLinkResolvesTest(unittest.TestCase):
         self.assertTrue({"README.md", "AGENTS.md", "FAMILY.md"} <= named, named)
 
     def test_and_every_link_into_this_repository_resolves(self) -> None:
-        missing = sorted(one for held in self.documents() for one in self.unresolved(held))
+        known = self.tracked()
+
+        missing = sorted(one for held in self.documents() for one in self.unresolved(held, known))
 
         self.assertEqual(missing, [])
 
-    def test_a_link_to_something_absent_is_reported(self) -> None:
-        where = Path(tempfile.mkdtemp()) / "one.md"
-        where.write_text("see [the file](nothing-is-here.cff)\n")
+    def test_a_link_to_something_the_repository_does_not_track_is_reported(self) -> None:
+        held = ROOT / "README.md"
 
-        self.assertEqual(len(self.unresolved(where)), 1)
+        self.assertEqual(len(self.unresolved(held, set())), len(self.targets(held)))
 
-    def test_a_link_to_something_present_is_not(self) -> None:
-        where = Path(tempfile.mkdtemp()) / "one.md"
-        where.write_text("see [itself](one.md)\n")
+    def test_a_link_to_something_it_does_track_is_not(self) -> None:
+        held = ROOT / "README.md"
 
-        self.assertEqual(self.unresolved(where), [])
+        self.assertEqual(self.unresolved(held, self.tracked()), [])
 
     def test_an_anchor_is_dropped_before_the_file_is_looked_for(self) -> None:
         where = Path(tempfile.mkdtemp()) / "one.md"
-        where.write_text("see [a section](one.md#somewhere)\n")
+        where.write_text("see [a section](FAMILY.md#somewhere)\n")
 
-        self.assertEqual(self.unresolved(where), [])
+        self.assertEqual(self.targets(where), ["FAMILY.md"])
 
     def test_and_a_link_within_one_document_is_left_alone(self) -> None:
         where = Path(tempfile.mkdtemp()) / "one.md"
         where.write_text("see [above](#somewhere)\n")
 
-        self.assertEqual(self.unresolved(where), [])
+        self.assertEqual(self.targets(where), [])
 
     def test_an_address_on_the_network_is_not_this_check_s_business(self) -> None:
         where = Path(tempfile.mkdtemp()) / "one.md"
         where.write_text("see [a site](https://example.com/page)\n")
 
-        self.assertEqual(self.unresolved(where), [])
+        self.assertEqual(self.targets(where), [])
+
+    def test_a_path_this_repository_ignores_does_not_count_as_resolved(self) -> None:
+        """The case only CI saw: a link into `specs/`, which is never tracked."""
+        self.assertNotIn("specs/current", self.tracked())
 
 
 class NothingOutsideTheStandardLibraryTest(unittest.TestCase):
