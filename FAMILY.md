@@ -75,6 +75,10 @@ checks the ones a test can reach.
 - [ ] On a **Part**, `Chip(model, store)` does the same job under the name that
       kind has. What it hands back is a class called `Chip`. A part that executes
       nothing should not be built by something called `Cpu`.
+- [ ] A part that comes up holding whatever it held offers `reset()`, and what
+      that reset does is either quoted from a document or recorded as not stated,
+      with the measurement that would settle it. A reset nobody can account for
+      is an invented pin.
 - [ ] A part publishes its catalogue even when it holds one model: `MODELS`,
       `DEFAULT_MODEL`, `Model`, `describe` and `UnknownModelError`. A name no
       model goes by is refused, never quietly resolved to the default.
@@ -392,6 +396,19 @@ Skip this section if the repository models something that is not clocked.
 A part runs at whatever its crystal says. A model that runs as fast as the host
 manages is an emulator, so it reports what it spent and lets a host hold it to a
 real frequency.
+
+This is written for a part driven by a clock, and one line of it is not: a part
+that answers accesses has no clock and still comes up holding whatever it held,
+so it offers `reset()` too. What that reset does has to be accounted for. Three
+of these quote a manufacturer for it, including what it costs. One has no
+document in existence and records the behaviour as the reference implementation's
+with a measurement that would settle it. The two clocks model the console's reset
+line reaching a battery-backed part, which touches no counter and is a different
+event from the RESET bit one of their manuals documents; that distinction went
+unwritten until somebody asked, and both readings now sit in the record.
+
+A reset nobody can account for is an invented pin, and the family does not ship
+those any more than it ships an invented flag.
 
 - **Power on scrambles; reset defines.** Two separate events, kept separate.
   Construction puts every register in the state the rail coming up leaves it, the

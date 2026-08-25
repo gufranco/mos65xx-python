@@ -327,6 +327,45 @@ class PublishedSurfaceTest(unittest.TestCase):
             PACKAGE.Chip("no model goes by this name")
 
     @unittest.skipUnless(A_PART, "not a part in the sense this checks")  # pragma: no cover
+    def test_a_part_that_holds_what_it_held_offers_a_reset(self) -> None:
+        """It has no clock and still comes up holding whatever it held.
+
+        A caller driving a board resets every part on it, and a part that cannot
+        be reset makes the caller special-case which ones can.
+        """
+        self.assertTrue(callable(getattr(PACKAGE.Chip(), "reset", None)))
+
+    @unittest.skipUnless(A_PART, "not a part in the sense this checks")  # pragma: no cover
+    def test_and_that_reset_hands_the_part_back(self) -> None:
+        """So a caller can build and reset in one expression, as the clocked ones do."""
+        built = PACKAGE.Chip()
+
+        self.assertIs(built.reset(), built)
+
+    @unittest.skipUnless(A_PART, "not a part in the sense this checks")  # pragma: no cover
+    def test_and_what_that_reset_does_is_accounted_for(self) -> None:
+        """Quoted from a document, or recorded as not stated. Never neither.
+
+        A reset nobody can account for is an invented pin. One member models the
+        console's reset line reaching a battery-backed part, which is a different
+        event from the RESET bit its manual documents, and nothing said so until
+        somebody asked.
+        """
+        self.assertTrue(accounts_for_a_reset(json.loads(RECORD.read_text())))
+
+    @unittest.skipUnless(A_PART, "not a part in the sense this checks")  # pragma: no cover
+    def test_the_reader_of_that_finds_a_reset_named_as_a_key(self) -> None:
+        self.assertTrue(accounts_for_a_reset({"facts": {"resetPulseCycles": {"value": 4}}}))
+
+    @unittest.skipUnless(A_PART, "not a part in the sense this checks")  # pragma: no cover
+    def test_and_one_named_only_in_a_sentence(self) -> None:
+        self.assertTrue(accounts_for_a_reset({"notStated": ["what the RESET line does"]}))
+
+    @unittest.skipUnless(A_PART, "not a part in the sense this checks")  # pragma: no cover
+    def test_and_reports_a_record_that_never_mentions_one(self) -> None:
+        self.assertFalse(accounts_for_a_reset({"facts": {"window": [1, 2]}, "note": "a chip"}))
+
+    @unittest.skipUnless(A_PART, "not a part in the sense this checks")  # pragma: no cover
     def test_every_name_a_part_promises_is_published(self) -> None:
         absent = [name for name in PART_SURFACE if name not in PACKAGE.__all__]
 
@@ -1075,6 +1114,23 @@ class SharedFileTest(unittest.TestCase):
     def test_a_file_named_with_no_directory_in_it_is_still_required(self) -> None:
         """The exclusion that let three members ship without a citation file."""
         self.assertIn("CITATION.cff", self.promised())
+
+
+def accounts_for_a_reset(node: Any) -> bool:  # pragma: no cover
+    """Whether a record says anything at all about a reset, as a key or in prose.
+
+    Deliberately loose. What it is guarding against is a part offering `reset()`
+    with nothing anywhere accounting for what that reset does, which is an
+    invented pin. Whether the account is a quote or an admission that no document
+    states it is for a reader to judge; that there is one is checkable.
+    """
+    if isinstance(node, dict):
+        if any("reset" in str(key).lower() for key in node):
+            return True
+        return any(accounts_for_a_reset(one) for one in node.values())
+    if isinstance(node, list):
+        return any(accounts_for_a_reset(one) for one in node)
+    return "reset" in str(node).lower()
 
 
 def catalogue(package: Any = None) -> dict[str, Any]:
