@@ -12,6 +12,7 @@ review question; whether `run_for` exists is not.
 from __future__ import annotations
 
 import ast
+import importlib
 import inspect
 import json
 import re
@@ -47,6 +48,19 @@ calling itself something else.
 """
 
 CLOCKED = KIND == "Clocked part"
+
+SOLD_AS_A_COMPONENT = True
+"""Whether this part could be bought and designed into something other than one machine.
+
+A Z80 could, so naming the machine somebody put it in would turn this package
+into a catalogue of that machine's parts wearing a processor's name. A cartridge
+memory map could not: it exists only as part of one machine, names it because
+that is what it models, and there is no more general thing to name instead.
+
+The flag decides whether the machine sweep runs at all. It is written out rather
+than inferred from an empty list of names, because an empty list and a list
+nobody filled in look identical.
+"""
 
 INTERFACE = (
     "step",
@@ -232,16 +246,19 @@ class PublishedSurfaceTest(unittest.TestCase):
     relying on a path that is free to move. A sibling package had six such names.
     """
 
+    @unittest.skipUnless(CLOCKED, "not a clocked part")
     def test_every_name_the_standard_promises_is_published(self) -> None:
-        absent = [name for name in SURFACE if name not in mos65xx.__all__]
+        absent = [name for name in SURFACE if name not in PACKAGE.__all__]
 
         self.assertEqual(absent, [])
 
+    @unittest.skipUnless(CLOCKED, "not a clocked part")
     def test_and_each_one_is_actually_reachable(self) -> None:
-        absent = [name for name in SURFACE if not hasattr(mos65xx, name)]
+        absent = [name for name in SURFACE if not hasattr(PACKAGE, name)]
 
         self.assertEqual(absent, [])
 
+    @unittest.skipUnless(CLOCKED, "not a clocked part")
     def test_the_part_a_caller_gets_back_is_called_Cpu(self) -> None:  # noqa: N802
         """The class, not just the call that builds it.
 
@@ -254,13 +271,30 @@ class PublishedSurfaceTest(unittest.TestCase):
 
         self.assertEqual(type(built).__name__, "Cpu")
 
+    @unittest.skipUnless(CLOCKED, "not a clocked part")
     def test_the_memory_type_is_reachable_without_a_private_import(self) -> None:
         for name in ("Memory", "SparseMemory"):
             self.assertIn(name, mos65xx.__all__, name)
 
     def test_and_so_is_everything_it_can_raise(self) -> None:
-        for name in ("Truncated", "Stopped", "Waiting"):
-            self.assertIn(name, mos65xx.__all__, name)
+        """Read from the errors module rather than a list somebody keeps in step.
+
+        Every exception a caller can meet has to be importable by name, because
+        `except` takes a name and one that cannot be imported can only be handled
+        by catching everything.
+        """
+        errors = importlib.import_module(f"{PACKAGE.__name__}.errors")
+        public = [
+            name
+            for name, held in vars(errors).items()
+            if isinstance(held, type)
+            and issubclass(held, Exception)
+            and not name.startswith("_")
+            and held.__module__ == errors.__name__
+        ]
+
+        self.assertTrue(public, "the errors module defines no exception")
+        self.assertEqual([name for name in public if name not in PACKAGE.__all__], [])
 
     def test_nothing_is_promised_that_is_not_there(self) -> None:
         absent = [name for name in mos65xx.__all__ if not hasattr(mos65xx, name)]
@@ -1311,6 +1345,7 @@ class QuotedPassageTest(unittest.TestCase):
         self.assertEqual(_passages(json.loads(held)), [])
 
 
+@unittest.skipUnless(SOLD_AS_A_COMPONENT, "this part only existed inside one machine")
 class NamesNoMachineTest(unittest.TestCase):
     """That this package does not name the machines its part went into.
 

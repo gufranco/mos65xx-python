@@ -173,7 +173,9 @@ checks the ones a test can reach.
       cartridge memory map, an image format, a board, names that machine because
       that is what it models, and there is no more general thing to name instead.
       The test is whether the part could be bought and designed into something
-      else. A Z80 could. A cartridge bus could not.
+      else. A Z80 could. A cartridge bus could not. Each member writes the answer
+      out rather than leaving it to an empty list of names, because a list nobody
+      filled in and a list with nothing to say look identical.
 - [ ] Two things are outside that and each says something. A quoted passage is a
       document's words, and a document may name whatever it likes. The file
       declaring the names to search for is the list rather than a mention.
