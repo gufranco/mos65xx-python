@@ -639,20 +639,367 @@ class OneVocabularyForADocumentTest(unittest.TestCase):
         self.assertEqual(nameless, ["sheet"])
 
 
-class SharedFileTest(unittest.TestCase):
-    def test_the_standard_names_every_file_this_repository_must_carry(self) -> None:
-        rows = re.findall(r"^\| `([^`]+)` \|", FAMILY, re.M)
-        promised = [row for row in rows if "/" in row or row.endswith(".md")]
+class EveryModuleIsReachedTest(unittest.TestCase):
+    """That no module sits in the package with nothing reaching it.
 
-        missing = [row for row in promised if not (ROOT / row).exists()]
+    A module nothing imports and the package does not publish is dead, and dead
+    code is worse than absent code when it holds names that also live somewhere
+    real. One member carried a `dump.py` defining `read` and `has_copier_stub`
+    beside the published ones in `header.py`, superseded by a sibling repository
+    and left behind. Both READMEs described it as not exported and not imported,
+    which is a defect written down rather than fixed.
+
+    Nothing else catches it. The linter sees a module it was never asked about,
+    the type checker checks it and finds it sound, coverage measures it and finds
+    it tested, and the one-definition check above is exceptions-only for reasons
+    of its own. Every gate passes on code no caller can run.
+
+    Reached means one of two things, and the second is why this reads imports
+    rather than asking `dir()`. A module the package binds as an attribute is
+    reached by a caller. A module only ever imported by a sibling module is
+    reached too, and never appears on the package.
+
+    Test files do not count, and that is the whole difficulty. A dead module
+    usually has a test file beside it, written when the module was alive, and it
+    is the only thing left importing it. Counting that would make the module look
+    reached by the very file that proves nobody else needs it, which is exactly
+    what this check found when it was first written and first run.
+
+    A module nobody imports is reached anyway when a person runs it. The doctor
+    is exactly that: it is deliberately importable by nothing, because it has to
+    survive a package that will not import, and it is run as a file. What makes
+    it an entry point rather than dead code is a `__main__` guard, so that is
+    what this looks for rather than the doctor's name.
+    """
+
+    def an_entry_point(self, path: Path) -> bool:
+        """Whether a module is meant to be run rather than imported."""
+        return any(
+            isinstance(node, ast.If)
+            and isinstance(node.test, ast.Compare)
+            and isinstance(node.test.left, ast.Name)
+            and node.test.left.id == "__name__"
+            for node in ast.walk(ast.parse(path.read_text()))
+        )
+
+    def entry_points(self) -> set[str]:
+        return {
+            path.stem
+            for path in Path(PACKAGE.__file__ or "").resolve().parent.glob("*.py")
+            if not path.name.endswith(".test.py") and self.an_entry_point(path)
+        }
+
+    def modules(self) -> set[str]:
+        """Every module file in the package, by stem."""
+        return {
+            path.stem
+            for path in Path(PACKAGE.__file__ or "").resolve().parent.glob("*.py")
+            if not path.name.endswith(".test.py") and path.stem != "__init__"
+        }
+
+    def imported(self, where: Path | None = None) -> set[str]:
+        """Every module name any file in the repository imports, however written."""
+        held = ROOT if where is None else where
+        name = PACKAGE.__name__
+        found: set[str] = set()
+        for path in sorted(held.glob("**/*.py")):
+            if "node_modules" in path.parts or path.name.endswith(".test.py"):
+                continue
+            try:
+                tree = ast.parse(path.read_text())
+            except SyntaxError:  # pragma: no cover
+                continue
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ImportFrom):
+                    if not (node.level or (node.module or "").split(".")[0] == name):
+                        continue
+                    if node.module:
+                        found.add(node.module.rsplit(".", 1)[-1])
+                    found.update(one.name for one in node.names)
+                elif isinstance(node, ast.Import):
+                    for one in node.names:
+                        if one.name.split(".")[0] == name:
+                            found.add(one.name.rsplit(".", 1)[-1])
+        return found
+
+    def test_every_module_in_the_package_is_reached_by_something(self) -> None:
+        published = set(PACKAGE.__all__) | {
+            name for name in dir(PACKAGE) if isinstance(getattr(PACKAGE, name), types.ModuleType)
+        }
+
+        stranded = sorted(self.modules() - published - self.imported() - self.entry_points())
+
+        self.assertEqual(stranded, [])
+
+    def test_the_doctor_is_reached_by_being_run_rather_than_imported(self) -> None:
+        self.assertIn("doctor", self.entry_points())
+
+    def test_a_module_with_no_main_guard_is_not_an_entry_point(self) -> None:
+        """So the carve-out cannot be claimed by a module nobody can run."""
+        where = Path(tempfile.mkdtemp()) / "quiet.py"
+        where.write_text("VALUE = 1\n")
+
+        self.assertFalse(self.an_entry_point(where))
+
+    def test_the_reader_of_that_counts_a_module_a_sibling_imports(self) -> None:
+        """Driven against a tree of its own, so it is the walk being tested."""
+        where = Path(tempfile.mkdtemp())
+        (where / "one.py").write_text(f"from {PACKAGE.__name__} import held\n")
+
+        self.assertIn("held", self.imported(where))
+
+    def test_and_one_reached_only_by_a_relative_import(self) -> None:
+        where = Path(tempfile.mkdtemp())
+        (where / "one.py").write_text("from . import sibling\n")
+
+        self.assertIn("sibling", self.imported(where))
+
+    def test_and_does_not_count_a_module_reached_only_by_its_own_test(self) -> None:
+        """The case this check exists for, and the one it first got wrong."""
+        where = Path(tempfile.mkdtemp())
+        (where / "stranded.test.py").write_text("from . import stranded\n")
+
+        self.assertNotIn("stranded", self.imported(where))
+
+    def test_and_a_module_reached_by_its_full_dotted_name(self) -> None:
+        """The dotted form rather than the from-import one, which nothing here writes.
+
+        Both reach a module. Only one of them is written in this family, so the
+        other would go unread by a walk built from what the source happens to
+        contain, and a module reached only that way would read as stranded.
+        """
+        where = Path(tempfile.mkdtemp())
+        (where / "one.py").write_text(f"import {PACKAGE.__name__}.reached\n")
+
+        self.assertIn("reached", self.imported(where))
+
+    def test_and_ignores_a_module_from_somewhere_else_entirely(self) -> None:
+        where = Path(tempfile.mkdtemp())
+        (where / "one.py").write_text("from json import loads\n")
+
+        self.assertNotIn("loads", self.imported(where))
+
+
+class EveryLinkResolvesTest(unittest.TestCase):
+    """That a link to a file in this repository points at a file that is here.
+
+    The link survey beside this one asks the network whether an address still
+    answers. Nothing asked the same question of a link that never leaves the
+    repository, and three members linked their readme's "Citing this" section to
+    a `CITATION.cff` that was not there, under a sentence promising a script kept
+    it in step with the release. Every gate passed. A reader following it got a
+    404 on the project's own front page.
+
+    Markdown that renders is not markdown that resolves, which is what makes this
+    invisible: GitHub shows the link as a link whether or not the target exists,
+    and only a reader clicking it finds out.
+
+    Anchors are dropped before resolving, because `file.md#section` is a link to
+    `file.md`. A bare `#section` is a link within one document and is left alone.
+    """
+
+    LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
+
+    def documents(self) -> list[Path]:
+        """Every markdown file this repository tracks, wherever it sits."""
+        held = subprocess.run(
+            ["git", "ls-files", "*.md"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return [ROOT / one for one in held.stdout.split()]
+
+    def unresolved(self, where: Path) -> list[str]:
+        """Every link in that file naming something in this repository that is absent."""
+        found = []
+        for target in self.LINK.findall(where.read_text()):
+            held = target.split("#", 1)[0].split(" ", 1)[0]
+            if not held or "://" in held or held.startswith(("mailto:", "#")):
+                continue
+            if not (where.parent / held).exists():
+                named = where.relative_to(ROOT) if where.is_relative_to(ROOT) else where.name
+                found.append(f"{named} -> {held}")
+        return found
+
+    def test_every_markdown_file_here_is_checked(self) -> None:
+        """So a run over nothing cannot read as a run that found nothing."""
+        named = {one.name for one in self.documents()}
+
+        self.assertTrue({"README.md", "AGENTS.md", "FAMILY.md"} <= named, named)
+
+    def test_and_every_link_into_this_repository_resolves(self) -> None:
+        missing = sorted(one for held in self.documents() for one in self.unresolved(held))
+
+        self.assertEqual(missing, [])
+
+    def test_a_link_to_something_absent_is_reported(self) -> None:
+        where = Path(tempfile.mkdtemp()) / "one.md"
+        where.write_text("see [the file](nothing-is-here.cff)\n")
+
+        self.assertEqual(len(self.unresolved(where)), 1)
+
+    def test_a_link_to_something_present_is_not(self) -> None:
+        where = Path(tempfile.mkdtemp()) / "one.md"
+        where.write_text("see [itself](one.md)\n")
+
+        self.assertEqual(self.unresolved(where), [])
+
+    def test_an_anchor_is_dropped_before_the_file_is_looked_for(self) -> None:
+        where = Path(tempfile.mkdtemp()) / "one.md"
+        where.write_text("see [a section](one.md#somewhere)\n")
+
+        self.assertEqual(self.unresolved(where), [])
+
+    def test_and_a_link_within_one_document_is_left_alone(self) -> None:
+        where = Path(tempfile.mkdtemp()) / "one.md"
+        where.write_text("see [above](#somewhere)\n")
+
+        self.assertEqual(self.unresolved(where), [])
+
+    def test_an_address_on_the_network_is_not_this_check_s_business(self) -> None:
+        where = Path(tempfile.mkdtemp()) / "one.md"
+        where.write_text("see [a site](https://example.com/page)\n")
+
+        self.assertEqual(self.unresolved(where), [])
+
+
+class NothingOutsideTheStandardLibraryTest(unittest.TestCase):
+    """That the readme's "no dependencies" is a fact rather than a habit.
+
+    Every readme in the family advertises it, and for a while only some members
+    checked it. Those built a bill of materials from a fresh environment holding
+    the package and nothing else, and failed the release when a second name
+    turned up. The three that consume a sibling as a submodule cannot do that,
+    because a wheel built from one installs and then raises on its first import,
+    so they publish no packaging block at all and had nothing holding the claim.
+
+    Reading the imports holds every member to it the same way, needs no
+    environment, and runs on a machine with no network. What it allows is the
+    standard library, the package itself, `conformance` beside it, and the
+    submodules this repository declares in `.gitmodules`, which are vendored
+    rather than depended on.
+
+    `conformance` is allowed because it is a directory this repository ships, not
+    something fetched. One doctor reads the exhaustive check from it to say
+    whether that check can run here, which is the doctor doing its job.
+    """
+
+    def declared_submodules(self, root: Path | None = None) -> set[str]:
+        """Every sibling this repository carries, by the package name it provides.
+
+        Read from `.gitmodules` rather than from a list here, so a member that
+        gains or drops a submodule needs no edit. It takes a root so it can be
+        driven against a repository shaped like one that has them, which three
+        members do and the other seven do not.
+        """
+        where = ROOT if root is None else root
+        held = where / ".gitmodules"
+        if not held.is_file():
+            return set()
+        found = set()
+        for line in held.read_text().splitlines():
+            if not line.strip().startswith("path = "):
+                continue
+            name = line.strip().removeprefix("path = ").strip()
+            for path in sorted((where / name).glob("*/__init__.py")):
+                found.add(path.parent.name)
+        return found
+
+    def imports(self, where: Path) -> set[str]:
+        """Every top-level module name imported by a file."""
+        found: set[str] = set()
+        for node in ast.walk(ast.parse(where.read_text())):
+            if isinstance(node, ast.Import):
+                found.update(one.name.split(".")[0] for one in node.names)
+            elif isinstance(node, ast.ImportFrom) and not node.level and node.module:
+                found.add(node.module.split(".")[0])
+        return found
+
+    def test_the_package_imports_nothing_it_does_not_ship(self) -> None:
+        allowed = (
+            set(sys.stdlib_module_names)
+            | {PACKAGE.__name__, "conformance"}
+            | self.declared_submodules()
+        )
+
+        outside = sorted(
+            f"{path.name}: {name}"
+            for path in Path(PACKAGE.__file__ or "").resolve().parent.glob("*.py")
+            if not path.name.endswith(".test.py")
+            for name in self.imports(path)
+            if name not in allowed
+        )
+
+        self.assertEqual(outside, [])
+
+    def test_and_the_readme_says_so(self) -> None:
+        self.assertIn("no dependencies", (ROOT / "README.md").read_text())
+
+    def test_a_submodule_is_allowed_because_it_is_carried_rather_than_fetched(
+        self,
+    ) -> None:
+        """Driven against a repository shaped like the three that have them."""
+        where = Path(tempfile.mkdtemp())
+        (where / ".gitmodules").write_text(
+            '[submodule "sibling-python"]\n\tpath = sibling-python\n'
+            "\turl = https://example.invalid/sibling.git\n"
+        )
+        (where / "sibling-python" / "sibling").mkdir(parents=True)
+        (where / "sibling-python" / "sibling" / "__init__.py").write_text("")
+
+        self.assertEqual(self.declared_submodules(where), {"sibling"})
+
+    def test_and_a_repository_with_none_declares_none(self) -> None:
+        self.assertEqual(self.declared_submodules(Path(tempfile.mkdtemp())), set())
+
+    def test_the_reader_of_that_sees_an_import_from_outside(self) -> None:
+        """Driven against a file written for it, so it is the walk being tested."""
+        where = Path(tempfile.mkdtemp()) / "one.py"
+        where.write_text("import json\nimport numpy\nfrom yaml import safe_load\n")
+
+        held = self.imports(where)
+
+        self.assertEqual(sorted(held - set(sys.stdlib_module_names)), ["numpy", "yaml"])
+
+    def test_and_reads_a_relative_import_as_the_package_itself(self) -> None:
+        where = Path(tempfile.mkdtemp()) / "one.py"
+        where.write_text("from . import sibling\nfrom .errors import Refused\n")
+
+        self.assertEqual(self.imports(where), set())
+
+
+class SharedFileTest(unittest.TestCase):
+    """That every file the standard's table names is here.
+
+    The table is the list, so adding a row is how a file becomes required. What
+    counts as a row naming a file is anything with a directory in it or an
+    extension on it. The first version of this asked for a slash or a `.md`,
+    which quietly excused `CITATION.cff`: the row was added, the file was absent
+    in three members, and this check said nothing. A neighbouring check caught it
+    only because the readme happened to link to it.
+    """
+
+    NAMED = re.compile(r"^\| `([^`]+)` \|", re.M)
+
+    FILE = re.compile(r"[./]")
+
+    def promised(self) -> list[str]:
+        return [row for row in self.NAMED.findall(FAMILY) if self.FILE.search(row)]
+
+    def test_the_standard_names_every_file_this_repository_must_carry(self) -> None:
+        missing = [row for row in self.promised() if not (ROOT / row).exists()]
 
         self.assertEqual(missing, [])
 
     def test_and_there_is_something_to_check(self) -> None:
         """Or a standard naming no file would pass for one every member kept."""
-        rows = re.findall(r"^\| `([^`]+)` \|", FAMILY, re.M)
+        self.assertGreater(len(self.promised()), 6)
 
-        self.assertGreater(len([row for row in rows if row.endswith(".md")]), 0)
+    def test_a_file_named_with_no_directory_in_it_is_still_required(self) -> None:
+        """The exclusion that let three members ship without a citation file."""
+        self.assertIn("CITATION.cff", self.promised())
 
 
 def catalogue(package: Any = None) -> dict[str, Any]:

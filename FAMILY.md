@@ -620,6 +620,9 @@ on trust.
 | `OPEN-QUESTIONS.md` | Every place fidelity is still a claim, and the measurement that would close it |
 | `conformance/speed.py` | A throughput floor, so the model cannot get several times slower without a failure |
 | `conformance/readme.test.py` | Every worked example in the README, run, with its output compared to what the README claims |
+| `CITATION.cff` | How to cite the work, stamped with the released version by the same script that stamps the package |
+| `SECURITY.md` | Where to report a security problem, and what counts as one here |
+| `.github/ISSUE_TEMPLATE/bug_report.yml` | What a report has to carry to be actionable, with the doctor's output first |
 
 A tool under `conformance/` is run as a module, `python3 -m conformance.name`,
 and imports its siblings through the package. Run as a script, its own directory
@@ -634,6 +637,13 @@ the tracer.
 
 The README is for a reader who wants to use the thing. Reasoning about why a
 source was believed belongs with the record it reasons about, not in the README.
+
+Three of these were missing somewhere and nothing said so. A readme's "Citing
+this" section linked to a `CITATION.cff` that was not there, in three members at
+once, under a sentence promising a script kept it in step with the release. The
+link rendered, every gate passed, and a reader following it got a 404 on the
+project's own front page. A link into this repository is now checked to resolve,
+and the table above is the list the check reads.
 
 ## Reading a document that is a photograph
 
