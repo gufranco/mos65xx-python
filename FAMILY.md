@@ -118,6 +118,9 @@ checks the ones a test can reach.
       between members and a reader cannot tell without being told.
 - [ ] A `documents` block, each entry naming the file it is, and every citation
       naming one of those keys. Where it points inside goes in `section`.
+- [ ] A record that quotes a document ships `conformance/quotes.py` and the
+      pipeline runs it. Four members quoted with nothing checking them, one of
+      them forty-one sentences deep.
 - [ ] Every quote is present in the document it names, not merely in some
       document. Those come apart exactly when a fact is filed under the wrong
       source.

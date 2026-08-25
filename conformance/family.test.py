@@ -561,6 +561,26 @@ def cited(node: Any, where: str = "") -> list[tuple[str, str]]:
     return found
 
 
+def quoted_sentences(node: Any) -> int:
+    """How many sentences a record attributes to a document, however the key reads.
+
+    Counted by the substring rather than by an exact `quote`, because one member
+    spells one of them `countRangeQuote` and a walk looking for the exact key
+    goes straight past it. That is not hypothetical: the first version of the
+    listing in that member's checker missed exactly this one.
+    """
+    if isinstance(node, dict):
+        held = sum(1 for key in node if "quote" in str(key).lower())
+        return held + sum(quoted_sentences(one) for one in node.values())
+    if isinstance(node, list):
+        return sum(quoted_sentences(one) for one in node)
+    return 0
+
+
+QUOTED = quoted_sentences(json.loads(RECORD.read_text())) if RECORD.is_file() else 0
+"""How many sentences this record attributes to a document. Zero for three members."""
+
+
 class OneVocabularyForADocumentTest(unittest.TestCase):
     """That a document is named one way, so a check can follow the name.
 
@@ -1037,6 +1057,45 @@ class NothingOutsideTheStandardLibraryTest(unittest.TestCase):
         where.write_text("from . import sibling\nfrom .errors import Refused\n")
 
         self.assertEqual(self.imports(where), set())
+
+
+class EveryQuoteIsCheckableTest(unittest.TestCase):
+    """That a record which quotes a document ships something that looks for it.
+
+    A quote is a checkable claim and until a checker exists nothing checks it.
+    Reading quotes against documents by hand found three defects in this family:
+    an answer that read 8259 where the page prints 8080, a quote labelled
+    verbatim that had dropped a parenthetical, and a sentence about a divided
+    clock that appears in none of the twelve documents its project pins.
+
+    Four members carried quotes with no checker at all, one of them forty-one
+    sentences deep, so a sentence its manual never printed could have sat there
+    indefinitely. The checker also found something else on arrival: forty of
+    those quotes name the sentence and no page.
+
+    The documents are not redistributable and are not in any of these
+    repositories, so on most machines the checker reports that it checked
+    nothing. That is the point rather than a weakness: it is a real answer for
+    anybody holding the document, and a run without one cannot be mistaken for
+    a pass.
+    """
+
+    @unittest.skipUnless(QUOTED, "this record quotes nothing")
+    def test_a_record_that_quotes_ships_a_checker_for_it(self) -> None:
+        self.assertTrue((ROOT / "conformance" / "quotes.py").is_file())
+
+    @unittest.skipUnless(QUOTED, "this record quotes nothing")
+    def test_and_the_pipeline_runs_it(self) -> None:
+        held = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+
+        self.assertIn("conformance.quotes", held)
+
+    def test_the_reader_of_that_counts_a_quote_however_its_key_is_spelled(self) -> None:
+        """One was called `countRangeQuote`, and a first attempt walked past it."""
+        self.assertEqual(quoted_sentences({"a": {"quote": "x"}, "b": {"countRangeQuote": "y"}}), 2)
+
+    def test_and_counts_none_in_a_record_that_quotes_nothing(self) -> None:
+        self.assertEqual(quoted_sentences({"facts": {"window": [1, 2]}, "note": "a chip"}), 0)
 
 
 class EveryRecordStatesItsAuthorityTest(unittest.TestCase):
