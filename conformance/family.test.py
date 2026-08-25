@@ -1047,6 +1047,31 @@ class WrittenTheSameWayTest(unittest.TestCase):
         self.assertEqual(held["coverage"]["report"]["fail_under"], 100)
         self.assertEqual(held["ruff"]["line-length"], 100)
 
+    def test_a_protocol_stub_is_excluded_from_the_count_both_ways(self) -> None:
+        """A pattern is checked against a line rather than read for plausibility.
+
+        These live in a TOML literal string, where a doubled backslash is two
+        characters rather than an escape, so a pattern can look right in the file
+        and match nothing at all. Two members shipped exactly that, and it stayed
+        invisible because the newest runtime drops a protocol's stub before
+        coverage sees it and the older ones the pipeline runs do not. The gate
+        then meant one thing locally and another in CI.
+        """
+        also = tomllib.loads((ROOT / "pyproject.toml").read_text())["tool"]["coverage"]["report"]
+        patterns = also.get("exclude_also", [])
+
+        inline = [one for one in patterns if re.search(one, "    def step(self) -> int: ...")]
+        alone = [one for one in patterns if re.search(one, "        ...")]
+
+        self.assertTrue(inline, patterns)
+        self.assertTrue(alone, patterns)
+
+    def test_and_a_pattern_that_matches_neither_would_be_reported(self) -> None:
+        """Driven against the doubled form the two members actually shipped."""
+        doubled = r"^\\s*\\.\\.\\.$"
+
+        self.assertIsNone(re.search(doubled, "        ..."))
+
 
 MACHINES = {
     "zilog-z80-python": (
