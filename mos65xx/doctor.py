@@ -30,13 +30,35 @@ from __future__ import annotations
 
 import json
 import platform
+import re
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, override
 
-from . import models
-from .memory import SparseMemory
-from .version import VERSION
+
+def _version(where: Path | None = None) -> str:
+    """The package version, read out of the file beside this one.
+
+    Read rather than imported. Importing it would go through the package, and a
+    package that will not import is one of the things this exists to report.
+    """
+    found = re.search(
+        r"""VERSION\s*[:=][^"']*["']([^"']+)["']""",
+        (where or Path(__file__).resolve().parent / "version.py").read_text(),
+    )
+    return found.group(1) if found else "unknown"
+
+
+ROOT = Path(__file__).resolve().parent.parent
+
+VERSION = _version()
+
+
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from mos65xx import models  # noqa: E402
+from mos65xx.memory import SparseMemory  # noqa: E402
 
 if TYPE_CHECKING:  # pragma: no cover
     from collections.abc import Callable, Sequence

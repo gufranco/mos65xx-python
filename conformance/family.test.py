@@ -50,6 +50,14 @@ calling itself something else.
 
 CLOCKED = KIND == "Clocked part"
 
+A_PART = KIND == "Part"
+"""Something that answers accesses without running a program.
+
+Its constructor is `Chip(model, ...)`, the same shape as `Cpu(model, memory)` and
+named for what it is rather than for what it does. A part that executes nothing
+should not be built by something called `Cpu`.
+"""
+
 SOLD_AS_A_COMPONENT = True
 """Whether this part could be bought and designed into something other than one machine.
 
@@ -244,6 +252,23 @@ would be describing two implementations rather than one interface.
 """
 
 
+PART_SURFACE = (
+    "Chip",
+    "DEFAULT_MODEL",
+    "MODELS",
+    "Model",
+    "UnknownModelError",
+    "describe",
+)
+"""Names the standard promises a caller finds in every part of the family.
+
+Smaller than the processor surface because a part has no clock, no run limit and
+no counters. What it keeps is the catalogue: even the member with one model
+publishes it, so a caller moving between members writes the same call and a name
+that does not exist is refused rather than quietly ignored.
+"""
+
+
 class PublishedSurfaceTest(unittest.TestCase):
     """That everything the standard names is importable from the package itself.
 
@@ -276,6 +301,36 @@ class PublishedSurfaceTest(unittest.TestCase):
         built = PACKAGE.Cpu()
 
         self.assertEqual(type(built).__name__, "Cpu")
+
+    @unittest.skipUnless(A_PART, "not a part in the sense this checks")  # pragma: no cover
+    def test_a_part_is_built_by_Chip_taking_the_model_first(self) -> None:  # noqa: N802
+        """The same shape as `Cpu(model, memory)`, under the name this kind has.
+
+        Two of these were built by `describe(name).build(store)` and by a class
+        named for the one chip it modelled, so a caller moving between members
+        wrote a different call in each. The model comes first for the same reason
+        it does on a processor: it is the thing a caller always knows.
+        """
+        built = PACKAGE.Chip()
+
+        self.assertEqual(type(built).__name__, "Chip")
+
+    @unittest.skipUnless(A_PART, "not a part in the sense this checks")  # pragma: no cover
+    def test_and_it_takes_a_model_by_name(self) -> None:
+        for name in sorted(VARIANTS):
+            self.assertEqual(PACKAGE.Chip(name).model, name, name)
+
+    @unittest.skipUnless(A_PART, "not a part in the sense this checks")  # pragma: no cover
+    def test_and_refuses_a_name_no_model_goes_by(self) -> None:
+        """A typo that builds the default part is worse than one that fails."""
+        with self.assertRaises(PACKAGE.UnknownModelError):
+            PACKAGE.Chip("no model goes by this name")
+
+    @unittest.skipUnless(A_PART, "not a part in the sense this checks")  # pragma: no cover
+    def test_every_name_a_part_promises_is_published(self) -> None:
+        absent = [name for name in PART_SURFACE if name not in PACKAGE.__all__]
+
+        self.assertEqual(absent, [])
 
     @unittest.skipUnless(CLOCKED, "not a clocked part")
     def test_the_memory_type_is_reachable_without_a_private_import(self) -> None:
@@ -419,6 +474,169 @@ class OneDefinitionTest(unittest.TestCase):
         package.borrower = borrower
 
         self.assertEqual(self.defined(package), {"Borrowed": ["home"]})
+
+
+RECORD = ROOT / "conformance" / "hardware.json"
+"""The record every fact taken from a document is written into."""
+
+
+def declared(node: Any) -> dict[str, Any]:
+    """Every document a record declares, wherever it declares them.
+
+    Walked rather than read from the top, because where the block sits is
+    arrangement and not vocabulary. One member has two parts with different data
+    sheets and declares each part's beside it, which says something the top level
+    could not. What the rule is actually about is that there is one namespace of
+    keys and that a citation names one of them.
+    """
+    found: dict[str, Any] = {}
+    if isinstance(node, dict):
+        held = node.get("documents")
+        if isinstance(held, dict):
+            found.update(held)
+        for value in node.values():
+            found.update(declared(value))
+    elif isinstance(node, list):
+        for one in node:
+            found.update(declared(one))
+    return found
+
+
+def cited(node: Any, where: str = "") -> list[tuple[str, str]]:
+    """Every place in a record that names a document, with the path to it.
+
+    Walked for the same reason: a record is arranged the way the part is, one
+    keyed by pin, one by core, one by register file. What every one of them
+    shares is the key `document` on the fact that cites one.
+    """
+    found: list[tuple[str, str]] = []
+    if isinstance(node, dict):
+        named = node.get("document")
+        if isinstance(named, str):
+            found.append((where or ".", named))
+        for name, value in node.items():
+            found += cited(value, f"{where}.{name}")
+    elif isinstance(node, list):
+        for index, one in enumerate(node):
+            found += cited(one, f"{where}[{index}]")
+    return found
+
+
+class OneVocabularyForADocumentTest(unittest.TestCase):
+    """That a document is named one way, so a check can follow the name.
+
+    Held in one field, a key here, a file name there and a prose title with the
+    section glued on somewhere else, nothing can check any of them: a check
+    written against keys skips the rest in silence and reports a clean run over
+    the part it understood.
+
+    Eight of the ten members carried a single `document` object, or a source
+    named only in prose, while the standard asked for a `documents` block. None
+    of them reported it, because this check did not exist.
+
+    A member with no document at all declares an empty block rather than no
+    block. That is the difference between saying there is nothing to cite and
+    saying nothing, and for two of these parts the absence of any manufacturer
+    document is the most important thing the record has to say.
+    """
+
+    def record(self) -> Any:
+        return json.loads(RECORD.read_text())
+
+    def test_the_standard_asks_for_a_documents_block(self) -> None:
+        self.assertIn("`documents` block", FAMILY)
+
+    def test_the_record_declares_its_sources_in_one(self) -> None:
+        self.assertIsInstance(self.record().get("documents"), dict)
+
+    def test_every_source_declared_anywhere_names_the_file_it_is(self) -> None:
+        """Two scans of one book paginate differently, so a page needs a file."""
+        held = declared(self.record())
+
+        nameless = sorted(key for key, one in held.items() if not one.get("file"))
+
+        self.assertEqual(nameless, [])
+
+    def test_every_citation_names_one_of_them(self) -> None:
+        held = self.record()
+        keys = set(declared(held))
+
+        astray = sorted({named for _, named in cited(held) if named not in keys})
+
+        self.assertEqual(astray, [])
+
+    def test_there_is_a_record_to_check(self) -> None:
+        """A file holding only an empty block would satisfy every line above."""
+        held = self.record()
+
+        self.assertGreater(len([key for key in held if key != "documents"]), 0)
+
+    def test_the_reader_of_that_finds_a_citation_wherever_it_sits(self) -> None:
+        """Driven against a shape no member has, so it is the walk being tested."""
+        held = {
+            "facts": {"pin": {"document": "sheet", "page": 6}},
+            "parts": [{"timing": [{"document": "book"}]}],
+            "note": "not a citation",
+        }
+
+        self.assertEqual(
+            sorted(cited(held)),
+            [(".facts.pin", "sheet"), (".parts[0].timing[0]", "book")],
+        )
+
+    def test_and_finds_a_block_declared_beside_a_part(self) -> None:
+        held = {
+            "documents": {"a": {"file": "a.pdf"}},
+            "parts": [{"documents": {"b": {"file": "b.pdf"}}}],
+        }
+
+        self.assertEqual(sorted(declared(held)), ["a", "b"])
+
+    def test_a_block_declared_beside_a_part_is_read_as_well_as_a_top_level_one(
+        self,
+    ) -> None:
+        """Two makers, two blocks. Where it sits is arrangement, not vocabulary."""
+        held = {
+            "documents": {},
+            "parts": [
+                {"documents": {"sheet": {"file": "a.pdf"}}},
+                {"documents": {"book": {"file": "b.pdf"}}},
+            ],
+        }
+
+        self.assertEqual(sorted(declared(held)), ["book", "sheet"])
+
+    def test_a_source_reached_through_a_sibling_still_has_to_name_the_sibling(
+        self,
+    ) -> None:
+        """A digest somebody else read is a pin, and a reader has to know whose."""
+        held = {"documents": {"manual": {"file": "book1.pdf", "through": "snes-graphics-python"}}}
+
+        borrowed = {key: one["through"] for key, one in declared(held).items() if "through" in one}
+
+        self.assertEqual(borrowed, {"manual": "snes-graphics-python"})
+
+    def test_an_empty_block_is_a_declaration_and_not_a_missing_one(self) -> None:
+        """Three members have no document, and that absence is the claim."""
+        held = {"documents": {}, "facts": {"pin": 1}}
+
+        self.assertIsInstance(held.get("documents"), dict)
+        self.assertEqual(declared(held), {})
+        self.assertEqual(cited(held), [])
+
+    def test_a_record_citing_a_key_that_is_not_declared_is_reported(self) -> None:
+        held = {"documents": {"sheet": {"file": "a.pdf"}}, "facts": {"document": "elsewhere"}}
+
+        astray = sorted({named for _, named in cited(held) if named not in set(declared(held))})
+
+        self.assertEqual(astray, ["elsewhere"])
+
+    def test_and_a_source_with_no_file_beside_it_is_reported(self) -> None:
+        held = {"documents": {"sheet": {"title": "a manual with no file named"}}}
+
+        nameless = sorted(key for key, one in declared(held).items() if not one.get("file"))
+
+        self.assertEqual(nameless, ["sheet"])
 
 
 class SharedFileTest(unittest.TestCase):

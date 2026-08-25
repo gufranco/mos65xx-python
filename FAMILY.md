@@ -72,6 +72,12 @@ checks the ones a test can reach.
 
 - [ ] `Cpu(model, memory)` builds the part, keeps what it is handed, and builds
       its own when the argument is left out.
+- [ ] On a **Part**, `Chip(model, store)` does the same job under the name that
+      kind has. What it hands back is a class called `Chip`. A part that executes
+      nothing should not be built by something called `Cpu`.
+- [ ] A part publishes its catalogue even when it holds one model: `MODELS`,
+      `DEFAULT_MODEL`, `Model`, `describe` and `UnknownModelError`. A name no
+      model goes by is refused, never quietly resolved to the default.
 - [ ] What it hands back is a class called `Cpu`, not something else. The name
       shows in every repr and every traceback.
 - [ ] `step`, `run_for`, `run_until`, `reset`, `held` and the counters exist and
@@ -140,6 +146,11 @@ checks the ones a test can reach.
       imports its siblings through the package. Run as a script, its own
       directory goes on the import path and shadows any standard library module
       of the same name.
+- [ ] A `doctor` beside the package, run as `python3 <package>/doctor.py`, on
+      every member that reads a file it does not carry. All ten do.
+- [ ] The doctor runs on the machine it exists to diagnose. Nothing it needs is
+      imported at the top of the file, because the package is one of the things
+      that can be broken, and a traceback in place of a report helps nobody.
 - [ ] A throughput floor, several times below what the model does, run
       uninstrumented and outside the coverage step.
 - [ ] Every worked example in the README is run and its output compared to what
@@ -450,6 +461,69 @@ reached by three different registers, so it has `cpu.stores` with `program`,
 `table` and `scratch` inside. One attribute called `memory` on that part would
 not answer which of the three a caller meant.
 
+## A doctor for what the repository does not carry
+
+Every member reads at least one file it does not ship: a cartridge library, a
+conformance suite fetched into a cache, a submodule, a corpus beside the package.
+None of them can be committed, so every one of them is absent on somebody's
+machine, and the checks that need them skip.
+
+A skip and a pass print the same thing. That is the whole reason this exists.
+A reader who fetched nothing gets a green run and reads it as confirmation, when
+what it confirms is that the suite ran over what was there, which was nothing.
+
+So each member carries a `doctor`. It looks at this machine, prints what it
+found, and returns non-zero when something is wrong. Its report is meant to be
+pasted into an issue exactly as it comes out.
+
+Two rules shape it. Nothing is hidden: a check that fails says what it saw, and a
+check that itself throws is caught and reported as what it threw, named by type.
+Nothing is inferred: every line is something looked at just now, which is why
+each doctor drives the part rather than importing it and calling that a pass.
+
+An absent file is reported as absent, never as a failure. A fresh checkout has no
+cartridges and that is the normal state. What is never reported is nothing at
+all, and the sharpest line in most of these reports is the one that separates a
+directory holding nothing from a directory that is not there. The first reads as
+a library to anything that only checks the path, and a run over it passes.
+
+**A doctor that cannot run is not a doctor.** Four of these packages import a
+submodule by name, so on the machine the doctor exists for, a checkout without
+`--recurse-submodules`, importing the package fails before a single line is
+printed and the reader gets a traceback naming a module they have never heard of.
+Every doctor therefore imports nothing from its own package at the top of the
+file, reads its version out of `version.py` rather than importing it, and is run
+as `python3 <package>/doctor.py` so the entry point is the same everywhere. Every
+import that can fail happens inside the finding that needs it, where its failure
+is the report rather than the end of it.
+
+## One constructor per kind
+
+`Cpu(model, memory)` on a clocked part. `Chip(model, store)` on a part. Same
+shape, same argument order, different name, and the name is the kind rather than
+the chip.
+
+The order is the point of both. The model is the thing a caller always knows;
+what the part runs on is the thing they often do not care about yet, so leaving
+it out hands back a part holding what a board holds before anything wrote to it.
+
+Two of these were reached differently. One was `describe(name).build(store)`, two
+calls for one part, and the other was a class named for the single chip it
+modelled and taking no model at all. A caller moving between three members wrote
+three different things to do one thing, and the member with one model was the one
+that looked least like the rest.
+
+So a part publishes a catalogue even holding one entry. It costs a file and it
+buys two things: the same call everywhere, and a typo that is refused instead of
+silently building the default. A constructor that accepts any string and returns
+the only part it has is a constructor that cannot report a mistake.
+
+What each kind hands back carries the kind's name, not the chip's. `Chip` shows
+in every repr, every traceback and every annotation a caller writes, exactly as
+`Cpu` does on the members that run a program. Two clocks with different protocols
+are still both `Chip`, because what a reader needs from a traceback is which kind
+of thing it was.
+
 ## One definition per name
 
 An exception class defined twice under one name is a trap that looks like it
@@ -500,6 +574,22 @@ in one field, a key here, a file name there and a prose title with the section
 glued on somewhere else, nothing can check any of them: a check written against
 keys skips the rest in silence and reports a clean run over the part it
 understood.
+
+Where the block sits is arrangement rather than vocabulary. A member whose parts
+carry different data sheets declares each part's beside it, which says something
+the top of the file could not, and the rule is satisfied as long as there is one
+namespace of keys and every citation names one of them.
+
+A member with no document at all declares an **empty** block rather than no
+block. Three of these parts have no manufacturer document known to exist, and for
+them that absence is the most important thing the record has to say. An empty
+block says it; a missing one is indistinguishable from nobody having filled it
+in. A source reached through a sibling's record is declared here too, with the
+sibling named in `through`, because a digest somebody else read is still a pin
+somebody read and a reader has to be able to tell which. Two members cite a
+manual neither of them opened: repeating the digest lets a reader confirm they
+hold the same scan without leaving the repository, and `through` stops that
+repetition from reading as a second reading.
 
 **A quote belongs to the document it names.** Searching every source and keeping
 whichever placed it best answers "did somebody publish this sentence", not "did

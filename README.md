@@ -17,7 +17,7 @@
 
 </div>
 
-**16** parts · **17,900,000** state cases and **17,870,080** cycle-exact cases, **0** unexplained failures · **1,116** tests · **100%** statement and branch coverage · no dependencies
+**16** parts · **17,900,000** state cases and **17,870,080** cycle-exact cases, **0** unexplained failures · **1,135** tests · **100%** statement and branch coverage · no dependencies
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -269,7 +269,7 @@ done
 python3 -m coverage report
 ```
 
-`python -m mos65xx.doctor` says what is actually on this machine: the parts, what makes each one different, and whether the files this repository cannot carry are here and whole. It is what an issue asks for, because a report is only as good as what it says about the machine that produced it.
+`python3 mos65xx/doctor.py` says what is actually on this machine: the parts, what makes each one different, and whether the suites this repository cannot carry are fetched and whole. It is run as a file rather than with `-m` so that it still runs when the package itself will not import, which is the case it exists for. Its report is what an issue asks for, because a report is only as good as what it says about the machine that produced it.
 
 Tests sit beside the module they cover, named `<module>.test.py`. Coverage is 100% of statements and branches, enforced. Types are `mypy` at strict. Commits follow [Conventional Commits](https://www.conventionalcommits.org/), and releases are cut by [semantic-release](https://semantic-release.gitbook.io/).
 
