@@ -15,6 +15,7 @@ import ast
 import importlib
 import inspect
 import json
+import posixpath
 import re
 import subprocess
 import sys
@@ -50,6 +51,44 @@ calling itself something else.
 
 CLOCKED = KIND == "Clocked part"
 
+PACKAGE: Any = mos65xx
+"""The package under test, deliberately untyped.
+
+What a member publishes depends on what it models: a clocked part has a `Cpu`,
+a `Memory` and a `RunLimit`, and a board, a format or a tool has none of them.
+A checker cannot know which of those it is looking at, so naming the attributes
+here would make it refuse a repository the standard never asked for one from.
+The checks that reach for those attributes are skipped on members without them,
+and every assertion below is made against the value at run time.
+"""
+
+
+def why_it_cannot_build_here() -> str | None:
+    """Why this member cannot build its part on this machine, or nothing.
+
+    A member that runs on a file it is not allowed to carry cannot build
+    anything until a reader supplies one, and on a runner that has none every
+    check below that constructs a part would fail for a reason that says nothing
+    about the code.
+
+    The answer comes from the member's own `why_not`, which is the same sentence
+    its doctor prints, rather than from catching whatever the constructor raised.
+    That distinction is the whole point: a part that will not build because it is
+    broken still fails here, because `why_not` reports nothing wrong.
+    """
+    asked = getattr(PACKAGE, "why_not", None)
+    return asked() if callable(asked) else None
+
+
+BUILDABLE = why_it_cannot_build_here() is None
+"""Whether a part can be constructed on this machine at all.
+
+False only on a member that needs a file it cannot ship, running where nobody has
+supplied one. Everywhere else it is true, so the checks it guards are checks that
+run rather than checks nobody has seen.
+"""
+
+
 A_PART = KIND == "Part"
 """Something that answers accesses without running a program.
 
@@ -57,6 +96,7 @@ Its constructor is `Chip(model, ...)`, the same shape as `Cpu(model, memory)` an
 named for what it is rather than for what it does. A part that executes nothing
 should not be built by something called `Cpu`.
 """
+
 
 SOLD_AS_A_COMPONENT = True
 """Whether this part could be bought and designed into something other than one machine.
@@ -76,10 +116,26 @@ INTERFACE = (
     "run_for",
     "run_until",
     "reset",
-    "irq",
-    "nmi",
     "held",
 )
+"""What every clocked part has, whatever the part is.
+
+Interrupt lines are not in here, because they are not universal and pretending
+they are produces stubs. They are declared below instead.
+"""
+
+INTERRUPT_LINES = ("irq", "nmi")
+"""The interrupt lines this member's part actually has, one method each.
+
+Three shapes exist in the family and each is what the silicon has. A Z80 and a
+6502 have a maskable line and a line above it. The uPD7725 has a single pin and
+nothing above it. The SPC700 as Sony shipped it brings none out at all.
+
+Requiring all three to publish `nmi` would be requiring two of them to publish a
+stub, and a stub is an invented interface rather than a kept promise. Declaring
+the tuple away is not free either: a member that names no line has to account for
+that in its record, where every other fact about the part already is.
+"""
 
 COUNTERS = ("cycles", "steps")
 
@@ -116,15 +172,73 @@ def a_part() -> Part:
     return part
 
 
+def store_attribute() -> str:
+    """What this member calls the store its part keeps, found rather than assumed.
+
+    Two spellings exist and both are right for the part that has them. A
+    processor with one address space calls it `memory`. One with three separate
+    arrays, a data RAM and two ROMs, calls them `stores`, because calling three
+    arrays a memory would be naming the part after a different part. A check
+    keyed to one spelling reports the other as missing something it deliberately
+    does not have.
+    """
+    part = PACKAGE.Cpu(PACKAGE.DEFAULT_MODEL)
+    found = [name for name in ("memory", "stores") if getattr(part, name, None) is not None]
+    assert found, "a clocked part keeps its store on `memory` or on `stores`"
+    return found[0]
+
+
+def a_store_of_zeroes() -> Any:
+    """A store the part will run through rather than halt in.
+
+    Built by the member rather than by name, for the same reason the attribute is
+    found rather than assumed. Left in scrambled memory a part reaches an
+    undocumented opcode within a few dozen instructions and stops, which is
+    correct behaviour and useless for testing a limit.
+    """
+    made = getattr(PACKAGE, "Memory", None)
+    if made is not None:
+        return made(image=bytes(0x10000))
+    return getattr(PACKAGE.Cpu(PACKAGE.DEFAULT_MODEL), store_attribute())
+
+
+def accounts_for_one_interrupt(node: Any) -> bool:
+    """Whether a record says anything about the part having one interrupt line.
+
+    The same shape as `accounts_for_a_reset` and deliberately as loose. What it
+    guards against is a member declaring `INTERRUPT_LINES` away with nothing
+    anywhere saying why, which would turn a hardware fact into a way of skipping
+    a check.
+    """
+    if isinstance(node, dict):
+        if any("interrupt" in str(key).lower() for key in node):
+            return True
+        return any(accounts_for_one_interrupt(one) for one in node.values())
+    if isinstance(node, list):
+        return any(accounts_for_one_interrupt(one) for one in node)
+    return "interrupt" in str(node).lower()
+
+
+def at_the_start(part: Any) -> None:
+    """Point a part at address zero, whichever way this member spells it.
+
+    Two shapes exist in the family and both are right for the part that has
+    them: a register file behind `registers`, and registers on the part itself.
+    A helper that knows only one reports the other as broken.
+    """
+    held = getattr(part, "registers", part)
+    held.pc = 0x0000
+
+
 def a_running_part() -> Part:
     """A part pointed at a field of no-operations, so a bound is what is tested.
 
-    Left in scrambled memory a part reaches a halting opcode within a few dozen
-    instructions, which is correct behaviour and useless for testing a limit.
+    Left in scrambled memory a part reaches an undocumented opcode within a few
+    dozen instructions and halts, which is correct behaviour and useless for
+    testing a limit.
     """
-    part = PACKAGE.Cpu("65816", PACKAGE.Memory(image=bytes([0xEA] * 256)))
-    part.pb = 0x00
-    part.pc = 0x0000
+    part = PACKAGE.Cpu(PACKAGE.DEFAULT_MODEL, a_store_of_zeroes())
+    at_the_start(part)
     checked: Part = part
     return checked
 
@@ -169,6 +283,23 @@ class PromisedInterfaceTest(unittest.TestCase):
         absent = [name for name in INTERFACE if not hasattr(part, name)]
 
         self.assertEqual(absent, [])
+
+    def test_and_every_interrupt_line_the_part_has(self) -> None:
+        part = a_part()
+
+        absent = [name for name in INTERRUPT_LINES if not hasattr(part, name)]
+
+        self.assertEqual(absent, [])
+
+    def test_and_the_record_accounts_for_what_lines_it_names(self) -> None:
+        """Whether it names two, one or none, the record has to say so.
+
+        The alternative is a member emptying the tuple to skip a check, which is
+        the one thing a per-member declaration makes easy. Reading the record
+        costs the same as printing the claim and cannot be done without meaning
+        it.
+        """
+        self.assertTrue(accounts_for_one_interrupt(json.loads(RECORD.read_text())))
 
     def test_and_every_counter(self) -> None:
         part = a_part()
@@ -302,7 +433,7 @@ class PublishedSurfaceTest(unittest.TestCase):
 
         self.assertEqual(type(built).__name__, "Cpu")
 
-    @unittest.skipUnless(A_PART, "not a part in the sense this checks")  # pragma: no cover
+    @unittest.skipUnless(A_PART and BUILDABLE, "no part can be built here")  # pragma: no cover
     def test_a_part_is_built_by_Chip_taking_the_model_first(self) -> None:  # noqa: N802
         """The same shape as `Cpu(model, memory)`, under the name this kind has.
 
@@ -315,7 +446,7 @@ class PublishedSurfaceTest(unittest.TestCase):
 
         self.assertEqual(type(built).__name__, "Chip")
 
-    @unittest.skipUnless(A_PART, "not a part in the sense this checks")  # pragma: no cover
+    @unittest.skipUnless(A_PART and BUILDABLE, "no part can be built here")  # pragma: no cover
     def test_and_it_takes_a_model_by_name(self) -> None:
         for name in sorted(VARIANTS):
             self.assertEqual(PACKAGE.Chip(name).model, name, name)
@@ -326,7 +457,7 @@ class PublishedSurfaceTest(unittest.TestCase):
         with self.assertRaises(PACKAGE.UnknownModelError):
             PACKAGE.Chip("no model goes by this name")
 
-    @unittest.skipUnless(A_PART, "not a part in the sense this checks")  # pragma: no cover
+    @unittest.skipUnless(A_PART and BUILDABLE, "no part can be built here")  # pragma: no cover
     def test_a_part_that_holds_what_it_held_offers_a_reset(self) -> None:
         """It has no clock and still comes up holding whatever it held.
 
@@ -335,7 +466,7 @@ class PublishedSurfaceTest(unittest.TestCase):
         """
         self.assertTrue(callable(getattr(PACKAGE.Chip(), "reset", None)))
 
-    @unittest.skipUnless(A_PART, "not a part in the sense this checks")  # pragma: no cover
+    @unittest.skipUnless(A_PART and BUILDABLE, "no part can be built here")  # pragma: no cover
     def test_and_that_reset_hands_the_part_back(self) -> None:
         """So a caller can build and reset in one expression, as the clocked ones do."""
         built = PACKAGE.Chip()
@@ -372,9 +503,15 @@ class PublishedSurfaceTest(unittest.TestCase):
         self.assertEqual(absent, [])
 
     @unittest.skipUnless(CLOCKED, "not a clocked part")
-    def test_the_memory_type_is_reachable_without_a_private_import(self) -> None:
-        for name in ("Memory", "SparseMemory"):
-            self.assertIn(name, PACKAGE.__all__, name)
+    def test_the_store_type_is_reachable_without_a_private_import(self) -> None:
+        """Whatever this member calls it, a caller can name the type.
+
+        By shape rather than by name: the type is read off a part that was built
+        rather than looked up under a spelling the checker chose.
+        """
+        held = getattr(PACKAGE.Cpu(PACKAGE.DEFAULT_MODEL), store_attribute())
+
+        self.assertIn(type(held).__name__, PACKAGE.__all__)
 
     def test_and_so_is_everything_it_can_raise(self) -> None:
         """Read from the errors module rather than a list somebody keeps in step.
@@ -402,24 +539,12 @@ class PublishedSurfaceTest(unittest.TestCase):
         self.assertEqual(absent, [])
 
 
-PACKAGE: Any = mos65xx
-"""The package under test, deliberately untyped.
-
-What a member publishes depends on what it models: a clocked part has a `Cpu`,
-a `Memory` and a `RunLimit`, and a board, a format or a tool has none of them.
-A checker cannot know which of those it is looking at, so naming the attributes
-here would make it refuse a repository the standard never asked for one from.
-The checks that reach for those attributes are skipped on members without them,
-and every assertion below is made against the value at run time.
-"""
-
-
 class OneDefinitionTest(unittest.TestCase):
     """That no exception in the package is defined in two places under one name.
 
     The standard calls this out because of how quietly it fails. Two exception
     classes under one name both work, both are tested, and `except ThatName`
-    written against one of them sails straight past the other. This package
+    written against one of them sails straight past the other. A sibling package
     shipped exactly that: two `Truncated` classes, one per decoder, with the
     package exporting one of them, so catching it missed every case the other
     raised.
@@ -899,13 +1024,23 @@ class EveryLinkResolvesTest(unittest.TestCase):
             found.append(held)
         return found
 
+    def said_from_the_root(self, inside: PurePosixPath, target: str) -> str:
+        """One link, rewritten as the path the repository tracks it under.
+
+        Normalised, because a link out of a subdirectory carries `..` and the
+        repository tracks nothing under that name. Joining without normalising
+        produces `cartridges/../cartridges.manifest.json`, which matches nothing
+        and reports a link that resolves perfectly well as broken.
+        """
+        return posixpath.normpath(str(inside / target)).rstrip("/")
+
     def unresolved(self, where: Path, known: set[str]) -> list[str]:
         """Those of them the repository does not track, said against its root."""
         inside = PurePosixPath(where.parent.relative_to(ROOT))
         return [
             f"{where.relative_to(ROOT)} -> {one}"
             for one in self.targets(where)
-            if str(inside / one).rstrip("/") not in known
+            if self.said_from_the_root(inside, one) not in known
         ]
 
     def test_every_markdown_file_here_is_checked(self) -> None:
@@ -930,6 +1065,23 @@ class EveryLinkResolvesTest(unittest.TestCase):
         held = ROOT / "README.md"
 
         self.assertEqual(self.unresolved(held, self.tracked()), [])
+
+    def test_a_link_out_of_a_subdirectory_resolves_to_what_it_names(self) -> None:
+        """The check reported a working link as broken until it normalised.
+
+        A README inside a directory linking to a file at the repository root
+        writes `../thing`, and the repository tracks `thing`. Joining without
+        normalising asks for `directory/../thing` and finds nothing.
+        """
+        held = self.said_from_the_root(PurePosixPath("cartridges"), "../manifest.json")
+
+        self.assertEqual(held, "manifest.json")
+
+    def test_and_one_that_climbs_past_the_root_still_resolves_to_nothing(self) -> None:
+        """So normalising does not turn an escape into a match."""
+        held = self.said_from_the_root(PurePosixPath("."), "../outside.json")
+
+        self.assertEqual(held, "../outside.json")
 
     def test_an_anchor_is_dropped_before_the_file_is_looked_for(self) -> None:
         where = Path(tempfile.mkdtemp()) / "one.md"
@@ -1489,20 +1641,22 @@ class SuppliedMemoryTest(unittest.TestCase):
     """
 
     def test_a_supplied_store_is_the_one_the_part_uses(self) -> None:
-        own = PACKAGE.Memory(image=bytes([0xEA]) * 65536)
+        """Taken off one part and handed to the next, so no type has to be named."""
+        where = store_attribute()
+        own = getattr(PACKAGE.Cpu(PACKAGE.DEFAULT_MODEL), where)
 
         built = PACKAGE.Cpu(PACKAGE.DEFAULT_MODEL, own)
 
-        self.assertIs(built.memory, own)
+        self.assertIs(getattr(built, where), own)
 
     def test_and_one_is_built_when_the_argument_is_left_out(self) -> None:
         built = PACKAGE.Cpu(PACKAGE.DEFAULT_MODEL)
 
-        self.assertIsNotNone(built.memory)
+        self.assertIsNotNone(getattr(built, store_attribute()))
 
     def test_the_standard_names_this_part_spelling(self) -> None:
         """The spelling is a documented difference, so the document has to carry it."""
-        self.assertIn("cpu.memory", FAMILY)
+        self.assertIn(f"cpu.{store_attribute()}", FAMILY)
 
 
 def still_holding(classes: Any) -> list[str]:
@@ -1768,7 +1922,7 @@ class WrittenTheSameWayTest(unittest.TestCase):
 
         Every line below is a form that turned up in this family: a directive on
         its own line, one with the reason a linter wants after it, a trailing
-        comment that is part of a statement rather than a line of its own, and a
+        comment that is part of a statement rather than a line of its own, a
         divider of bare hashes, and a hash inside a docstring, which is not a
         comment at all however much it looks like one. Only the sentence is prose.
         """

@@ -5,7 +5,7 @@ style guide. It is the set of decisions that were expensive to reach, so that a
 repository starting today does not have to reach them again and a repository
 already running does not drift away from them quietly.
 
-The family is ten repositories. Where they differ from each other, the
+The family is sixteen repositories. Where they differ from each other, the
 difference is something the hardware forces rather than something nobody got
 round to.
 
@@ -14,8 +14,14 @@ round to.
 | [mos65xx-python](https://github.com/gufranco/mos65xx-python) | The 65xx family: sixteen parts, from the 6502 to the 65816 | Clocked part |
 | [zilog-z80-python](https://github.com/gufranco/zilog-z80-python) | The Z80: three parts, NMOS and CMOS | Clocked part |
 | [nec-upd7725-96050-python](https://github.com/gufranco/nec-upd7725-96050-python) | The NEC uPD7725 and uPD96050 digital signal processors | Clocked part |
+| [sony-spc700-python](https://github.com/gufranco/sony-spc700-python) | The SPC700, the processor inside the audio unit | Clocked part |
 | [snes-obc1-python](https://github.com/gufranco/snes-obc1-python) | The OBC1 sprite remapper | Part |
 | [snes-rtc-python](https://github.com/gufranco/snes-rtc-python) | The two real-time clocks a cartridge could carry | Part |
+| [sony-s-dsp-python](https://github.com/gufranco/sony-s-dsp-python) | The S-DSP: eight voices on a thirty two step clock schedule | Part |
+| [snes-dsp-python](https://github.com/gufranco/snes-dsp-python) | The DSP-1 through DSP-4, the uPD77C25 as Nintendo shipped it | Part |
+| [snes-st010-python](https://github.com/gufranco/snes-st010-python) | The ST010 and ST011, the two coprocessors Seta made | Part |
+| [snes-sdd1-python](https://github.com/gufranco/snes-sdd1-python) | The S-DD1's arithmetic decompressor | Part |
+| [snes-spc7110-python](https://github.com/gufranco/snes-spc7110-python) | The SPC7110's decompressor, all three of its modes | Part |
 | [snes-mapper-python](https://github.com/gufranco/snes-mapper-python) | The cartridge memory map and its transfer engine | Board |
 | [snes-graphics-python](https://github.com/gufranco/snes-graphics-python) | The graphics formats: tiles, palettes, tilemaps, sprites and mode 7 | Format |
 | [snes-rom-image-python](https://github.com/gufranco/snes-rom-image-python) | The forms a cartridge image is stored and shipped in | Format |
