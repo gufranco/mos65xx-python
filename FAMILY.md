@@ -500,10 +500,22 @@ cpu.steps  # instructions since the last reset
 
 Differences are allowed where the parts differ, and nowhere else. The Z80 takes a
 vector on `irq()` and has a separate `Ports` space; the 65816 has `abort()` and a
-bank register; the uPD7725 has no non-maskable line, so it has no `nmi()` rather
-than a stub that pretends to a pin the package does not bring out. Every other
-name matches, including parameter names. A T state is the Z80's cycle, so the
-budget is called `cycles` on all three rather than being named for one part.
+bank register. Every other name matches, including parameter names. A T state is
+the Z80's cycle, so the budget is called `cycles` on all four rather than being
+named for one part.
+
+Interrupt lines are the clearest case, and they are declared rather than assumed.
+A part publishes one method per line it has, and the lines it has are named per
+member in `conformance/family.test.py` as `INTERRUPT_LINES`. Three shapes exist
+and each is what the silicon has: a Z80 and a 6502 have a maskable line and a
+line above it, the uPD7725 has a single pin and nothing above it, and the SPC700
+as Sony shipped it brings none out at all. Requiring all three to publish `nmi()`
+would require two of them to publish a stub, and a stub pretends to a pin the
+package does not bring out.
+
+Declaring the list away is not free. A member that names no line has to account
+for that in its record, where every other fact about the part already is, so
+emptying the tuple to skip a check costs the same as printing the claim.
 
 Memory is one of those differences, and the second parameter is not. Every core
 takes what it runs on as `Cpu(model, memory)`, keeps the one it is handed, and
@@ -512,7 +524,19 @@ because the parts do: the Z80 and the 65xx have one flat byte addressed space an
 call it `cpu.memory`, and the uPD7725 has three separate stores at three widths,
 reached by three different registers, so it has `cpu.stores` with `program`,
 `table` and `scratch` inside. One attribute called `memory` on that part would
-not answer which of the three a caller meant.
+not answer which of the three a caller meant. A check that needs the store finds
+it by shape rather than by either name, because one keyed to the first reports
+the other as missing something it deliberately does not have.
+
+`Cpu(model, fill=0)` is the one way across the family to ask for a store holding
+one byte everywhere. The default is never that: a store comes up scrambled,
+because a read of a byte nothing wrote is a defect on real silicon and memory
+that answers zero to it turns that defect into a passing test. What `fill` is for
+is a run that has to get through a few dozen instructions without meeting an
+opcode that stops the part, which is what every check of a cycle budget needs and
+what scrambled memory cannot give. Three of the four members needed a different
+keyword for the same request, so a check written against any one of them reported
+the other three as broken.
 
 ## A doctor for what the repository does not carry
 
@@ -549,6 +573,24 @@ file, reads its version out of `version.py` rather than importing it, and is run
 as `python3 <package>/doctor.py` so the entry point is the same everywhere. Every
 import that can fail happens inside the finding that needs it, where its failure
 is the report rather than the end of it.
+
+**A check that reads what happens to be on the machine is a check whose result
+depends on the machine.** Three of them passed on a developer's disk and reported
+success on a runner that measured, compared and diagnosed nothing: a doctor whose
+failure path found images because images were there, and two throughput floors
+that measured for real. The failure is invisible by construction, because the
+check does not error on the runner, it succeeds having done nothing.
+
+So every check takes what it works from rather than reading it: the images, the
+measurement, the reason a member cannot run here. And a member whose part needs a
+file it may not ship is verified by reproducing a runner, which is a scratch copy
+of what `git ls-files` reports and nothing else.
+
+A worked example in the readme is excused the same way. On a machine without the
+file, every example that builds a part refuses, and that refusal is the package
+working correctly. `conformance/readme.test.py` reports those as skipped rather
+than broken, decided by the member's own `why_not`, which is the same sentence
+its doctor prints. A member that publishes none skips nothing.
 
 ## One constructor per kind
 
