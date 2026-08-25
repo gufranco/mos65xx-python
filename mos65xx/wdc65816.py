@@ -1339,6 +1339,13 @@ class Cpu:
         self.pc = (self.pc + self._signed16(offset)) & 0xFFFF
 
     def op_jmp(self, mode: str) -> None:
+        """Every jump that stays inside the program bank, and the one that does not.
+
+        `indirectLongPC` is the long form, opcode $DC, which loads the bank
+        register as well as the counter. It is handed to the long jump rather
+        than repeated here, so there is one place that knows what a long target
+        looks like.
+        """
         if mode == "absolutePC":
             self.pc = self.fetch16()
             return
@@ -1352,7 +1359,7 @@ class Cpu:
             self.pc = self.read_pointer((self.pb << 16) | pointer, 2)
             return
         if mode == "indirectLongPC":
-            self.op_jml(mode)  # $DC is the long form and loads the bank too
+            self.op_jml(mode)
             return
         raise UnsupportedError(f"jmp cannot use {mode}")
 

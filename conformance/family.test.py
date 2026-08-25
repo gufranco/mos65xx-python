@@ -19,6 +19,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import tokenize
 import tomllib
 import types
 import unittest
@@ -743,18 +744,25 @@ def prose_comments(where: Path) -> list[str]:
     is read by anybody asking for help on it. A comment is the one part of a file
     nothing checks, so it is the one part free to drift.
 
+    Read with the tokeniser rather than a line at a time. A docstring is free to
+    carry a line beginning with a hash, and it usually does exactly where the
+    docstring is worth reading: a worked example with the answer written beside
+    it. A reader that cannot tell the two apart reports a module's own example as
+    a comment, which is a finding against the one thing this rule is trying to
+    encourage.
+
     `**/*.py` never reaches into `__pycache__`, which holds `.pyc` and nothing
     else, so there is no directory to skip.
     """
     found = []
     for path in sorted(where.glob("**/*.py")):
-        for number, line in enumerate(path.read_text().splitlines(), start=1):
-            bare = line.strip()
-            if not bare.startswith("#"):
-                continue
-            body = bare.lstrip("#").strip()
-            if body and not body.startswith(DIRECTIVE):
-                found.append(f"{path.name}:{number}")
+        with path.open("rb") as opened:
+            for token in tokenize.tokenize(opened.readline):
+                if token.type != tokenize.COMMENT:
+                    continue
+                body = token.string.lstrip("#").strip()
+                if body and not body.startswith(DIRECTIVE):
+                    found.append(f"{path.name}:{token.start[0]}")
     return found
 
 
@@ -864,7 +872,8 @@ class WrittenTheSameWayTest(unittest.TestCase):
         Every line below is a form that turned up in this family: a directive on
         its own line, one with the reason a linter wants after it, a trailing
         comment that is part of a statement rather than a line of its own, and a
-        divider of bare hashes. Only the sentence is prose.
+        divider of bare hashes, and a hash inside a docstring, which is not a
+        comment at all however much it looks like one. Only the sentence is prose.
         """
         with tempfile.TemporaryDirectory() as where:
             written = Path(where) / "sample.py"
@@ -874,6 +883,12 @@ class WrittenTheSameWayTest(unittest.TestCase):
                 "x = 1  # type: ignore[assignment]\n"
                 "#\n"
                 "# the accumulator is eight bits wide\n"
+                "def f() -> None:\n"
+                '    """One worked line, with the answer beside it.\n'
+                "\n"
+                "        resolve(address).region\n"
+                "        # 'work-ram', not cartridge\n"
+                '    """\n'
             )
 
             found = prose_comments(Path(where))
