@@ -188,20 +188,6 @@ def store_attribute() -> str:
     return found[0]
 
 
-def a_store_of_zeroes() -> Any:
-    """A store the part will run through rather than halt in.
-
-    Built by the member rather than by name, for the same reason the attribute is
-    found rather than assumed. Left in scrambled memory a part reaches an
-    undocumented opcode within a few dozen instructions and stops, which is
-    correct behaviour and useless for testing a limit.
-    """
-    made = getattr(PACKAGE, "Memory", None)
-    if made is not None:
-        return made(image=bytes(0x10000))
-    return getattr(PACKAGE.Cpu(PACKAGE.DEFAULT_MODEL), store_attribute())
-
-
 def accounts_for_one_interrupt(node: Any) -> bool:
     """Whether a record says anything about the part having one interrupt line.
 
@@ -233,11 +219,14 @@ def at_the_start(part: Any) -> None:
 def a_running_part() -> Part:
     """A part pointed at a field of no-operations, so a bound is what is tested.
 
-    Left in scrambled memory a part reaches an undocumented opcode within a few
-    dozen instructions and halts, which is correct behaviour and useless for
-    testing a limit.
+    `fill` is the one spelling across this family for a store holding one byte
+    everywhere. It exists for exactly this: left in scrambled memory a part
+    reaches an undocumented opcode within a few dozen instructions and stops,
+    which is correct behaviour and useless for testing a limit. Three of the four
+    clocked members did not have it and each needed a different keyword, so a
+    check written against any one of them reported the other three as broken.
     """
-    part = PACKAGE.Cpu(PACKAGE.DEFAULT_MODEL, a_store_of_zeroes())
+    part = PACKAGE.Cpu(PACKAGE.DEFAULT_MODEL, fill=0)
     at_the_start(part)
     checked: Part = part
     return checked
@@ -300,6 +289,21 @@ class PromisedInterfaceTest(unittest.TestCase):
         it.
         """
         self.assertTrue(accounts_for_one_interrupt(json.loads(RECORD.read_text())))
+
+    def test_a_record_naming_an_interrupt_as_a_key_is_read(self) -> None:
+        self.assertTrue(accounts_for_one_interrupt({"facts": {"interruptVector": 4}}))
+
+    def test_and_one_naming_it_only_in_a_sentence(self) -> None:
+        self.assertTrue(accounts_for_one_interrupt({"notStated": ["what the interrupt pin does"]}))
+
+    def test_and_one_naming_it_inside_a_list(self) -> None:
+        """The record shape that goes through the list branch rather than the dict one."""
+        self.assertTrue(accounts_for_one_interrupt([{"note": "one interrupt line"}]))
+
+    def test_and_a_record_that_never_mentions_one_is_reported(self) -> None:
+        self.assertFalse(
+            accounts_for_one_interrupt({"facts": {"window": [1, 2]}, "note": "a part"})
+        )
 
     def test_and_every_counter(self) -> None:
         part = a_part()

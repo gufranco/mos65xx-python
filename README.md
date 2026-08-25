@@ -17,7 +17,7 @@
 
 </div>
 
-**16** parts · **17,900,000** state cases and **17,870,080** cycle-exact cases, **0** unexplained failures · **1,180** tests · **100%** statement and branch coverage · no dependencies
+**16** parts · **17,900,000** state cases and **17,870,080** cycle-exact cases, **0** unexplained failures · **1,199** tests · **100%** statement and branch coverage · no dependencies
 
 ```python
 from mos65xx import Cpu, SparseMemory

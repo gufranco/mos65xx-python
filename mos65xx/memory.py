@@ -75,9 +75,17 @@ class SparseMemory:
 class Memory:
     """Flat memory, holding the pattern the parts it is built from decide.
 
-    There is no way to ask for a cleared one, because no machine hands one over.
-    A read of a byte nothing wrote is a defect on real silicon, and memory that
+    Never cleared by default, because no machine hands over a cleared one. A
+    read of a byte nothing wrote is a defect on real silicon, and memory that
     answers zero to it turns that defect into a passing test.
+
+    `fill` is how a caller asks for one byte everywhere, and it is deliberately
+    something they have to write. What it is for is a run that has to get
+    through a few dozen instructions without meeting an opcode that stops the
+    part, which is what every check of a cycle budget needs and what scrambled
+    memory cannot give. It is the one spelling for that across this family: the
+    same request used to need a different keyword in each member, so a check
+    written against one reported the others as broken.
 
     `image` is what a board genuinely does know at power on: the bytes a mask
     ROM or a cartridge holds, loaded at the bottom. Everything the image does
@@ -91,8 +99,9 @@ class Memory:
         size: int = 0x1000000,
         image: "Sequence[int] | None" = None,
         seed: int = UNSET_SEED,
+        fill: int | None = None,
     ) -> None:
-        self.data = scramble(size, seed)
+        self.data = scramble(size, seed) if fill is None else bytearray([fill & 0xFF]) * size
         if image is not None:
             self.data[: len(image)] = image
 

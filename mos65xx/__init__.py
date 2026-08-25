@@ -73,7 +73,10 @@ DEFAULT_MODEL = "65816"
 
 
 def Cpu(  # noqa: N802
-    model: str = DEFAULT_MODEL, memory: Any = None, **options: Any
+    model: str = DEFAULT_MODEL,
+    memory: Any = None,
+    fill: int | None = None,
+    **options: Any,
 ) -> Any:
     """A processor of the named model, sharing one interface across the family.
 
@@ -81,7 +84,16 @@ def Cpu(  # noqa: N802
     memory is the thing they often do not care about yet. Omitting it hands back
     a part with memory of its own, scrambled rather than cleared, which is what a
     board holds before anything has written to it.
+
+    `fill` is the one way across this family to ask for a store holding one byte
+    everywhere. It is not what a board hands over and it is not the default: a
+    caller asking for zeroes is asking for something no machine does, so they
+    have to say so. What it is for is a run that has to get through a few dozen
+    instructions without meeting an opcode that stops the part, which is what
+    every check of a cycle budget needs and what scrambled memory cannot give.
     """
+    if fill is not None and memory is None:
+        memory = Memory(fill=fill)
     return describe(model).build(SparseMemory() if memory is None else memory, **options)
 
 

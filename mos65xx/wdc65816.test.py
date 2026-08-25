@@ -519,9 +519,14 @@ class MemoryFillTest(unittest.TestCase):
     def test_a_different_seed_scrambles_differently(self) -> None:
         self.assertNotEqual(emu.Memory(256, seed=1).data, emu.Memory(256, seed=2).data)
 
-    def test_no_caller_can_ask_for_a_cleared_one(self) -> None:
-        with self.assertRaises(TypeError):
-            emu.Memory(4, fill=0)
+    def test_a_cleared_one_has_to_be_asked_for_in_writing(self) -> None:
+        """The rule is the default, not the absence of an option.
+
+        A caller who genuinely wants zeroes says so, and the request is the same
+        word in every member of this family. What must never happen is getting
+        them without asking.
+        """
+        self.assertEqual(set(emu.Memory(4, fill=0).data), {0})
 
     def test_an_image_is_laid_at_the_front_and_the_rest_stays_undefined(self) -> None:
         memory = emu.Memory(8, image=b"\x01\x02")
