@@ -19,7 +19,7 @@ round to.
 | [snes-rtc-python](https://github.com/gufranco/snes-rtc-python) | The two real-time clocks a cartridge could carry | Part |
 | [sony-s-dsp-python](https://github.com/gufranco/sony-s-dsp-python) | The S-DSP: eight voices on a thirty two step clock schedule | Part |
 | [snes-dsp-python](https://github.com/gufranco/snes-dsp-python) | The DSP-1 through DSP-4, the uPD77C25 as Nintendo shipped it | Part |
-| [snes-st010-python](https://github.com/gufranco/snes-st010-python) | The ST010 and ST011, the two coprocessors Seta made | Part |
+| [snes-st-python](https://github.com/gufranco/snes-st-python) | The ST010 and ST011, the two coprocessors Seta made | Part |
 | [snes-sdd1-python](https://github.com/gufranco/snes-sdd1-python) | The S-DD1's arithmetic decompressor | Part |
 | [snes-spc7110-python](https://github.com/gufranco/snes-spc7110-python) | The SPC7110's decompressor, all three of its modes | Part |
 | [snes-mapper-python](https://github.com/gufranco/snes-mapper-python) | The cartridge memory map and its transfer engine | Board |
