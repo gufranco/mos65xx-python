@@ -5,7 +5,7 @@ style guide. It is the set of decisions that were expensive to reach, so that a
 repository starting today does not have to reach them again and a repository
 already running does not drift away from them quietly.
 
-The family is sixteen repositories. Where they differ from each other, the
+The family is seventeen repositories. Where they differ from each other, the
 difference is something the hardware forces rather than something nobody got
 round to.
 
@@ -22,6 +22,7 @@ round to.
 | [snes-st-python](https://github.com/gufranco/snes-st-python) | The ST010 and ST011, the two coprocessors Seta made | Part |
 | [snes-sdd1-python](https://github.com/gufranco/snes-sdd1-python) | The S-DD1's arithmetic decompressor | Part |
 | [snes-spc7110-python](https://github.com/gufranco/snes-spc7110-python) | The SPC7110's decompressor, all three of its modes | Part |
+| [sony-s-smp-python](https://github.com/gufranco/sony-s-smp-python) | The S-SMP: the processor, the sound generator and the boot program between them | Board |
 | [snes-mapper-python](https://github.com/gufranco/snes-mapper-python) | The cartridge memory map and its transfer engine | Board |
 | [snes-graphics-python](https://github.com/gufranco/snes-graphics-python) | The graphics formats: tiles, palettes, tilemaps, sprites and mode 7 | Format |
 | [snes-rom-image-python](https://github.com/gufranco/snes-rom-image-python) | The forms a cartridge image is stored and shipped in | Format |
