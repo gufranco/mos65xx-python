@@ -1,7 +1,9 @@
 # Working in this repository
 
-This file is for a coding agent. A person reading it will not be harmed, but
-[README.md](README.md) is the document written for them.
+Read [FAMILY.md](FAMILY.md) first. It is the standard every member of this
+family carries, byte for byte, and it decides most questions before they are
+asked. What follows is only what is true of this member. [README.md](README.md)
+is the document written for a person.
 
 ## What this project is, in one paragraph
 
@@ -35,9 +37,6 @@ method and a hook called from another drift the first time somebody adds a cycle
 to only one of them, and nothing catches it. Keep it that way.
 
 ## The authority ladder
-
-Every factual question is answered by the highest rung that has an answer, and a
-lower rung never overrules a higher one.
 
 1. **Manufacturer documentation.** What MOS, Commodore, Synertek, Rockwell and
    WDC printed. Every document is listed in the README's References section with

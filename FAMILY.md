@@ -882,3 +882,33 @@ is claiming to know things nobody knows.
 *Everything above this line is identical in every member. A member may add
 sections below it about its own state, and nothing may be added above it that
 the others do not also get.*
+
+## The state of this repository
+
+**Sixteen parts, and the differences between them are the point.** A 6507 is a
+6502 in a smaller package with no interrupt pins; a 6512 is the same die with the
+clock oscillator left off; a 65C02 fixed bugs the NMOS part shipped with and a
+65816 is a different processor wearing a compatible mode. Each is a separate
+model, including the revisions that only fixed a bug, because a model that
+corrects a defect is wrong for the machine that shipped it.
+
+**It is the only member that reaches the die.** MOS, Commodore, Synertek,
+Rockwell and WDC all printed documents, and every figure taken from one carries
+the sentence and the page it was on. Nothing here rests on a measurement of real
+silicon, which is why sixteen questions in
+[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) are still open. What stands below the
+documents is a simulation of the die, read off die photographs and stepped half a
+cycle at a time, and below that the per-opcode suites, which are a recording of
+somebody else's implementation. The document decides anything a manufacturer
+printed; the recording decides only what no manufacturer wrote down.
+
+**It is a clocked part**, so the whole of the section about a clock applies: a
+budget of cycles in, what was really spent back, and every cycle passing through
+one place.
+
+**It is where the family's patterns were settled.** A sibling that needs a shape
+takes it from here, and the pair worth taking first is
+[`conformance/hardware.json`](conformance/hardware.json) beside
+[`conformance/divergences.json`](conformance/divergences.json). A number in a
+docstring is a claim nobody checks. A number in a record with the sentence it
+came from is one anybody can check, and the test beside it holds the code to it.

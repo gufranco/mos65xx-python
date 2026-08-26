@@ -1,5 +1,5 @@
 {
-  "note": "What the manufacturers' own documents say these parts are. Every entry was read out of the document named beside it rather than taken from an implementation, and carries the sentence or table row it came from so a later reader can check the reading rather than trust it. This file is the authority on what the parts ARE. The suites named in suites.json are the authority on what they DO where the documents are silent. Where the two disagree the disagreement is recorded in divergences.json rather than resolved quietly.",
+  "note": "What the manufacturers' own documents say these parts ARE. The suites named in suites.json are the authority on what they DO where the documents are silent. Where the two disagree the disagreement is recorded in divergences.json rather than resolved quietly.",
   "authority": {
     "order": [
       "hardware.json, for anything a manufacturer states: reset state, vector addresses, register widths, which cycle carries which address",
