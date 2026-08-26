@@ -1,23 +1,10 @@
-<div align="center">
+# MOS 65xx
 
-<h1>MOS 65xx</h1>
-
-<strong>Interpreters for the 65xx family, from the 6502 to the 65816, driveable from a clock and held to a per-opcode suite for every cycle of every opcode.</strong>
-
-<br>
-<br>
+Interpreters for the 65xx family, from the 6502 to the 65816, driveable from a clock and held to a per-opcode suite for every cycle of every opcode.
 
 [![CI](https://github.com/gufranco/mos65xx-python/actions/workflows/ci.yml/badge.svg)](https://github.com/gufranco/mos65xx-python/actions/workflows/ci.yml)
-[![Conformance](https://img.shields.io/badge/SingleStepTests-17%2C900%2C000%20%2F%2017%2C900%2C000-brightgreen)](#is-it-right)
-[![Cycles](https://img.shields.io/badge/bus%20cycles-17%2C870%2C080%20compared-brightgreen)](#is-it-right)
-[![Coverage](https://img.shields.io/badge/coverage-100%25%20statement%20%2B%20branch-brightgreen)](#working-on-it)
-[![Types](https://img.shields.io/badge/mypy-strict-blue)](pyproject.toml)
-[![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14-blue)](pyproject.toml)
-[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-</div>
-
-**16** parts · **17,900,000** state cases and **17,870,080** cycle-exact cases, **0** unexplained failures · **1,200** tests · **100%** statement and branch coverage · no dependencies
+**16** parts, **17,900,000** state cases and **17,870,080** cycle-exact cases, **0** unexplained failures, **1,200** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 from mos65xx import Cpu, SparseMemory
