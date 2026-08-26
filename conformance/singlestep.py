@@ -38,7 +38,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from mos65xx import Cpu, SparseMemory, UnknownModelError, describe  # noqa: E402
+from mos65xx import Cpu, SparseMemory, UnknownModelError, models  # noqa: E402
 
 EXAMPLE_LIMIT = 5
 
@@ -220,7 +220,7 @@ def options(argv: Sequence[str]) -> Any:
 
     if not rest:
         raise Usage("a suite directory is needed")
-    describe(model)
+    models.lookup(model)
     return rest, model
 
 

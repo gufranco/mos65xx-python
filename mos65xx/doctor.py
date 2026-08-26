@@ -114,7 +114,7 @@ def _package() -> Finding:
 
 
 def _default_build(name: str) -> Cpu:
-    core: Cpu = models.describe(name).build(SparseMemory())
+    core: Cpu = models.lookup(name).build(SparseMemory())
     return core
 
 
@@ -135,7 +135,7 @@ def _processor(name: str, build: Callable[[str], Cpu]) -> Finding:
             "this is the core failing to build rather than anything to do with a"
             " suite; the line above is what it said",
         )
-    described = models.describe(name)
+    described = models.lookup(name)
     return Finding(
         name,
         True,

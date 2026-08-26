@@ -43,7 +43,7 @@ from conformance.singlestep import (  # noqa: E402
     recorded_divergence,
     suite_files,
 )
-from mos65xx import UnknownModelError, describe  # noqa: E402
+from mos65xx import UnknownModelError, models  # noqa: E402
 
 EXAMPLE_LIMIT = 3
 
@@ -215,7 +215,7 @@ def options(argv: Sequence[str]) -> tuple[list[str], str]:
 
     if not rest:
         raise Usage("a suite directory is needed")
-    named = describe(model).name
+    named = models.lookup(model).name
     if named not in VERIFIED:
         raise Unsupported(
             f"a {named} has not been held to a cycle recording yet; "

@@ -300,9 +300,7 @@ class HonestyTest(unittest.TestCase):
 
     def test_the_family_table_matches_the_parts_this_package_builds(self) -> None:
         recorded = fact("nmosFamilyPackages")["whatIsImplemented"]["interruptPins"]
-        both = [
-            name for name in self.packages() if {"irq", "nmi"} <= set(models.describe(name).pins)
-        ]
+        both = [name for name in self.packages() if {"irq", "nmi"} <= set(models.lookup(name).pins)]
 
         self.assertEqual(
             (both, "6502, 6503, 6512 and 6513" in recorded),
@@ -312,7 +310,7 @@ class HonestyTest(unittest.TestCase):
     def test_and_the_one_with_neither_line_is_the_one_the_table_names(self) -> None:
         recorded = fact("nmosFamilyPackages")["whatIsImplemented"]["interruptPins"]
         neither = [
-            name for name in self.packages() if not {"irq", "nmi"} & set(models.describe(name).pins)
+            name for name in self.packages() if not {"irq", "nmi"} & set(models.lookup(name).pins)
         ]
 
         self.assertEqual((neither, "Neither on the 6507" in recorded), (["6507"], True))
@@ -353,7 +351,7 @@ class CoreScopeTest(unittest.TestCase):
     def cores(self) -> dict[str, list[str]]:
         held: dict[str, list[str]] = {}
         for name in sorted(mos65xx.MODELS):
-            held.setdefault(mos65xx.describe(name).core.__name__, []).append(name)
+            held.setdefault(mos65xx.models.lookup(name).core.__name__, []).append(name)
         return held
 
     def test_the_record_names_the_cores_the_package_builds(self) -> None:

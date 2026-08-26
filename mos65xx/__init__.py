@@ -25,6 +25,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from . import models as models
 from . import mos65c02 as mos65c02
 from . import mos6502 as mos6502
 from . import opcodes65c02 as opcodes65c02
@@ -41,7 +42,7 @@ from .errors import (
     Waiting,
 )
 from .memory import Memory, SparseMemory, scramble
-from .models import MODELS, Model, describe
+from .models import MODELS, Model
 from .opcodes65816 import (
     FLAG_DEPENDENT,
     MODE_SIZE,
@@ -69,11 +70,9 @@ from .wdc65816 import Cpu as Cpu65816
 
 __version__ = VERSION
 
-DEFAULT_MODEL = "65816"
-
 
 def Cpu(  # noqa: N802
-    model: str = DEFAULT_MODEL,
+    model: str | None = None,
     memory: Any = None,
     fill: int | None = None,
     **options: Any,
@@ -94,11 +93,10 @@ def Cpu(  # noqa: N802
     """
     if fill is not None and memory is None:
         memory = Memory(fill=fill)
-    return describe(model).build(SparseMemory() if memory is None else memory, **options)
+    return models.lookup(model).build(SparseMemory() if memory is None else memory, **options)
 
 
 __all__ = [
-    "DEFAULT_MODEL",
     "FLAG_C",
     "FLAG_D",
     "FLAG_DEPENDENT",
@@ -130,7 +128,6 @@ __all__ = [
     "apply_flags",
     "branch_target",
     "decode",
-    "describe",
     "disassemble",
     "operand_size",
     "render",

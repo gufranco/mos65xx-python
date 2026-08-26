@@ -366,8 +366,25 @@ def _normalise(name: str) -> str:
     return str(name).strip().lower().replace("-", "").replace("_", "")
 
 
-def describe(name: str) -> Model:
-    """The model of that name, however it happens to be written."""
+def lookup(name: str | None) -> Model:
+    """The model of that name, however it happens to be written.
+
+    Naming nothing is refused rather than filled in. A default would be the one
+    implicit thing in the call that builds a part, and it is worst where it looks
+    most harmless: a caller who learns to leave the model out against a member
+    covering one part writes the same call against a member covering sixteen.
+    The refusal names every model there is, so somebody who did not know what to
+    pass learns it here rather than from the source.
+
+    Not exported from the package. What a caller wants is the part, and the part
+    carries its own model; handing back a description of a part nobody built
+    reads like a test fixture rather than an interface.
+    """
+    if name is None:
+        raise UnknownModelError(
+            "no model was named, and this package will not choose one for you."
+            f" Name one of: {', '.join(sorted(MODELS))}"
+        )
     found = _BY_ALIAS.get(_normalise(name))
     if found is None:
         raise UnknownModelError(

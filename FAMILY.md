@@ -87,8 +87,10 @@ checks the ones a test can reach.
       with the measurement that would settle it. A reset nobody can account for
       is an invented pin.
 - [ ] A part publishes its catalogue even when it holds one model: `MODELS`,
-      `DEFAULT_MODEL`, `Model`, `describe` and `UnknownModelError`. A name no
-      model goes by is refused, never quietly resolved to the default.
+      `Model` and `UnknownModelError`. There is no default model and nothing that
+      hands back a description of a part instead of a part. A name no model goes
+      by is refused, and naming none is refused too, with every model there is
+      listed in the refusal.
 - [ ] What it hands back is a class called `Cpu`, not something else. The name
       shows in every repr and every traceback.
 - [ ] `step`, `run_for`, `run_until`, `reset`, `held` and the counters exist and
@@ -603,15 +605,27 @@ The order is the point of both. The model is the thing a caller always knows;
 what the part runs on is the thing they often do not care about yet, so leaving
 it out hands back a part holding what a board holds before anything wrote to it.
 
-Two of these were reached differently. One was `describe(name).build(store)`, two
-calls for one part, and the other was a class named for the single chip it
-modelled and taking no model at all. A caller moving between three members wrote
-three different things to do one thing, and the member with one model was the one
-that looked least like the rest.
+The model is not optional and there is no default. A member covering one part is
+the tempting exception and the worst one: a caller who learns to leave the model
+out there writes the same call against a member covering sixteen and gets a part
+nobody picked. Naming none is refused, and the refusal lists every model there
+is, so a caller who did not know what to pass learns it from the error rather
+than from the source.
+
+Nothing hands back a description of a part instead of a part. An earlier version
+of this published `describe(name)`, which read like a test fixture, took two
+calls to reach one object, and left a second way to spell a lookup that then had
+to be kept working. What a caller wants is the part, and the part carries its own
+model.
+
+Two members were reached differently before any of this. One was
+`describe(name).build(store)`, two calls for one part, and the other was a class
+named for the single chip it modelled and taking no model at all. A caller moving
+between three members wrote three different things to do one thing.
 
 So a part publishes a catalogue even holding one entry. It costs a file and it
 buys two things: the same call everywhere, and a typo that is refused instead of
-silently building the default. A constructor that accepts any string and returns
+silently building something. A constructor that accepts any string and returns
 the only part it has is a constructor that cannot report a mistake.
 
 What each kind hands back carries the kind's name, not the chip's. `Chip` shows

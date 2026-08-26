@@ -52,6 +52,15 @@ calling itself something else.
 CLOCKED = KIND == "Clocked part"
 
 PACKAGE: Any = mos65xx
+
+A_MODEL = sorted(PACKAGE.MODELS)[0]
+"""One model, named rather than defaulted.
+
+There is no default in this family and these checks need a part to look at, so
+they take the first name in the catalogue. Which one it is does not matter to
+what they check. That a caller has to name one does, and a file checking the
+standard has to reach the package the way the standard says a caller does.
+"""
 """The package under test, deliberately untyped.
 
 What a member publishes depends on what it models: a clocked part has a `Cpu`,
@@ -168,7 +177,7 @@ def a_part() -> Part:
     A member that is not a clocked part has no `Cpu` at all, and the checks
     that call this are skipped there.
     """
-    part: Part = PACKAGE.Cpu(PACKAGE.DEFAULT_MODEL)
+    part: Part = PACKAGE.Cpu(A_MODEL)
     return part
 
 
@@ -182,7 +191,7 @@ def store_attribute() -> str:
     keyed to one spelling reports the other as missing something it deliberately
     does not have.
     """
-    part = PACKAGE.Cpu(PACKAGE.DEFAULT_MODEL)
+    part = PACKAGE.Cpu(A_MODEL)
     found = [name for name in ("memory", "stores") if getattr(part, name, None) is not None]
     assert found, "a clocked part keeps its store on `memory` or on `stores`"
     return found[0]
@@ -226,7 +235,7 @@ def a_running_part() -> Part:
     clocked members did not have it and each needed a different keyword, so a
     check written against any one of them reported the other three as broken.
     """
-    part = PACKAGE.Cpu(PACKAGE.DEFAULT_MODEL, fill=0)
+    part = PACKAGE.Cpu(A_MODEL, fill=0)
     at_the_start(part)
     checked: Part = part
     return checked
@@ -362,14 +371,12 @@ class PromisedBehaviourTest(unittest.TestCase):
 
 SURFACE = (
     "Cpu",
-    "DEFAULT_MODEL",
     "MODELS",
     "UNSET_SEED",
     "Clock",
     "ClockClosed",
     "RunLimit",
     "UnknownModelError",
-    "describe",
 )
 """Names the standard promises a caller finds in every package of the family.
 
@@ -389,11 +396,9 @@ would be describing two implementations rather than one interface.
 
 PART_SURFACE = (
     "Chip",
-    "DEFAULT_MODEL",
     "MODELS",
     "Model",
     "UnknownModelError",
-    "describe",
 )
 """Names the standard promises a caller finds in every part of the family.
 
@@ -433,7 +438,7 @@ class PublishedSurfaceTest(unittest.TestCase):
         in any annotation a caller writes, and nothing about the hardware asks
         for it.
         """
-        built = PACKAGE.Cpu()
+        built = PACKAGE.Cpu(A_MODEL)
 
         self.assertEqual(type(built).__name__, "Cpu")
 
@@ -446,7 +451,7 @@ class PublishedSurfaceTest(unittest.TestCase):
         wrote a different call in each. The model comes first for the same reason
         it does on a processor: it is the thing a caller always knows.
         """
-        built = PACKAGE.Chip()
+        built = PACKAGE.Chip(A_MODEL)
 
         self.assertEqual(type(built).__name__, "Chip")
 
@@ -468,12 +473,12 @@ class PublishedSurfaceTest(unittest.TestCase):
         A caller driving a board resets every part on it, and a part that cannot
         be reset makes the caller special-case which ones can.
         """
-        self.assertTrue(callable(getattr(PACKAGE.Chip(), "reset", None)))
+        self.assertTrue(callable(getattr(PACKAGE.Chip(A_MODEL), "reset", None)))
 
     @unittest.skipUnless(A_PART and BUILDABLE, "no part can be built here")  # pragma: no cover
     def test_and_that_reset_hands_the_part_back(self) -> None:
         """So a caller can build and reset in one expression, as the clocked ones do."""
-        built = PACKAGE.Chip()
+        built = PACKAGE.Chip(A_MODEL)
 
         self.assertIs(built.reset(), built)
 
@@ -513,7 +518,7 @@ class PublishedSurfaceTest(unittest.TestCase):
         By shape rather than by name: the type is read off a part that was built
         rather than looked up under a spelling the checker chose.
         """
-        held = getattr(PACKAGE.Cpu(PACKAGE.DEFAULT_MODEL), store_attribute())
+        held = getattr(PACKAGE.Cpu(A_MODEL), store_attribute())
 
         self.assertIn(type(held).__name__, PACKAGE.__all__)
 
@@ -1450,7 +1455,7 @@ class DocumentedModelTest(unittest.TestCase):
 
     def test_the_reader_of_that_tells_a_call_from_a_mention(self) -> None:
         """Driven both ways, because one that matched everything would also pass."""
-        self.assertTrue(built("a-part", 'describe("a-part")'))
+        self.assertTrue(built("a-part", 'Chip("a-part")'))
         self.assertTrue(built("a-part", "Cpu('a-part')"))
         self.assertFalse(built("a-part", "the a-part is covered here"))
         self.assertFalse(built("a-part", "`a-part`"))
@@ -1486,7 +1491,7 @@ class CatalogueReaderTest(unittest.TestCase):
         self.assertEqual(sorted(catalogue(held)), ["z80"])
 
     def test_it_steps_over_a_published_name_that_is_not_a_mapping(self) -> None:
-        held = self.package(DEFAULT_MODEL="z80", MODELS={"z80": self.variant("z80")})
+        held = self.package(MODELS={"z80": self.variant("z80")})
 
         self.assertEqual(sorted(catalogue(held)), ["z80"])
 
@@ -1647,14 +1652,14 @@ class SuppliedMemoryTest(unittest.TestCase):
     def test_a_supplied_store_is_the_one_the_part_uses(self) -> None:
         """Taken off one part and handed to the next, so no type has to be named."""
         where = store_attribute()
-        own = getattr(PACKAGE.Cpu(PACKAGE.DEFAULT_MODEL), where)
+        own = getattr(PACKAGE.Cpu(A_MODEL), where)
 
-        built = PACKAGE.Cpu(PACKAGE.DEFAULT_MODEL, own)
+        built = PACKAGE.Cpu(A_MODEL, own)
 
         self.assertIs(getattr(built, where), own)
 
     def test_and_one_is_built_when_the_argument_is_left_out(self) -> None:
-        built = PACKAGE.Cpu(PACKAGE.DEFAULT_MODEL)
+        built = PACKAGE.Cpu(A_MODEL)
 
         self.assertIsNotNone(getattr(built, store_attribute()))
 

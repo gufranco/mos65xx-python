@@ -4,7 +4,7 @@ Interpreters for the 65xx family, from the 6502 to the 65816, driveable from a c
 
 [![CI](https://github.com/gufranco/mos65xx-python/actions/workflows/ci.yml/badge.svg)](https://github.com/gufranco/mos65xx-python/actions/workflows/ci.yml)
 
-**16** parts, **17,900,000** state cases and **17,870,080** cycle-exact cases, **0** unexplained failures, **1,200** tests, **100%** statement and branch coverage, no dependencies
+**16** parts, **17,900,000** state cases and **17,870,080** cycle-exact cases, **0** unexplained failures, **1,203** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -40,7 +40,7 @@ Everything a caller touches. Nothing else is public.
 
 | Call | Does | Returns |
 |:--|:--|:--|
-| `Cpu(model="65816", memory=None, **options)` | Builds a part, powered and not yet reset. Memory of its own if none is given | a `Cpu` |
+| `Cpu(model, memory=None, **options)` | Builds a part, powered and not yet reset. The model is required and there is no default; naming none raises and lists every model. Memory of its own if none is given | a `Cpu` |
 | `cpu.reset(seed=...)` | Drives RESET. Costs the six delay cycles the manual names plus the two of the vector fetch | the `Cpu` |
 | `cpu.step()` | Runs one instruction | cycles it cost |
 | `cpu.run_for(cycles)` | Runs whole instructions until at least that many cycles have passed. Keeps clocking a part that has halted | cycles actually spent, usually a little over |
@@ -50,7 +50,7 @@ Everything a caller touches. Nothing else is public.
 | `cpu.irq()` / `cpu.nmi()` / `cpu.abort()` | Pulls a line and acts on it now | `True` if taken |
 | `cpu.status()` / `cpu.set_status(byte)` | The status register as a byte, the portable way across the family | `int` / nothing |
 | `disassemble(data, offset, address, count)` | Reads bytes with no machine to run them in | `Instruction` objects with `.text` |
-| `describe(model)` | The part behind a name, before building one | a `Model` |
+| `MODELS` | Every model this package covers, by the name it goes by | a mapping |
 
 | Pin or attribute | Is |
 |:--|:--|
