@@ -11,6 +11,8 @@ from typing import Any, NoReturn, override
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from mos65xx import doctor
+from mos65xx.memory import UNSET_SEED, SparseMemory
+from mos65xx.mos6502 import Cpu
 
 
 class Complaint(Exception):
@@ -110,6 +112,25 @@ class ExaminationTest(unittest.TestCase):
 
         self.assertFalse(found[0].ok)
         self.assertIn("Complaint: the core exploded", found[0].detail)
+
+    def test_a_part_that_builds_and_will_not_reset_is_reported_as_broken(self) -> None:
+        class WillNotReset(Cpu):
+            @override
+            def reset(self, seed: int = UNSET_SEED) -> NoReturn:
+                raise Complaint("the pin did nothing")
+
+        def build(_name: str) -> Cpu:
+            return WillNotReset(SparseMemory())
+
+        found = [one for one in doctor.examine(build=build) if one.name == "6502"]
+
+        self.assertFalse(found[0].ok)
+
+    def test_a_part_that_builds_reports_where_the_reset_left_it(self) -> None:
+        """Driven rather than described, because the vector fetch is the path every caller takes."""
+        found = [one for one in doctor.examine() if one.name == "6502"]
+
+        self.assertIn("resets to $", found[0].detail)
 
     def test_a_part_that_builds_reports_what_makes_it_that_part(self) -> None:
         found = [one for one in doctor.examine() if one.name == "6507"]

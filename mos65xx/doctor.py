@@ -119,14 +119,22 @@ def _default_build(name: str) -> Cpu:
 
 
 def _processor(name: str, build: Callable[[str], Cpu]) -> Finding:
-    """Whether that part builds, saying exactly what stopped it if not.
+    """Whether that part builds and resets, saying what stopped it if not.
 
     The properties reported are the ones that change what an instruction leaves
     behind or which pins exist to pull, so two people disagreeing about a result
     are usually holding two different parts rather than two different opinions.
+
+    The reset is driven rather than described. A part built here comes up
+    scrambled, so the counter it holds before the pin is pulled is rubbish and
+    reporting it as where the part starts is wrong twice over: it is not where
+    execution begins, and it changes every run. Driving the pin also exercises
+    the vector fetch, which is the one thing every caller does first and the one
+    thing a build alone proves nothing about.
     """
     try:
         cpu = build(name)
+        cpu.reset()
     except Exception as trouble:
         return Finding(
             name,
@@ -143,7 +151,7 @@ def _processor(name: str, build: Callable[[str], Cpu]) -> Finding:
         f" {'decimal' if described.decimal else 'no decimal'},"
         f" {described.reset_cycles} reset cycles,"
         f" pins {'+'.join(described.pins)},"
-        f" starts at ${cpu.pc:04X}",
+        f" resets to ${cpu.pc:04X}",
     )
 
 
