@@ -11,6 +11,7 @@
   "divergences": [
     {
       "subject": "the data bank register after a software interrupt in emulation mode",
+      "packageFollows": "corpus",
       "documentSays": {
         "document": "wdc816",
         "quote": "In the Emulation mode, the PBR and DBR registers are cleared to 00 when a hardware interrupt, BRK or COP is executed. In this case, previous contents of the PBR are not automatically saved.",
@@ -39,6 +40,7 @@
     },
     {
       "subject": "whether a multi-byte pointer read out of the direct page stays inside the page, in emulation mode with the direct register page aligned",
+      "packageFollows": "corpus",
       "documentSays": {
         "document": "wdc816",
         "quote": "When in the Emulation mode, the direct addressing range is 000000 to 0000FF, except for [Direct] and [Direct],Y addressing modes and the PEI instruction which will increment from 0000FE or 0000FF into the Stack area.",
@@ -100,10 +102,11 @@
       "whatWouldSettleIt": "Two short programs on a real part, one for (d) and one for (d),y, each with the direct register page aligned and the pointer at FF, reading back the byte the part fetched. The other four are settled. Until then this project's behaviour for those two is a document reading rather than a measurement, and is marked as such.",
       "whyItIsOddEitherWay": "No simple rule produces the measured set. Whatever the part does, it is not deciding by pointer width and it is not deciding by whether the mode is one the 6502 had.",
       "status": "open",
-      "severity": "two of six modes unmeasured"
+      "severity": "unchecked"
     },
     {
       "subject": "which address the NMOS 6502 puts on the bus during a taken branch",
+      "packageFollows": "recording",
       "documentSays": {
         "document": "mos6500",
         "quote": "T2* PC + 2 + offset (w/o carry), OP CODE, R/W 1, Offset Added to Program Counter; T3** PC + 2 + offset (with carry), OP CODE, R/W 1, Carry Added. *Skip if branch not taken. **Skip if branch not taken; skip if branch operation doesn't cross page boundary.",
@@ -139,6 +142,7 @@
     },
     {
       "subject": "which address a CMOS 65C02 puts on the bus during its spare cycles, and how long three of its instructions take",
+      "packageFollows": "document",
       "documentSays": {
         "document": "wdc02",
         "quote": "Indexed addressing across page boundary: NMOS 6502, extra read of invalid address; W65C02S, extra read of last instruction byte. Read/Modify/Write instruction at effective address: NMOS 6502, one read and two write cycles; W65C02S, two read and one write cycle. Jump indirect, operand = XXFF: NMOS 6502, page address does not increment; W65C02S, page address increments, one additional cycle. Flags after decimal operation: NMOS 6502, invalid N, V and Z flags; W65C02S, valid flags. One additional cycle.",
@@ -173,6 +177,7 @@
     },
     {
       "subject": "the address of the extra cycle a CMOS 65C02 spends on decimal arithmetic",
+      "packageFollows": "document",
       "documentSays": {
         "document": "wdc02",
         "quote": "Valid flags.  One additional cycle.",
@@ -206,6 +211,7 @@
     },
     {
       "subject": "the address on the bus during the discarded read of an indexed access",
+      "packageFollows": "document",
       "documentSays": {
         "document": "mos6500",
         "quote": "T3 ADL: BAL + index register / ADH: BAH + C. Carry is 0 or 1 as required from previous add operation.",
@@ -229,10 +235,11 @@
       "whatWouldSettleIt": "A program on a real part: point an indexed store at an address one byte below a page boundary so the index crosses it, put a memory-mapped register at the uncorrected address, and see whether the register is read.",
       "whyItMatters": "This is the cycle that makes an indexed store to a hardware register dangerous. A reader who took the BAH + C form would model the discarded read as landing on the same address as the write, and would miss the spurious access one page below it that real programs have to work around.",
       "status": "open",
-      "severity": "documentContradiction"
+      "severity": "contradiction"
     },
     {
       "subject": "which cycle of a taken branch carries which address",
+      "packageFollows": "recording",
       "documentSays": {
         "document": "mos6500",
         "quote": "T2 PC + 2 + offset (w/o carry), Offset Added to Program Counter. T3 PC + 2 + offset (with carry), Carry Added.",
@@ -251,6 +258,7 @@
     },
     {
       "subject": "the stack addresses of a pull, written as plain sums",
+      "packageFollows": "document",
       "documentSays": {
         "document": "mos6500",
         "quote": "T3 Stack Ptr. + 1. T4 Stack Ptr. + 2. T5 Stack Ptr. + 3.",
@@ -264,11 +272,12 @@
       "whatThisProjectDoes": "Keeps every stack access inside page one, which is what the part does and what the body of the same manual says elsewhere. The sums in the appendix hold everywhere except across the page edge, so they are read as shorthand rather than as arithmetic.",
       "whatWouldSettleIt": "Nothing outstanding. The stack living in page one is stated in the body of the same document and is not in question; only the appendix's notation is loose.",
       "whyItMatters": "A pull that starts near the top of the stack is exactly the case a program hits after a deep sequence of pushes, so a model built from the appendix alone would read four bytes from the wrong page at the moment it matters most.",
-      "status": "settled",
-      "severity": "settled"
+      "status": "closed",
+      "severity": "contradiction"
     },
     {
       "subject": "the page-crossing cycle on the indirect indexed rows of AND and ORA",
+      "packageFollows": "document",
       "documentSays": {
         "document": "mos6500_programming",
         "quote": "AND (Oper), Y  31  2  5. ORA (Oper), Y  11  2  5.",
@@ -289,11 +298,12 @@
       "whatThisProjectDoes": "Takes the extra cycle on all eight, because the addressing mode is the same one and the cycle comes from re-reading at the corrected address rather than from the operation.",
       "whatWouldSettleIt": "Nothing outstanding. The two instructions share their addressing hardware with five that are printed correctly, and the same appendix marks their absolute indexed rows.",
       "whyItMatters": "A timing budget built by adding up the printed counts comes out one cycle short every time one of these two crosses a page, which on a machine whose video timing is counted in cycles is the difference between a stable picture and a torn one.",
-      "status": "settled",
-      "severity": "settled"
+      "status": "closed",
+      "severity": "unstated"
     },
     {
       "subject": "how many cycles the reserved opcode 5C spends on a CMOS part",
+      "packageFollows": "document",
       "documentSays": {
         "document": "wdc02",
         "quote": "All are NOP's (reserved for future use). OpCode 5C, Bytes 3, Cycles 8.",
@@ -312,6 +322,7 @@
     },
     {
       "subject": "which address the modify cycle and the push drive when the register is eight bits",
+      "packageFollows": "recording",
       "documentSays": {
         "document": "wdc816",
         "quote": "1d. Absolute (R-M-W) a, cycle 5: DBR,AA+1, IO. 22c. Stack s, cycle 3: 0,S-1, REG Low.",
@@ -325,11 +336,12 @@
       "whatThisProjectDoes": "Drives the last byte actually accessed, which is AA and S in the narrow form and AA+1 and S-1 in the wide one. The table has only the wide form of these five rows.",
       "whatWouldSettleIt": "Nothing outstanding. The narrow form follows from the rows above it: a cycle cannot sit on the byte after one that was never read.",
       "whyItMatters": "Five rows of a table that is otherwise complete have no eight bit form, so a reader building a narrow register model from the page alone puts the modify cycle and the push one byte off. Four come out a byte high and the push a byte low, because the stack grows the other way.",
-      "status": "settled",
-      "severity": "settled"
+      "status": "closed",
+      "severity": "unstated"
     },
     {
       "subject": "whether the new program counter of an indexed indirect jump is a program address",
+      "packageFollows": "recording",
       "documentSays": {
         "document": "wdc816",
         "quote": "2a. Absolute Indexed Indirect (a,x), cycle 5: VDA 0, VPA 1, PBR,AA+X, New PCL.",
@@ -352,10 +364,11 @@
       "whyItMatters": "A system that qualifies its memory map with these pins, which is what they are for, would route those two fetches to program memory rather than to data memory. On a machine where the two are different devices that is the difference between a jump that works and one that does not.",
       "andTheSamePublisherTransposesThemElsewhere": "Appendix C of Programming the 65816, which the same company holds the copyright to, prints the four qualifier states under headers in the opposite order from the data sheet's, so that a valid program address comes out as the Valid Data Address pin high and the Valid Program Address pin low. That is a transposition of exactly these two signals in this publisher's own documentation. It does not settle this entry, but it is the reason a single printed row is not enough to overturn thirty thousand recorded cases.",
       "status": "open",
-      "severity": "documentContradiction"
+      "severity": "contradiction"
     },
     {
       "subject": "what a reset drives on the bus during its six delay cycles",
+      "packageFollows": "document",
       "documentSays": {
         "document": "mos6500",
         "quote": "When the line goes high, the microprocessor will delay 6 cycles and then fetch the new program count vectors from specific locations in memory (PCL from location FFFC and PCH from location FFFD).",
@@ -375,6 +388,7 @@
     },
     {
       "subject": "how many cycles STP and WAI cost on a W65C02",
+      "packageFollows": "document",
       "documentSays": {
         "document": "wdc816_book",
         "quote": "Uses 3 cycles to shut the processor down; additional cycles are required by reset to restart it",
@@ -394,6 +408,7 @@
     },
     {
       "subject": "what a halted W65C02 holds on its address lines",
+      "packageFollows": "document",
       "documentSays": {
         "document": "wdc02",
         "quote": "A negative transition to the low state prior to the falling edge of PHI2 will halt the microprocessor with the output address lines reflecting the current address being fetched. This assumes the processor setup time is met. This condition will remain through a subsequent PHI2 in which the ready signal is low. The WAI instruction pulls RDY low signaling the WAit-for-Interrupt condition, thus RDY is a bi-directional pin.",
@@ -413,6 +428,7 @@
     },
     {
       "subject": "whether a two cycle opcode turns its internal cycle into a bus read when an interrupt is pending",
+      "packageFollows": "neither",
       "documentSays": {
         "document": "wdc816",
         "quote": "Nothing. The data sheet does not describe what an internal cycle does differently while an interrupt is waiting to be taken.",
@@ -453,6 +469,7 @@
     },
     {
       "subject": "the transistor level simulation that could settle most of the NMOS questions, and why it is not being used",
+      "packageFollows": "neither",
       "documentSays": {
         "quote": "Nothing. This is about a source rather than about the part, so there is no document to name and none is named.",
         "saysNothing": true
@@ -469,6 +486,7 @@
     },
     {
       "subject": "how long a reset takes, which two manufacturers give differently",
+      "packageFollows": "document",
       "documentSays": {
         "document": "mos6500",
         "quote": "MOS: 'the microprocessor will delay 6 cycles and then fetch the new program count vectors'. WDC: 'When a positive edge is detected, there will be a reset sequence lasting seven clock cycles.'",
@@ -488,6 +506,7 @@
     },
     {
       "subject": "the stack address of a one byte pull at the top of emulation page one",
+      "packageFollows": "document",
       "documentSays": {
         "document": "wdc816",
         "quote": "In the Emulation mode, the Stack address range is 000100 to 0001FF. The following OpCodes and addressing modes will increment or decrement beyond this range when accessing two or three bytes: JSL, JSR (a,x), PEA, PEI, PER, PHD, PLD, RTL",
@@ -506,7 +525,7 @@
       "whyItMatters": "A program that pulls the data bank register with a full stack reads a byte from the wrong page on one of the two readings, and which byte that is decides what bank every following data access lands in.",
       "runnerBehaviour": "conformance/singlestep.py leaves these thirty-seven out by condition rather than by name, and prints how many it left out and where they are explained.",
       "status": "open",
-      "severity": "document against recording"
+      "severity": "contradiction"
     }
   ]
 }

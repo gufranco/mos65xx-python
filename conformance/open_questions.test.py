@@ -36,7 +36,7 @@ class RecordTest(unittest.TestCase):
 
     def test_every_divergence_says_whether_it_is_open(self) -> None:
         missing = [
-            one["subject"] for one in divergences() if one.get("status") not in ("open", "settled")
+            one["subject"] for one in divergences() if one.get("status") not in ("open", "closed")
         ]
 
         self.assertEqual(missing, [])
@@ -46,11 +46,11 @@ class RecordTest(unittest.TestCase):
 
         self.assertEqual(missing, [])
 
-    def test_and_names_none_that_are_settled(self) -> None:
+    def test_and_names_none_that_are_closed(self) -> None:
         named = [
             one["subject"]
             for one in divergences()
-            if one["status"] == "settled" and one["subject"][1:] in self.text
+            if one["status"] == "closed" and one["subject"][1:] in self.text
         ]
 
         self.assertEqual(named, [])
@@ -69,10 +69,10 @@ class RecordTest(unittest.TestCase):
     def test_there_are_open_questions_to_report(self) -> None:
         self.assertEqual(len(opened()), 16)
 
-    def test_and_the_settled_ones_are_kept_rather_than_deleted(self) -> None:
-        settled = [one for one in divergences() if one["status"] == "settled"]
+    def test_and_the_closed_ones_are_kept_rather_than_deleted(self) -> None:
+        closed = [one for one in divergences() if one["status"] == "closed"]
 
-        self.assertEqual(len(settled), 3)
+        self.assertEqual(len(closed), 3)
 
 
 if __name__ == "__main__":

@@ -2590,5 +2590,126 @@ class NamesNoMachineTest(unittest.TestCase):
         return run
 
 
+DIVERGENCES = ROOT / "conformance" / "divergences.json"
+
+DIVERGENCE_STATUS = (
+    "open",
+    "narrowed",
+    "acknowledged",
+    "closed",
+    "notADisagreement",
+    "notModelled",
+)
+"""Where an entry stands, in words that mean the same thing in every member.
+
+`narrowed` is kept apart from `open` because an entry that has been cut down to
+a smaller question is not the same as one nobody has touched. `acknowledged` is
+kept apart from `closed` because a standing limitation this project accepts and
+will not close is not a question that was answered.
+"""
+
+DIVERGENCE_SEVERITY = (
+    "contradiction",
+    "high",
+    "medium",
+    "low",
+    "unstated",
+    "unchecked",
+    "outOfScope",
+)
+"""How much the disagreement costs, in words that mean the same thing everywhere.
+
+`contradiction` is for a source that disagrees with itself or with a recording,
+which is worse than a gap because both readings look sourced. `unstated` is for
+a document that says nothing, and `unchecked` for something nobody has measured
+yet. Why a given entry is only `low` belongs in its prose, not in a severity
+nobody else uses.
+"""
+
+DIVERGENCE_SOURCES = (
+    "document",
+    "reference",
+    "recording",
+    "corpus",
+    "cartridges",
+    "microcode",
+    "neither",
+)
+"""What the package followed, named as a kind of source rather than as an argument.
+
+The argument for following it is prose and belongs in the entry's own reasoning.
+A field that holds a paragraph in one member and a single word in another cannot
+be counted across the family, and counting is the only reason the field is
+structured at all.
+"""
+
+
+def divergence_entries(where: Path) -> list[Any]:
+    """Every entry in a divergence record, whatever the member calls the list.
+
+    The list key differs between members and the prose fields differ more, both
+    on purpose: what a part disagrees about is not the same shape twice. Only the
+    three fields a cross-family question is asked of are held to one vocabulary.
+    """
+    if not where.is_file():
+        return []
+    held = json.loads(where.read_text())
+    for value in held.values():
+        if isinstance(value, list):
+            return list(value)
+    return []
+
+
+def outside_vocabulary(entries: Any, field: str, allowed: Any) -> list[str]:
+    """Every value of one field that is not in the vocabulary, without repeats."""
+    return sorted({str(one.get(field)) for one in entries if one.get(field) not in allowed})
+
+
+class DivergenceRecordTest(unittest.TestCase):
+    """That the record can be counted across the family, not only read one at a time."""
+
+    @property
+    def entries(self) -> Any:
+        return divergence_entries(DIVERGENCES)
+
+    def test_there_is_a_record_to_check(self) -> None:
+        """So the three checks below cannot pass by having nothing to look at."""
+        self.assertTrue(self.entries)
+
+    def test_every_entry_says_where_it_stands(self) -> None:
+        self.assertEqual(outside_vocabulary(self.entries, "status", DIVERGENCE_STATUS), [])
+
+    def test_every_entry_says_how_much_it_costs(self) -> None:
+        self.assertEqual(outside_vocabulary(self.entries, "severity", DIVERGENCE_SEVERITY), [])
+
+    def test_every_entry_says_what_this_package_followed(self) -> None:
+        self.assertEqual(outside_vocabulary(self.entries, "packageFollows", DIVERGENCE_SOURCES), [])
+
+    def test_a_value_nobody_agreed_on_is_caught(self) -> None:
+        """The check driven against a record that should fail it."""
+        found = outside_vocabulary([{"status": "mostly open"}], "status", DIVERGENCE_STATUS)
+
+        self.assertEqual(found, ["mostly open"])
+
+    def test_a_field_left_out_entirely_is_caught(self) -> None:
+        found = outside_vocabulary([{}], "severity", DIVERGENCE_SEVERITY)
+
+        self.assertEqual(found, ["None"])
+
+    def test_a_record_that_is_not_here_reads_as_empty(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            found = divergence_entries(Path(where) / "divergences.json")
+
+        self.assertEqual(found, [])
+
+    def test_a_record_with_no_list_in_it_reads_as_empty(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            path = Path(where) / "divergences.json"
+            path.write_text('{"note": "nothing here yet"}')
+            found = divergence_entries(path)
+
+        self.assertEqual(found, [])
+
+
 if __name__ == "__main__":
     unittest.main()
