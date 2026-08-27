@@ -117,6 +117,8 @@
       "readOn": "2026-08-21",
       "pinnedIn": "the References section of README.md, and locally by digest as manufacturer/rockwell-r65c00-microprocessors.pdf",
       "covers": "Rockwell's own CMOS part, which the suite records separately because it is not the same as Synertek's or WDC's.",
+      "readVia": "rockwell-r65c00-microprocessors.pdf, 16 pages, a scan with no text layer at all. Nothing can search it, so a citation into it is followed by rendering the page and reading it.",
+      "whatHasBeenReadOfIt": "File page 8, which carries Table 4 and its seven rows of NMOS against CMOS behaviour. The document had been pinned and never read: it was here as a note that Rockwell's part exists, and it turned out to state the CMOS differences this project models, independently of the vendor they had been taken from.",
       "file": "rockwell-r65c00-microprocessors.pdf",
       "cores": ["cmos"],
       "appliesTo": ["65c02", "r65c02", "w65c02"]
@@ -623,6 +625,19 @@
       "assembled": true,
       "notModelled": "Neither behaviour. A pin taken in the middle of an instruction needs a core that can stop part way through one, and this one runs an instruction to completion before it will take an interrupt. Recorded because it is a real difference between the parts and this project does not have it.",
       "correction": "This was recorded against the 65816 data sheet. The sentence is not in that document at all: Table 7-1 Microprocessor Operational Enhancements is the W65C02S sheet's table, and the 65816 sheet has a Table 7-1 of its own about something else. The quote checker scored every quote against whichever document placed it best rather than against the one named, so three facts about the CMOS part carried the wrong source and nothing said so.",
+      "appliesTo": ["65c02", "r65c02", "w65c02"],
+      "appliesToCore": "cmos"
+    },
+    "cmosEnhancementsFromASecondManufacturer": {
+      "document": "rockwell",
+      "section": "Table 4. R65C00 Operational Enhancements",
+      "filePage": 8,
+      "printedPage": "1-10",
+      "assembled": true,
+      "quote": "Indexed addressing across page boundary: NMOS R6502, extra read of invalid address; CMOS R65C00 family, extra read of last instruction byte. Execution of invalid op codes: NMOS, some terminate only by reset, results are undefined; CMOS, all are NOPs (reserved for future use). Jump Indirect, operand = XXFF: NMOS, page address does not increment; CMOS, page address increments and adds one additional cycle. Read/modify/write instructions at effective address: NMOS, one read and two write cycles; CMOS, two read and one write cycle. Decimal flag: NMOS, indeterminate after reset; CMOS, initialized to binary mode (D = 0) after reset and interrupts. Flags after decimal operation: NMOS, invalid N, V and Z flags; CMOS, valid flag adds one additional cycle. Interrupt after fetch of BRK instruction: NMOS, interrupt vector is loaded, BRK vector is ignored; CMOS, BRK is executed, then interrupt is executed.",
+      "whyItMatters": "Every CMOS difference this project models was taken from one manufacturer, and three of those facts had already been found filed under the wrong document. Rockwell prints the same seven rows for its own part, so they no longer rest on a single vendor.",
+      "whatWasCheckedAgainstIt": "All seven rows, against the models. Six agree: the indexed dummy read moves from the invalid address to the last instruction byte, the read-modify-write pattern goes from one read and two writes to two reads and one write, the jump indirect page bug is fixed and costs six, the decimal flag is cleared by both reset and interrupt entry, and a decimal add costs one more. The seventh is the interrupt during a break, which is recorded above as modelled for neither part and for a reason that has not changed.",
+      "howItWasRead": "The document is a photograph with no text layer, so the page was rendered and read. Nothing here was taken from the recognised text alone: every row was read back off the rendered page, because a recogniser reading a two column table interleaves the columns and the NMOS and CMOS halves of a row are exactly what must not be swapped.",
       "appliesTo": ["65c02", "r65c02", "w65c02"],
       "appliesToCore": "cmos"
     },
