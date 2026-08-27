@@ -4,7 +4,7 @@ Interpreters for the 65xx family, from the 6502 to the 65816, driveable from a c
 
 [![CI](https://github.com/gufranco/mos65xx-python/actions/workflows/ci.yml/badge.svg)](https://github.com/gufranco/mos65xx-python/actions/workflows/ci.yml)
 
-**16** parts, **17,900,000** state cases and **17,870,080** cycle-exact cases, **0** unexplained failures, **1,206** tests, **100%** statement and branch coverage, no dependencies
+**16** parts, **17,900,000** state cases and **17,870,080** cycle-exact cases, **0** unexplained failures, **1,238** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -285,6 +285,13 @@ conformance/
 This project ships no documents. Every claim about the hardware is traced to something published by the people who made the parts, listed here so a reader can fetch the same file and check the same page. Each row gives the page count and the first sixteen characters of the file's SHA-256, because vendor links move and a link that has rotted into a different revision is easy to follow without noticing. Compute the full digest with `shasum -a 256 <file>`.
 
 Every one of these is copyrighted by its publisher and not redistributable, which is why none is in this repository. Individual sentences are quoted in [`conformance/hardware.json`](conformance/hardware.json) with the page they came from.
+
+Fetching them is a command rather than an exercise. [`conformance/documents.json`](conformance/documents.json) carries the full digest, the byte count and a fetchable address for each, and [`conformance/documents.py`](conformance/documents.py) brings all twelve down into `docs/`, which git ignores, and refuses anything whose digest does not match.
+
+```bash
+python3 -m conformance.documents          # fetch and verify every digest
+python3 -m conformance.documents --check  # verify what is already here
+```
 
 | Document | Date | Pages | SHA-256 |
 |:---------|:-----|------:|:--------|
