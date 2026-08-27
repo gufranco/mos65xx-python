@@ -153,6 +153,8 @@
       "readOn": "2026-08-21",
       "file": "synertek-hardware-manual.pdf",
       "covers": "Synertek's printing of the hardware manual, a second source for the NMOS cycle tables that the MOS Technology manual carries.",
+      "readVia": "synertek-hardware-manual.pdf, 178 pages, a scan with no text layer at all. Nothing can search it, so a citation into it is followed by rendering the page and reading it.",
+      "whatHasBeenReadOfIt": "The chapter headings, and Appendix A's section headings with the cycle count each one prints. That was enough to establish what the document had only been assumed to be: the same manual, the same appendix and the same numbering as the MOS Technology printing. The bodies of the appendix tables have not been read here, because the MOS printing carries a text layer and is the easier source for them.",
       "pinnedIn": "the References section of README.md",
       "cores": ["nmos"],
       "appliesTo": [
@@ -627,6 +629,29 @@
       "correction": "This was recorded against the 65816 data sheet. The sentence is not in that document at all: Table 7-1 Microprocessor Operational Enhancements is the W65C02S sheet's table, and the 65816 sheet has a Table 7-1 of its own about something else. The quote checker scored every quote against whichever document placed it best rather than against the one named, so three facts about the CMOS part carried the wrong source and nothing said so.",
       "appliesTo": ["65c02", "r65c02", "w65c02"],
       "appliesToCore": "cmos"
+    },
+    "nmosCycleTablesFromASecondPrinting": {
+      "document": "synertek_hardware",
+      "section": "Appendix A, Summary of Single Cycle Execution",
+      "assembled": true,
+      "quote": "A.1 Single byte instructions, two cycles. A.2.2 Zero Page Addressing (3 cycles). A.2.3 Absolute Addressing (4 cycles). A.2.4 Indirect, X Addressing (6 cycles). A.2.5 Absolute, X or Absolute, Y Addressing (4 or 5 cycles). A.2.7 Indirect, Y Addressing Mode (5 or 6 cycles). A.3.1 Zero Page Addressing (3 cycles). A.3.2 Absolute Addressing (4 cycles). A.3.3 Indirect, X Addressing (6 cycles). A.3.4 Absolute, X or Absolute, Y Addressing (5 cycles). A.4.1 Zero Page Addressing (5 cycles). A.4.2 Absolute Addressing (6 cycles). A.4.3 Zero Page, X Addressing (6 cycles). A.4.4 Absolute, X Addressing (7 cycles). A.5.1 Push Operation, PHP, PHA (3 cycles). A.5.2 Pull Operations, PLP, PLA (4 cycles). A.5.3 Jump to Subroutine, JSR (6 cycles). A.5.5 Return from Interrupt, RTI (6 cycles). A.5.7 Return from Subroutine, RTS (6 cycles).",
+      "whyItMatters": "The NMOS cycle behaviour this project models comes from one appendix in one manual. Synertek printed the same manual under its own cover, and until now nothing here had checked that the two printings say the same thing, because this one is a photograph and nothing could read it.",
+      "whatWasCheckedAgainstIt": "The section numbering and the cycle count in every heading, against the MOS Technology printing and against the models. The two printings carry the same appendix with the same numbering, down to A.5.8 for the branches. Fourteen of the headings were driven against the 6502 model and every one agrees, including the three that are a range rather than a number and the two stores that are unconditional where the corresponding load is not.",
+      "howItWasRead": "Rendered and recognised, because the file carries no text layer. The claim above rests on the section headings, which are single lines and survive recognition intact; nothing was taken from inside a table, where a recogniser reading columns is not to be trusted.",
+      "appliesTo": [
+        "2a03",
+        "6502",
+        "6503",
+        "6504",
+        "6505",
+        "6506",
+        "6507",
+        "6512",
+        "6513",
+        "6514",
+        "6515"
+      ],
+      "appliesToCore": "nmos"
     },
     "cmosEnhancementsFromASecondManufacturer": {
       "document": "rockwell",
