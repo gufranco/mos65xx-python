@@ -171,7 +171,7 @@ checks the ones a test can reach.
       directory goes on the import path and shadows any standard library module
       of the same name.
 - [ ] A `doctor` beside the package, run as `python3 <package>/doctor.py`, on
-      every member that reads a file it does not carry. All ten do.
+      every member that reads a file it does not carry. All of them do.
 - [ ] The doctor runs on the machine it exists to diagnose. Nothing it needs is
       imported at the top of the file, because the package is one of the things
       that can be broken, and a traceback in place of a report helps nobody.
