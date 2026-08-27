@@ -24,9 +24,9 @@ import tokenize
 import tomllib
 import types
 import unittest
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from pathlib import Path, PurePosixPath
-from typing import Any, Protocol
+from typing import Any, ClassVar, Protocol
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -426,6 +426,57 @@ that does not exist is refused rather than quietly ignored.
 """
 
 
+def buildable_variants(package: Any = None, variants: Any = None) -> list[str]:
+    """Every variant that can be constructed on this machine, not merely named.
+
+    A member whose parts each run a file the repository cannot carry may hold
+    some of those files and not others, so whether a part can be built is a fact
+    about the variant rather than about the member. Reading it off the member's
+    own `available` keeps that in one place; a member that publishes no such
+    mapping can build everything it names.
+    """
+    known = VARIANTS if variants is None else variants
+    asked = getattr(PACKAGE if package is None else package, "available", None)
+    if not callable(asked):
+        return sorted(known)
+    held = asked()
+    if not isinstance(held, Mapping):
+        return sorted(known)
+    return sorted(name for name in known if name in held)
+
+
+class BuildableVariantTest(unittest.TestCase):
+    """That a part nobody supplied a file for is not mistaken for a broken one.
+
+    Driven against a catalogue written here rather than the member's own, so the
+    three answers are the same in every repository that carries this file.
+    """
+
+    NAMED: ClassVar[dict[str, object]] = {"one": object(), "two": object()}
+
+    class Silent:
+        pass
+
+    class Odd:
+        @staticmethod
+        def available() -> int:
+            return 7
+
+    class Partial:
+        @staticmethod
+        def available() -> dict[str, int]:
+            return {"two": 1}
+
+    def test_a_member_that_publishes_no_catalogue_can_build_everything_it_names(self) -> None:
+        self.assertEqual(buildable_variants(self.Silent(), self.NAMED), ["one", "two"])
+
+    def test_and_so_can_one_whose_catalogue_is_not_a_mapping(self) -> None:
+        self.assertEqual(buildable_variants(self.Odd(), self.NAMED), ["one", "two"])
+
+    def test_a_member_holding_one_file_can_build_that_one(self) -> None:
+        self.assertEqual(buildable_variants(self.Partial(), self.NAMED), ["two"])
+
+
 class PublishedSurfaceTest(unittest.TestCase):
     """That everything the standard names is importable from the package itself.
 
@@ -474,7 +525,7 @@ class PublishedSurfaceTest(unittest.TestCase):
 
     @unittest.skipUnless(A_PART and BUILDABLE, "no part can be built here")  # pragma: no cover
     def test_and_it_takes_a_model_by_name(self) -> None:
-        for name in sorted(VARIANTS):
+        for name in buildable_variants():
             self.assertEqual(PACKAGE.Chip(name).model, name, name)
 
     @unittest.skipUnless(A_PART, "not a part in the sense this checks")  # pragma: no cover
