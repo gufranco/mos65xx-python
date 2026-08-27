@@ -5,7 +5,7 @@ style guide. It is the set of decisions that were expensive to reach, so that a
 repository starting today does not have to reach them again and a repository
 already running does not drift away from them quietly.
 
-The family is seventeen repositories. Where they differ from each other, the
+The family is eighteen repositories. Where they differ from each other, the
 difference is something the hardware forces rather than something nobody got
 round to.
 
@@ -15,6 +15,7 @@ round to.
 | [zilog-z80-python](https://github.com/gufranco/zilog-z80-python) | The Z80: three parts, NMOS and CMOS | Clocked part |
 | [nec-upd7725-96050-python](https://github.com/gufranco/nec-upd7725-96050-python) | The NEC uPD7725 and uPD96050 digital signal processors | Clocked part |
 | [sony-spc700-python](https://github.com/gufranco/sony-spc700-python) | The SPC700, the processor inside the audio unit | Clocked part |
+| [arm6-python](https://github.com/gufranco/arm6-python) | The ARM6: a 32 bit processor, and the one part of its family whose bus is documented | Clocked part |
 | [snes-obc1-python](https://github.com/gufranco/snes-obc1-python) | The OBC1 sprite remapper | Part |
 | [snes-rtc-python](https://github.com/gufranco/snes-rtc-python) | The two real-time clocks a cartridge could carry | Part |
 | [sony-s-dsp-python](https://github.com/gufranco/sony-s-dsp-python) | The S-DSP: eight voices on a thirty two step clock schedule | Part |
