@@ -261,8 +261,9 @@ is about a CMOS part or the 65816, and this is a simulation of the NMOS die. It
 answers what that part does and says nothing about the others, so the entries
 about a 65C02's spare cycles, its decimal cycle, STP and WAI, and every 65816
 question stay open on the same grounds as before. The Z80 side is unanswered too:
-a port of the Z80Explorer netlist resolver was written in the other repository of
-this family and does not converge.
+a port of the Z80Explorer netlist resolver was written in a session, does not
+converge, and is carried nowhere, so that sibling starts from a blank file rather
+than from a broken one. Its own record says so.
 
 
 Not unknown to the world, unverified in this repository.
