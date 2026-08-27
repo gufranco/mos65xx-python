@@ -279,7 +279,7 @@
         "document": "mos6500_programming",
         "quote": "AND Oper, X  3D  3  4*. ORA Oper, X  1D  3  4*. * Add 1 if page boundary is crossed.",
         "assembled": true,
-        "why": "Both instructions carry the mark on their absolute indexed rows, on the same page as the row that lacks it, so the omission is one row rather than a claim about the instruction. The six other Group One instructions carry it on all three indexed rows.",
+        "why": "Both instructions carry the mark on their absolute indexed rows, on the same page as the row that lacks it, so the omission is one row rather than a claim about the instruction. Five of the six other Group One instructions carry it on the indirect indexed row too: ADC, CMP, EOR, LDA and SBC. The sixth is STA, which carries no mark on any indexed row because a store pays the extra cycle every time and its rows are printed at five, five and six.",
         "section": "Appendix B, the same two pages"
       },
       "suiteSays": {
@@ -287,7 +287,7 @@
         "measured": "Both take six cycles when the index carries out of the low byte and five when it does not, which is what ADC, CMP, EOR, LDA and SBC do on the same addressing mode. Nothing in the suite separates these two from those five."
       },
       "whatThisProjectDoes": "Takes the extra cycle on all eight, because the addressing mode is the same one and the cycle comes from re-reading at the corrected address rather than from the operation.",
-      "whatWouldSettleIt": "Nothing outstanding. The two instructions share their addressing hardware with six that are printed correctly, and the same appendix marks their absolute indexed rows.",
+      "whatWouldSettleIt": "Nothing outstanding. The two instructions share their addressing hardware with five that are printed correctly, and the same appendix marks their absolute indexed rows.",
       "whyItMatters": "A timing budget built by adding up the printed counts comes out one cycle short every time one of these two crosses a page, which on a machine whose video timing is counted in cycles is the difference between a stable picture and a torn one.",
       "status": "settled",
       "severity": "settled"
