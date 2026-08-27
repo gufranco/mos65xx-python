@@ -351,6 +351,20 @@ class PromisedBehaviourTest(unittest.TestCase):
 
         self.assertEqual(named, ["cycles"])
 
+    def test_a_reset_hands_the_part_back(self) -> None:
+        """So a caller can build and reset in one expression.
+
+        The same requirement is checked for a part that is not clocked, in a
+        section a clocked member never reaches, and its docstring there says the
+        clocked ones do this too. Nothing checked that they did. One member
+        shipped a reset that returned nothing for long enough to be released:
+        every caller that ignored the result kept working, and the one that
+        chained got None back and built nothing.
+        """
+        part = a_part()
+
+        self.assertIs(part.reset(), part)
+
     def test_the_tally_survives_a_reset(self) -> None:
         part = a_running_part()
         part.run_for(64)

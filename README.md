@@ -4,7 +4,7 @@ Interpreters for the 65xx family, from the 6502 to the 65816, driveable from a c
 
 [![CI](https://github.com/gufranco/mos65xx-python/actions/workflows/ci.yml/badge.svg)](https://github.com/gufranco/mos65xx-python/actions/workflows/ci.yml)
 
-**16** parts, **17,900,000** state cases and **17,870,080** cycle-exact cases, **0** unexplained failures, **1,205** tests, **100%** statement and branch coverage, no dependencies
+**16** parts, **17,900,000** state cases and **17,870,080** cycle-exact cases, **0** unexplained failures, **1,206** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 from mos65xx import Cpu, SparseMemory
