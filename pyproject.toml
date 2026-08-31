@@ -61,6 +61,10 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
+# The environment checks are the same shape and exist for the same reason: they
+# report what a machine is, so a check that throws has to become a line in the
+# report rather than end the run, and its output is the product.
+"mos65xx/environment.py" = ["BLE001", "T201"]
 # A test file sits beside the module it covers and is named after it, so its
 # module name carries a dot that N999 rejects. The layout is deliberate: a
 # module and its tests are read together.
