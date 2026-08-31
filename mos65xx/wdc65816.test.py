@@ -1322,5 +1322,46 @@ class CycleShapeTest(unittest.TestCase):
         self.assertEqual([one[2] for one in cpu.trace[-2:]], ["-p-r-mx-", "d--r-mx-"])
 
 
+class BoundedCallTest(unittest.TestCase):
+    """That a routine which never returns gives up rather than hanging.
+
+    `call` counts the calls it passes so it comes back at the right return, and
+    a routine that never reaches one would otherwise run for as long as the
+    process does. A caller driving a routine it did not write, which is what a
+    patch harness does, wants the bound: a raised limit names where it stopped
+    and a hang names nothing.
+    """
+
+    def spinning(self) -> Any:
+        memory = FlatMemory()
+        for offset, byte in enumerate((0x4C, 0x00, 0x80)):
+            memory.cells[0x008000 + offset] = byte
+        cpu = emu.Cpu(memory)
+        cpu.emulation = False
+        return cpu
+
+    def test_a_routine_that_never_returns_gives_up_at_the_bound(self) -> None:
+        with self.assertRaises(emu.RunLimit):
+            self.spinning().call(0x008000, limit=64)
+
+    def test_and_says_how_far_it_got(self) -> None:
+        with self.assertRaises(emu.RunLimit) as raised:
+            self.spinning().call(0x008000, limit=64)
+
+        self.assertIn("64 instructions", str(raised.exception))
+
+    def test_a_bound_the_routine_reaches_leaves_the_registers_it_set(self) -> None:
+        memory = FlatMemory()
+        for offset, byte in enumerate((0xE8, 0xE8, 0x60)):
+            memory.cells[0x008000 + offset] = byte
+        cpu = emu.Cpu(memory)
+        cpu.emulation = False
+        cpu.x = 0x0000
+
+        cpu.call(0x008000, limit=64)
+
+        self.assertEqual(cpu.x, 0x02)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

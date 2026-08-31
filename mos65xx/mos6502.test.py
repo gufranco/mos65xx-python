@@ -495,6 +495,34 @@ class ReachTest(unittest.TestCase):
 
         self.assertEqual((cpu.x, cpu.y), (0x01, 0x01))
 
+    def test_a_routine_that_never_returns_gives_up_at_the_bound(self) -> None:
+        cpu, _ = machine([0x4C, 0x00, 0x80])
+
+        with self.assertRaises(errors.RunLimit):
+            cpu.call(0x8000, limit=64)
+
+    def test_and_says_where_it_gave_up(self) -> None:
+        cpu, _ = machine([0x4C, 0x00, 0x80])
+
+        with self.assertRaises(errors.RunLimit) as raised:
+            cpu.call(0x8000, limit=64)
+
+        self.assertIn("64 instructions", str(raised.exception))
+
+    def test_a_routine_that_returns_inside_the_bound_is_untouched_by_it(self) -> None:
+        cpu, _ = machine([0xE8, 0xE8, 0x60])
+
+        cpu.call(0x8000, limit=64)
+
+        self.assertEqual(cpu.x, 0x02)
+
+    def test_a_bound_of_none_is_the_unbounded_run_it_always_was(self) -> None:
+        cpu, _ = machine([0xE8, 0xE8, 0x60])
+
+        cpu.call(0x8000, limit=None)
+
+        self.assertEqual(cpu.x, 0x02)
+
     def test_running_until_a_condition_stops_when_it_holds(self) -> None:
         cpu, _ = machine([0xE8, 0xE8, 0xE8, 0xE8])
 

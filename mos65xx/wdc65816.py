@@ -893,16 +893,24 @@ class Cpu:
         self.sample_pins()
         return self.cycles - started
 
-    def call(self, address: int) -> Cpu:
+    def call(self, address: int, limit: int | None = None) -> Cpu:
         """Run from an address until the routine it names returns.
 
         Counts the calls it passes so a routine that calls another comes back
         here rather than at the inner return, and takes a full twenty four bit
         address because on this part the bank is part of where a routine lives.
+
+        `limit` bounds the instructions and raises when it is reached, the same
+        way `run_until` does and for the same reason. Without one this runs as
+        long as the part would, which for a routine that never returns is
+        forever. A caller driving a routine it did not write wants the bound:
+        the alternative to a raised `RunLimit` is a harness that hangs with
+        nothing to say about where.
         """
         self.pb = (address >> 16) & 0xFF
         self.pc = address & 0xFFFF
         depth = 0
+        taken = 0
         while True:
             mnemonic = OPCODES[self.read8((self.pb << 16) | self.pc)][0]
             if mnemonic in ("rts", "rtl"):
@@ -912,6 +920,9 @@ class Cpu:
             elif mnemonic in ("jsr", "jsl"):
                 depth += 1
             self.step()
+            taken += 1
+            if limit is not None and taken >= limit:
+                raise RunLimit(f"gave up after {taken} instructions at ${self.pc:04X}")
 
     def run_for(self, cycles: int) -> int:
         """Run whole instructions until at least this many cycles have passed.

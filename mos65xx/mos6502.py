@@ -566,10 +566,18 @@ class Cpu:
                 raise RunLimit(f"gave up after {taken} instructions at ${self.pc:04X}")
         return self
 
-    def call(self, address: int) -> Cpu:
-        """Run from an address until the routine it names returns."""
+    def call(self, address: int, limit: int | None = None) -> Cpu:
+        """Run from an address until the routine it names returns.
+
+        `limit` bounds the instructions and raises when it is reached, the same
+        way `run_until` does. Without one this runs as long as the part would,
+        which for a routine that never returns is forever. A caller driving a
+        routine it did not write wants the bound: the alternative to a raised
+        `RunLimit` is a harness that hangs with nothing to say about where.
+        """
         self.pc = address & 0xFFFF
         depth = 0
+        taken = 0
         while True:
             mnemonic = self.table[self.read8(self.pc)][0]
             if mnemonic == "rts":
@@ -579,6 +587,9 @@ class Cpu:
             elif mnemonic == "jsr":
                 depth += 1
             self.step()
+            taken += 1
+            if limit is not None and taken >= limit:
+                raise RunLimit(f"gave up after {taken} instructions at ${self.pc:04X}")
 
     def op_lda(self, mode: str) -> None:
         self.a = self.operand(mode)
