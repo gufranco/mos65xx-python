@@ -81,7 +81,7 @@ def verify(entry: dict[str, Any], where: Path) -> None:
 def download(entry: dict[str, Any], where: Path) -> None:
     """One document, from the publisher, into the place the manifest names.
 
-    Only ever called for a document the publisher serves as a file. A page that
+    Only ever called for a document the publisher hosts as a file. A page that
     was printed to PDF is verified and left alone, because fetching its address
     would replace it with markup.
     """
