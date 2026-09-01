@@ -116,7 +116,7 @@ to the state suites as well as the cycle one.
 ## This repository is the family reference
 
 Eight sibling projects are held to the standard this one sets: nec-upd7725,
-snes-driver, snes-dsp, snes-mapper, snes-rom-image, snes-rtc, star-ocean-nochip-fix
+snes-driver, snes-dsp, snes-mapper, snes-rom-image, snes-rtc, snes-star-ocean-nochip-fix
 and zilog-z80. When one of them needs a pattern, the pattern is here:
 
 | Thing | Where it lives here |
