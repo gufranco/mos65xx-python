@@ -2762,5 +2762,106 @@ class DivergenceRecordTest(unittest.TestCase):
         self.assertEqual(found, [])
 
 
+def stamped_paths(script: Path) -> list[str]:
+    """Every path the version script rewrites, relative to the repository root.
+
+    Both shapes this script takes across the family build their targets from
+    `${root}/`, so that prefix is what marks a file it writes rather than a
+    variable it reads.
+    """
+    if not script.is_file():
+        return []
+    return sorted(set(re.findall(r"\$\{root\}/([^\"'\s]+)", script.read_text())))
+
+
+def released_assets(config: Path) -> list[str]:
+    """Every path the release commits, as the git plugin is configured to."""
+    if not config.is_file():
+        return []
+    document = json.loads(config.read_text())
+    for plugin in document.get("plugins", []):
+        if isinstance(plugin, list) and plugin and plugin[0] == "@semantic-release/git":
+            return [str(asset) for asset in plugin[1].get("assets", [])]
+    return []
+
+
+def unreleased(stamped: Iterable[str], released: Iterable[str]) -> list[str]:
+    """The stamped paths the release throws away."""
+    committed = set(released)
+    return [path for path in stamped if path not in committed]
+
+
+class EveryStampedFileIsReleasedTest(unittest.TestCase):
+    """That the release commits every file the version script rewrites.
+
+    The script stamps the version into the package and into the citation. The
+    release plugin commits only the files it is named, so a file stamped and not
+    named is stamped into a working tree that is then thrown away. Nothing fails:
+    the release is cut, the tag is right, and the citation on the front page goes
+    on saying whatever it said before, under a sentence promising a script keeps
+    it in step with the release.
+
+    Five members were doing exactly that when this was written. One of them named
+    a path inside a submodule rather than its own package, so no release it ever
+    cut committed its version file either. Every gate passed in all five, because
+    the only thing that reads both files is a person comparing them by eye.
+    """
+
+    SCRIPT = "scripts/set-version.sh"
+
+    CONFIG = ".releaserc.json"
+
+    def test_the_release_commits_every_file_the_script_stamps(self) -> None:
+        stamped = stamped_paths(ROOT / self.SCRIPT)
+        released = released_assets(ROOT / self.CONFIG)
+
+        self.assertEqual(unreleased(stamped, released), [])
+
+    def test_and_there_is_something_to_check(self) -> None:
+        """A script naming no file would pass for one naming every file."""
+        self.assertGreaterEqual(len(stamped_paths(ROOT / self.SCRIPT)), 2)
+
+    def test_a_path_the_release_leaves_out_is_reported(self) -> None:
+        found = unreleased(["pkg/version.py", "CITATION.cff"], ["pkg/version.py"])
+
+        self.assertEqual(found, ["CITATION.cff"])
+
+    def test_a_script_that_is_not_here_stamps_nothing(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            found = stamped_paths(Path(where) / "set-version.sh")
+
+        self.assertEqual(found, [])
+
+    def test_a_script_that_names_no_target_stamps_nothing(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            path = Path(where) / "set-version.sh"
+            path.write_text("#!/usr/bin/env bash\nprintf 'nothing to do\\n'\n")
+            found = stamped_paths(path)
+
+        self.assertEqual(found, [])
+
+    def test_a_release_config_that_is_not_here_releases_nothing(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            found = released_assets(Path(where) / ".releaserc.json")
+
+        self.assertEqual(found, [])
+
+    def test_a_config_with_no_git_plugin_releases_nothing(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            path = Path(where) / ".releaserc.json"
+            path.write_text('{"plugins": ["@semantic-release/github", [], ["@other", {}]]}')
+            found = released_assets(path)
+
+        self.assertEqual(found, [])
+
+    def test_a_git_plugin_naming_no_asset_releases_nothing(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            path = Path(where) / ".releaserc.json"
+            path.write_text('{"plugins": [["@semantic-release/git", {}]]}')
+            found = released_assets(path)
+
+        self.assertEqual(found, [])
+
+
 if __name__ == "__main__":
     unittest.main()
