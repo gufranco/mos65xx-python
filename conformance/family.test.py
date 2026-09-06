@@ -2911,9 +2911,7 @@ class TheVersionAndTheCitationAgreeTest(unittest.TestCase):
         self.assertIsNotNone(cited_version(ROOT / "CITATION.cff"))
 
     def test_the_two_say_the_same_thing(self) -> None:
-        self.assertEqual(
-            recorded_version(self.module()), cited_version(ROOT / "CITATION.cff")
-        )
+        self.assertEqual(recorded_version(self.module()), cited_version(ROOT / "CITATION.cff"))
 
     def test_a_module_that_is_not_here_reports_no_version(self) -> None:
         with tempfile.TemporaryDirectory() as where:
