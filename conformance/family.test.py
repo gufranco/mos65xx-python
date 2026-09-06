@@ -2863,5 +2863,86 @@ class EveryStampedFileIsReleasedTest(unittest.TestCase):
         self.assertEqual(found, [])
 
 
+def recorded_version(module: Path) -> str | None:
+    """The version the package reports, read out of the file rather than imported."""
+    if not module.is_file():
+        return None
+    found = re.search(r'^VERSION = "([^"]*)"$', module.read_text(), re.M)
+    return found.group(1) if found else None
+
+
+def cited_version(citation: Path) -> str | None:
+    """The version the citation publishes."""
+    if not citation.is_file():
+        return None
+    found = re.search(r"^version: (.*)$", citation.read_text(), re.M)
+    return found.group(1).strip() if found else None
+
+
+class TheVersionAndTheCitationAgreeTest(unittest.TestCase):
+    """That the two files the version script stamps say the same thing.
+
+    Neither can be held to the published tag from inside a checkout, and they can
+    be held to each other, which catches the case that actually happened: a
+    release that stamped both and committed one left them apart, and they stayed
+    apart for as many releases as it took somebody to compare them by eye.
+
+    Five members were apart when this was added. One was reporting version 0.0.0
+    from a package on its fifteenth release, because the file its release
+    committed was a path inside a submodule rather than its own.
+    """
+
+    def stamped(self) -> list[str]:
+        return stamped_paths(ROOT / "scripts" / "set-version.sh")
+
+    def module(self) -> Path:
+        named = [one for one in self.stamped() if one.endswith("version.py")]
+        return ROOT / named[0] if named else ROOT / "version.py"
+
+    def test_the_script_stamps_exactly_one_version_module(self) -> None:
+        named = [one for one in self.stamped() if one.endswith("version.py")]
+
+        self.assertEqual(len(named), 1, named)
+
+    def test_the_package_reports_a_version(self) -> None:
+        self.assertIsNotNone(recorded_version(self.module()))
+
+    def test_the_citation_publishes_a_version(self) -> None:
+        self.assertIsNotNone(cited_version(ROOT / "CITATION.cff"))
+
+    def test_the_two_say_the_same_thing(self) -> None:
+        self.assertEqual(
+            recorded_version(self.module()), cited_version(ROOT / "CITATION.cff")
+        )
+
+    def test_a_module_that_is_not_here_reports_no_version(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            found = recorded_version(Path(where) / "version.py")
+
+        self.assertIsNone(found)
+
+    def test_a_module_with_no_assignment_reports_no_version(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            path = Path(where) / "version.py"
+            path.write_text("RELEASE = '1.2.3'\n")
+            found = recorded_version(path)
+
+        self.assertIsNone(found)
+
+    def test_a_citation_that_is_not_here_publishes_no_version(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            found = cited_version(Path(where) / "CITATION.cff")
+
+        self.assertIsNone(found)
+
+    def test_a_citation_with_no_version_line_publishes_none(self) -> None:
+        with tempfile.TemporaryDirectory() as where:
+            path = Path(where) / "CITATION.cff"
+            path.write_text("cff-version: 1.2.0\ntitle: something\n")
+            found = cited_version(path)
+
+        self.assertIsNone(found)
+
+
 if __name__ == "__main__":
     unittest.main()
