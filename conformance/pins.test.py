@@ -1,12 +1,3 @@
-"""That the interrupt inputs behave as lines rather than as events.
-
-The distinction is the whole content of these tests. A request that is raised
-and withdrawn before the part looks must produce nothing, and a non-maskable
-line held low after its transition must not interrupt twice. Neither is
-reachable without a clock that can stop between two cycles, which is why these
-live beside it rather than with the instruction tests.
-"""
-
 from __future__ import annotations
 
 import sys
@@ -119,8 +110,6 @@ class NonMaskableLineTest(unittest.TestCase):
 
 
 class SixteenBitPartTest(unittest.TestCase):
-    """The same two lines on the part that brings out a third."""
-
     def part(self) -> Any:
         space = mos65xx.Memory(image=bytes([0xEA] * 16))
         space.write8(0x00FFEE, 0x00)
@@ -171,15 +160,6 @@ class SixteenBitPartTest(unittest.TestCase):
 
 
 class ReadyLineTest(unittest.TestCase):
-    """That a low ready line halts the part, and that a write is the exception.
-
-    The exception belongs to the NMOS parts alone, and the MOS manual states it
-    outright: "The RDY function will not stop the processor in a cycle in which a
-    WRITE operation is being performed." The CMOS parts have no such carve-out,
-    so the same program costs a different number of cycles on each, which is what
-    these two tests measure.
-    """
-
     def storing(self, model: str) -> Any:
         space = mos65xx.Memory(image=bytes([0x85, 0x10]))
         cpu = mos65xx.Cpu(model, space)

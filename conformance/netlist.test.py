@@ -13,7 +13,6 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def answering(addresses: list[int]) -> Any:
-    """A stand-in for the simulation that drives those addresses and nothing else."""
 
     def run(argv: Any, **_kwargs: Any) -> Any:
         lines = "".join(f" {step} {one:04X} EA r\n" for step, one in enumerate(addresses))
@@ -23,7 +22,6 @@ def answering(addresses: list[int]) -> Any:
 
 
 def agreeing() -> Any:
-    """A stand-in that answers whatever the model answers, for every case."""
 
     def run(argv: Any, **_kwargs: Any) -> Any:
         case = next(one for one in netlist.CASES if one.program.hex() == argv[1])
@@ -37,12 +35,6 @@ def agreeing() -> Any:
 
 class ModelTest(unittest.TestCase):
     def test_the_discarded_read_of_a_page_crossing_index_is_not_fixed_up(self) -> None:
-        """The high byte is still the base's when the discarded read happens.
-
-        This is the case the appendix gives two different answers for, and the
-        one a simulation of the die settles: the read lands at the base plus the
-        index with the carry not yet applied.
-        """
         found = netlist.modelled(netlist.CASES[0])
 
         self.assertIn(0x1200, found)
@@ -60,12 +52,6 @@ class ModelTest(unittest.TestCase):
 
 
 class ClaimedCaseCountTest(unittest.TestCase):
-    """That the number of cases OPEN-QUESTIONS.md claims is the number there are.
-
-    That entry said four in one paragraph and twelve in the next, because the
-    first was written when there were four and nothing held it to the runner.
-    """
-
     def test_the_document_says_how_many_cases_run_here(self) -> None:
         words = {
             "one": 1,
@@ -113,7 +99,6 @@ class ComparisonTest(unittest.TestCase):
         self.assertIn(netlist.CASES[0].why, found[0])
 
     def test_only_the_cycles_both_answered_are_compared(self) -> None:
-        """A short answer is not a disagreement about the cycles it does carry."""
         case = netlist.CASES[0]
         head = netlist.modelled(case)[:3]
 
@@ -121,8 +106,6 @@ class ComparisonTest(unittest.TestCase):
 
 
 class SkipTest(unittest.TestCase):
-    """That a machine without the simulation says so rather than reporting a pass."""
-
     def test_it_says_it_could_not_run(self) -> None:
         said: list[str] = []
         original = print
@@ -160,12 +143,6 @@ class SkipTest(unittest.TestCase):
             del os.environ[netlist.VARIABLE]
 
     def test_and_no_variable_at_all_is_too(self) -> None:
-        """Set first, then cleared, so the restore is the same on every machine.
-
-        Popping a variable that may or may not be there leaves a branch that only
-        runs for whoever happens to have it set, which is a check nobody else's
-        run reaches.
-        """
         import os
 
         os.environ[netlist.VARIABLE] = __file__

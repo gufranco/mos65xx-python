@@ -1,28 +1,3 @@
-"""The model against a simulation of the die, for what no document states.
-
-The open questions that survive here are almost all the same shape: which address
-the part drives during a cycle it spends thinking. A data sheet drawn at cycle
-resolution does not say, and a recording written one row per cycle says only what
-the recorder chose to write down.
-
-A transistor level simulation of the die answers it, because it is not a model of
-the behaviour at all: it is the netlist read off die photographs, stepped half a
-cycle at a time. MAME's NMOS opcode definitions carry "Verified with visual6502"
-for the same reason. This is the nearest thing to a logic capture that needs no
-bench, and it sits one rung below a document and above any recording, because
-nobody wrote down what it should do.
-
-It is opt-in and it is silent when nothing is there. Point NETLIST at a built
-`perfect6502` probe and it runs; leave it alone and every case reports as skipped,
-which is the honest state of a check that cannot run rather than a pass it did
-not earn. Nothing is fetched, built or vendored here: the simulation is somebody
-else's work under their own licence and a copy belongs on the machine that runs
-it.
-
-Usage:
-    NETLIST=/path/to/probe python3 -m conformance.netlist
-"""
-
 from __future__ import annotations
 
 import os
@@ -41,15 +16,11 @@ if TYPE_CHECKING:  # pragma: no cover
 VARIABLE = "NETLIST"
 
 AT = 0x0200
-"""Where a case is loaded, chosen so the reset vector needs no page of its own."""
 
 FILL = 0xEA
-"""What the rest of memory holds, so a run that wanders is still deterministic."""
 
 
 class Case:
-    """One program, and how many cycles of it to compare."""
-
     __slots__ = ("cycles", "program", "steps", "why")
 
     def __init__(self, why: str, program: bytes, cycles: int, steps: int) -> None:
@@ -136,7 +107,6 @@ CASES = (
 
 
 def probe() -> Path | None:
-    """The built simulation on this machine, or nothing."""
     named = os.environ.get(VARIABLE, "")
     if not named:
         return None
@@ -157,7 +127,6 @@ def _run(where: Path, case: Case, run: Any = None) -> list[int]:
 
 
 def modelled(case: Case) -> list[int]:
-    """Every address the model drives, for the same program."""
     memory = mos65xx.Memory(image=bytes([FILL]) * 65536)
     for step, held in enumerate(case.program):
         memory.write8(AT + step, held)
@@ -172,7 +141,6 @@ def modelled(case: Case) -> list[int]:
 
 
 def compare(where: Path, cases: Sequence[Case] = CASES, run: Any = None) -> list[str]:
-    """Every case where the die and the model drive different addresses."""
     found = []
     for case in cases:
         die = _run(where, case, run)

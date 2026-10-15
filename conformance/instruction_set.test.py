@@ -1,15 +1,3 @@
-"""Holds the opcode table, the cycle counts and the flag rules to Appendix B.
-
-The Programming Manual gives every instruction its own page: the flags it
-touches, and per addressing mode the opcode, the byte count and the cycle count.
-That is a hundred and fifty-one opcodes stated by the manufacturer, which makes
-it a check on the table this project decodes with and on the timing it runs at,
-neither of which needs a suite on the machine to verify.
-
-Two rows are misprinted. Their instructions are run in the page-crossing case
-anyway, and the extra cycle the part takes is asserted rather than the page.
-"""
-
 import json
 import random
 import sys
@@ -51,15 +39,12 @@ NAMED = {
     "accumulator": "accumulator",
     "indirect": "indirect",
 }
-"""The manual's name for each addressing mode beside the table's own."""
 
 START = 0x0200
 
 NEAR_THE_EDGE = 0x02F0
-"""Where a branch has to sit for a forward offset to leave the page."""
 
 SEEDS = 24
-"""How many states each flag rule is tried against."""
 
 POINTER = 0x10
 
@@ -67,7 +52,6 @@ BASE = 0x12
 
 
 def operand(mode: str, crossing: bool) -> tuple[int, ...]:
-    """The bytes that follow the opcode, chosen to cross a page or not."""
     low = 0xF0 if crossing else 0x10
     if mode in ("implied", "accumulator"):
         return ()
@@ -104,7 +88,6 @@ def machine(opcode: int, mode: str, crossing: bool, seed: int) -> core.Cpu:
 
 
 def spent(opcode: int, mode: str, crossing: bool) -> int:
-    """How many bus cycles one run of an instruction takes."""
     cpu = machine(opcode, mode, crossing, seed=1)
     cpu.trace = []
     cpu.step()
@@ -112,7 +95,6 @@ def spent(opcode: int, mode: str, crossing: bool) -> int:
 
 
 def branch_always(opcode: int) -> int:
-    """A status byte under which the named branch is taken."""
     taken = {
         0x90: 0x00,
         0xB0: core.FLAG_C,
@@ -171,8 +153,6 @@ class RecordTest(unittest.TestCase):
 
 
 class OpcodeTest(unittest.TestCase):
-    """Every opcode the appendix prints, against the table this project decodes with."""
-
     def rows(self) -> list[tuple[str, str, str]]:
         found = []
         for name, held in INSTRUCTIONS.items():
@@ -200,8 +180,6 @@ class OpcodeTest(unittest.TestCase):
 
 
 class CycleTest(unittest.TestCase):
-    """Every cycle count the appendix prints, against a run of the instruction."""
-
     def rows(self) -> list[tuple[str, int, int]]:
         found = []
         for name, held in INSTRUCTIONS.items():
@@ -239,8 +217,6 @@ class CycleTest(unittest.TestCase):
 
 
 class MisprintTest(unittest.TestCase):
-    """The two indirect indexed rows printed without the page-crossing mark."""
-
     def rows(self) -> list[dict[str, Any]]:
         return [
             mode
@@ -279,8 +255,6 @@ class MisprintTest(unittest.TestCase):
 
 
 class BranchCycleTest(unittest.TestCase):
-    """The branch rows, whose count depends on whether the branch is taken."""
-
     def branches(self) -> list[dict[str, Any]]:
         return [
             mode
@@ -306,10 +280,7 @@ class BranchCycleTest(unittest.TestCase):
 
 
 class FlagTest(unittest.TestCase):
-    """Every flag rule the appendix prints, tried against twenty-four states."""
-
     def either_side(self, name: str, seed: int) -> tuple[int, int]:
-        """The status byte before and after one run of an instruction."""
         mode = INSTRUCTIONS[name]["modes"][0]
         cpu = machine(mode["opcode"], mode["mode"], False, seed)
         before = cpu.status()
@@ -317,7 +288,6 @@ class FlagTest(unittest.TestCase):
         return before, cpu.status()
 
     def kept(self, rule: str, before: int, after: int, mask: int) -> bool:
-        """Whether one run kept the promise the appendix printed for one flag."""
         return {
             "unchanged": (before & mask) == (after & mask),
             "0": not after & mask,
@@ -361,13 +331,6 @@ class FlagTest(unittest.TestCase):
 
 
 class ReadmeCountTest(unittest.TestCase):
-    """That the readme's split between documented and undocumented is the record's.
-
-    It was inverted for a long time, calling a hundred and fifty one the number
-    MOS never documented when that is the number it did. Both figures are in the
-    appendix record, so neither has to be remembered.
-    """
-
     def test_the_readme_reports_the_split_the_appendix_gives(self) -> None:
         record = json.loads((ROOT / "conformance" / "instruction-set.json").read_text())
         documented = sum(len(one["modes"]) for one in record["instructions"].values())

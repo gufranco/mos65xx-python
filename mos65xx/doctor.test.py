@@ -35,7 +35,6 @@ def a_definition() -> dict[str, Any]:
 
 
 def a_cache(files: int) -> tempfile.TemporaryDirectory[str]:
-    """A suite directory holding that many case files, and nothing else."""
     held = tempfile.TemporaryDirectory()
     where = Path(held.name) / "6502" / "6502" / "v1"
     where.mkdir(parents=True)
@@ -127,7 +126,6 @@ class ExaminationTest(unittest.TestCase):
         self.assertFalse(found[0].ok)
 
     def test_a_part_that_builds_reports_where_the_reset_left_it(self) -> None:
-        """Driven rather than described, because the vector fetch is the path every caller takes."""
         found = [one for one in doctor.examine() if one.name == "6502"]
 
         self.assertIn("resets to $", found[0].detail)
@@ -315,13 +313,6 @@ class CommandTest(unittest.TestCase):
 
 
 class PathTest(unittest.TestCase):
-    """That the doctor puts the repository on the path when nothing else has.
-
-    Run as a file it has no package to be relative to, so it inserts the
-    repository itself. Under the test suite the path is already set, so the line
-    never runs and nothing would report it broken.
-    """
-
     def test_the_repository_is_put_on_the_path_when_it_is_not_already_there(self) -> None:
         held = [one for one in sys.path if one != str(doctor.ROOT)]
 

@@ -1,14 +1,3 @@
-"""That FAMILY.md still describes this package.
-
-FAMILY.md is the standard the rest of the family is built to, so a name it
-promises and this package does not have is worse than a missing feature: another
-repository will be written against the promise. The file is identical in every
-repository that carries it, which is what lets one test guard all of them.
-
-Only the mechanical claims are checked here. Whether the reasoning is sound is a
-review question; whether `run_for` exists is not.
-"""
-
 from __future__ import annotations
 
 import ast
@@ -36,92 +25,26 @@ import mos65xx  # noqa: E402
 FAMILY = (ROOT / "FAMILY.md").read_text()
 
 KIND = "Clocked part"
-"""What this member models, in the words the membership table uses.
-
-The table in FAMILY.md gives every member a kind, and the kind decides which of
-these checks apply. A clocked part answers to all of them. A board, a format or
-a tool has no clock to drive and no `Cpu` to hand back, so the section about
-that is skipped and everything else is not: the record, the documents, the
-tools and how it is written do not care whether the thing has a clock.
-
-Skipping is not the same as passing. `ModelsAClockedPartTest` holds this string
-to what the table says, so a member cannot quietly opt out of the interface by
-calling itself something else.
-"""
 
 CLOCKED = KIND == "Clocked part"
 
 PACKAGE: Any = mos65xx
-"""The package under test, deliberately untyped.
-
-What a member publishes depends on what it models: a clocked part has a `Cpu`,
-a `Memory` and a `RunLimit`, and a board, a format or a tool has none of them.
-A checker cannot know which of those it is looking at, so naming the attributes
-here would make it refuse a repository the standard never asked for one from.
-The checks that reach for those attributes are skipped on members without them,
-and every assertion below is made against the value at run time.
-"""
 
 A_MODEL = sorted(PACKAGE.MODELS)[0] if hasattr(PACKAGE, "MODELS") else ""
-"""One model, named rather than defaulted.
-
-There is no default in this family and the checks below need a part to look at,
-so they take the first name in the catalogue. Which one it is does not matter to
-what they check. That a caller has to name one does, and a file checking the
-standard has to reach the package the way the standard says a caller does.
-
-A member that publishes no catalogue models a format or a tool and never reaches
-the checks that use this, so it gets an empty name rather than an import error.
-"""
 
 
 def why_it_cannot_build_here() -> str | None:
-    """Why this member cannot build its part on this machine, or nothing.
-
-    A member that runs on a file it is not allowed to carry cannot build
-    anything until a reader supplies one, and on a runner that has none every
-    check below that constructs a part would fail for a reason that says nothing
-    about the code.
-
-    The answer comes from the member's own `why_not`, which is the same sentence
-    its doctor prints, rather than from catching whatever the constructor raised.
-    That distinction is the whole point: a part that will not build because it is
-    broken still fails here, because `why_not` reports nothing wrong.
-    """
     asked = getattr(PACKAGE, "why_not", None)
     return asked() if callable(asked) else None
 
 
 BUILDABLE = why_it_cannot_build_here() is None
-"""Whether a part can be constructed on this machine at all.
-
-False only on a member that needs a file it cannot ship, running where nobody has
-supplied one. Everywhere else it is true, so the checks it guards are checks that
-run rather than checks nobody has seen.
-"""
 
 
 A_PART = KIND == "Part"
-"""Something that answers accesses without running a program.
-
-Its constructor is `Chip(model, ...)`, the same shape as `Cpu(model, memory)` and
-named for what it is rather than for what it does. A part that executes nothing
-should not be built by something called `Cpu`.
-"""
 
 
 SOLD_AS_A_COMPONENT = True
-"""Whether this part could be bought and designed into something other than one machine.
-
-A Z80 could, so naming the machine somebody put it in would turn this package
-into a catalogue of that machine's parts wearing a processor's name. A cartridge
-memory map could not: it exists only as part of one machine, names it because
-that is what it models, and there is no more general thing to name instead.
-
-The flag decides whether the machine sweep runs at all. It is written out rather
-than inferred from an empty list of names, because an empty list and a list
-nobody filled in look identical.
-"""
 
 INTERFACE = (
     "step",
@@ -130,36 +53,13 @@ INTERFACE = (
     "reset",
     "held",
 )
-"""What every clocked part has, whatever the part is.
-
-Interrupt lines are not in here, because they are not universal and pretending
-they are produces stubs. They are declared below instead.
-"""
 
 INTERRUPT_LINES = ("irq", "nmi")
-"""The interrupt lines this member's part actually has, one method each.
-
-Three shapes exist in the family and each is what the silicon has. A Z80 and a
-6502 have a maskable line and a line above it. The uPD7725 has a single pin and
-nothing above it. The SPC700 as Sony shipped it brings none out at all.
-
-Requiring all three to publish `nmi` would be requiring two of them to publish a
-stub, and a stub is an invented interface rather than a kept promise. Declaring
-the tuple away is not free either: a member that names no line has to account for
-that in its record, where every other fact about the part already is.
-"""
 
 COUNTERS = ("cycles", "steps")
 
 
 class Part(Protocol):
-    """The interface FAMILY.md promises, as something a type checker can hold.
-
-    Writing it out is the point rather than a formality: this is the promise in a
-    form another repository can import and check itself against, and a core that
-    drifts from it stops satisfying the protocol before anybody reads the prose.
-    """
-
     cycles: int
     steps: int
 
@@ -175,25 +75,11 @@ class Part(Protocol):
 
 
 def a_part() -> Part:
-    """One part, built the way the standard says every member builds one.
-
-    A member that is not a clocked part has no `Cpu` at all, and the checks
-    that call this are skipped there.
-    """
     part: Part = PACKAGE.Cpu(A_MODEL)
     return part
 
 
 def store_attribute() -> str:
-    """What this member calls the store its part keeps, found rather than assumed.
-
-    Two spellings exist and both are right for the part that has them. A
-    processor with one address space calls it `memory`. One with three separate
-    arrays, a data RAM and two ROMs, calls them `stores`, because calling three
-    arrays a memory would be naming the part after a different part. A check
-    keyed to one spelling reports the other as missing something it deliberately
-    does not have.
-    """
     part = PACKAGE.Cpu(A_MODEL)
     found = [name for name in ("memory", "stores") if getattr(part, name, None) is not None]
     assert found, "a clocked part keeps its store on `memory` or on `stores`"
@@ -201,13 +87,6 @@ def store_attribute() -> str:
 
 
 def accounts_for_one_interrupt(node: Any) -> bool:
-    """Whether a record says anything about the part having one interrupt line.
-
-    The same shape as `accounts_for_a_reset` and deliberately as loose. What it
-    guards against is a member declaring `INTERRUPT_LINES` away with nothing
-    anywhere saying why, which would turn a hardware fact into a way of skipping
-    a check.
-    """
     if isinstance(node, dict):
         if any("interrupt" in str(key).lower() for key in node):
             return True
@@ -218,26 +97,11 @@ def accounts_for_one_interrupt(node: Any) -> bool:
 
 
 def at_the_start(part: Any) -> None:
-    """Point a part at address zero, whichever way this member spells it.
-
-    Two shapes exist in the family and both are right for the part that has
-    them: a register file behind `registers`, and registers on the part itself.
-    A helper that knows only one reports the other as broken.
-    """
     held = getattr(part, "registers", part)
     held.pc = 0x0000
 
 
 def a_running_part() -> Part:
-    """A part pointed at a field of no-operations, so a bound is what is tested.
-
-    `fill` is the one spelling across this family for a store holding one byte
-    everywhere. It exists for exactly this: left in scrambled memory a part
-    reaches an undocumented opcode within a few dozen instructions and stops,
-    which is correct behaviour and useless for testing a limit. Three of the four
-    clocked members did not have it and each needed a different keyword, so a
-    check written against any one of them reported the other three as broken.
-    """
     part = PACKAGE.Cpu(A_MODEL, fill=0)
     at_the_start(part)
     checked: Part = part
@@ -245,14 +109,6 @@ def a_running_part() -> Part:
 
 
 class ModelsAClockedPartTest(unittest.TestCase):
-    """That the kind this member claims is the kind the table gives it.
-
-    The kind decides which checks run, so a member could otherwise skip the
-    whole interface section by calling itself a format. Holding the string to
-    the table means changing it means changing the standard, in every member,
-    which is the point.
-    """
-
     def row(self) -> str:
         pattern = rf"^\|\s*\[{re.escape(ROOT.name)}\]\([^)]*\)\s*\|(.+)\|(.+)\|\s*$"
         found = re.search(pattern, FAMILY, re.M)
@@ -293,13 +149,6 @@ class PromisedInterfaceTest(unittest.TestCase):
         self.assertEqual(absent, [])
 
     def test_and_the_record_accounts_for_what_lines_it_names(self) -> None:
-        """Whether it names two, one or none, the record has to say so.
-
-        The alternative is a member emptying the tuple to skip a check, which is
-        the one thing a per-member declaration makes easy. Reading the record
-        costs the same as printing the claim and cannot be done without meaning
-        it.
-        """
         self.assertTrue(accounts_for_one_interrupt(json.loads(RECORD.read_text())))
 
     def test_a_record_naming_an_interrupt_as_a_key_is_read(self) -> None:
@@ -309,7 +158,6 @@ class PromisedInterfaceTest(unittest.TestCase):
         self.assertTrue(accounts_for_one_interrupt({"notStated": ["what the interrupt pin does"]}))
 
     def test_and_one_naming_it_inside_a_list(self) -> None:
-        """The record shape that goes through the list branch rather than the dict one."""
         self.assertTrue(accounts_for_one_interrupt([{"note": "one interrupt line"}]))
 
     def test_and_a_record_that_never_mentions_one_is_reported(self) -> None:
@@ -352,15 +200,6 @@ class PromisedBehaviourTest(unittest.TestCase):
         self.assertEqual(named, ["cycles"])
 
     def test_a_reset_hands_the_part_back(self) -> None:
-        """So a caller can build and reset in one expression.
-
-        The same requirement is checked for a part that is not clocked, in a
-        section a clocked member never reaches, and its docstring there says the
-        clocked ones do this too. Nothing checked that they did. One member
-        shipped a reset that returned nothing for long enough to be released:
-        every caller that ignored the result kept working, and the one that
-        chained got None back and built nothing.
-        """
         part = a_part()
 
         self.assertIs(part.reset(), part)
@@ -395,20 +234,6 @@ SURFACE = (
     "RunLimit",
     "UnknownModelError",
 )
-"""Names the standard promises a caller finds in every package of the family.
-
-The memory type is not here because it is named for the part: this one has
-%s. What the standard requires is that
-a caller can reach it without importing a private module, which is what
-`test_the_memory_type_is_reachable_without_a_private_import` checks.
-
-`scramble` is not here either, and for a sharper reason. Two of the three fill a
-buffer with the pattern and hand it over, so they have a function to publish. The
-Z80 core derives each byte from the seed and the address at the moment it is read
-and never builds a buffer at all, so there is nothing to publish and adding one
-would mean building something the core does not need. A standard that promised it
-would be describing two implementations rather than one interface.
-"""
 
 
 PART_SURFACE = (
@@ -417,24 +242,9 @@ PART_SURFACE = (
     "Model",
     "UnknownModelError",
 )
-"""Names the standard promises a caller finds in every part of the family.
-
-Smaller than the processor surface because a part has no clock, no run limit and
-no counters. What it keeps is the catalogue: even the member with one model
-publishes it, so a caller moving between members writes the same call and a name
-that does not exist is refused rather than quietly ignored.
-"""
 
 
 def buildable_variants(package: Any = None, variants: Any = None) -> list[str]:
-    """Every variant that can be constructed on this machine, not merely named.
-
-    A member whose parts each run a file the repository cannot carry may hold
-    some of those files and not others, so whether a part can be built is a fact
-    about the variant rather than about the member. Reading it off the member's
-    own `available` keeps that in one place; a member that publishes no such
-    mapping can build everything it names.
-    """
     known = VARIANTS if variants is None else variants
     asked = getattr(PACKAGE if package is None else package, "available", None)
     if not callable(asked):
@@ -446,12 +256,6 @@ def buildable_variants(package: Any = None, variants: Any = None) -> list[str]:
 
 
 class BuildableVariantTest(unittest.TestCase):
-    """That a part nobody supplied a file for is not mistaken for a broken one.
-
-    Driven against a catalogue written here rather than the member's own, so the
-    three answers are the same in every repository that carries this file.
-    """
-
     NAMED: ClassVar[dict[str, object]] = {"one": object(), "two": object()}
 
     class Silent:
@@ -478,13 +282,6 @@ class BuildableVariantTest(unittest.TestCase):
 
 
 class PublishedSurfaceTest(unittest.TestCase):
-    """That everything the standard names is importable from the package itself.
-
-    A name that exists on a module inside the package but not on the package is
-    not published. It works, so nothing fails, and a caller who finds it is
-    relying on a path that is free to move. A sibling package had six such names.
-    """
-
     @unittest.skipUnless(CLOCKED, "not a clocked part")
     def test_every_name_the_standard_promises_is_published(self) -> None:
         absent = [name for name in SURFACE if name not in PACKAGE.__all__]
@@ -499,26 +296,12 @@ class PublishedSurfaceTest(unittest.TestCase):
 
     @unittest.skipUnless(CLOCKED, "not a clocked part")
     def test_the_part_a_caller_gets_back_is_called_Cpu(self) -> None:  # noqa: N802
-        """The class, not just the call that builds it.
-
-        `Cpu(...)` is a factory in all three, and what it hands back was called
-        something else in one of them. That shows in a repr, in a traceback and
-        in any annotation a caller writes, and nothing about the hardware asks
-        for it.
-        """
         built = PACKAGE.Cpu(A_MODEL)
 
         self.assertEqual(type(built).__name__, "Cpu")
 
     @unittest.skipUnless(A_PART and BUILDABLE, "no part can be built here")  # pragma: no cover
     def test_a_part_is_built_by_Chip_taking_the_model_first(self) -> None:  # noqa: N802
-        """The same shape as `Cpu(model, memory)`, under the name this kind has.
-
-        Two of these were built by `describe(name).build(store)` and by a class
-        named for the one chip it modelled, so a caller moving between members
-        wrote a different call in each. The model comes first for the same reason
-        it does on a processor: it is the thing a caller always knows.
-        """
         built = PACKAGE.Chip(A_MODEL)
 
         self.assertEqual(type(built).__name__, "Chip")
@@ -530,35 +313,21 @@ class PublishedSurfaceTest(unittest.TestCase):
 
     @unittest.skipUnless(A_PART, "not a part in the sense this checks")  # pragma: no cover
     def test_and_refuses_a_name_no_model_goes_by(self) -> None:
-        """A typo that builds the default part is worse than one that fails."""
         with self.assertRaises(PACKAGE.UnknownModelError):
             PACKAGE.Chip("no model goes by this name")
 
     @unittest.skipUnless(A_PART and BUILDABLE, "no part can be built here")  # pragma: no cover
     def test_a_part_that_holds_what_it_held_offers_a_reset(self) -> None:
-        """It has no clock and still comes up holding whatever it held.
-
-        A caller driving a board resets every part on it, and a part that cannot
-        be reset makes the caller special-case which ones can.
-        """
         self.assertTrue(callable(getattr(PACKAGE.Chip(A_MODEL), "reset", None)))
 
     @unittest.skipUnless(A_PART and BUILDABLE, "no part can be built here")  # pragma: no cover
     def test_and_that_reset_hands_the_part_back(self) -> None:
-        """So a caller can build and reset in one expression, as the clocked ones do."""
         built = PACKAGE.Chip(A_MODEL)
 
         self.assertIs(built.reset(), built)
 
     @unittest.skipUnless(A_PART, "not a part in the sense this checks")  # pragma: no cover
     def test_and_what_that_reset_does_is_accounted_for(self) -> None:
-        """Quoted from a document, or recorded as not stated. Never neither.
-
-        A reset nobody can account for is an invented pin. One member models the
-        console's reset line reaching a battery-backed part, which is a different
-        event from the RESET bit its manual documents, and nothing said so until
-        somebody asked.
-        """
         self.assertTrue(accounts_for_a_reset(json.loads(RECORD.read_text())))
 
     @unittest.skipUnless(A_PART, "not a part in the sense this checks")  # pragma: no cover
@@ -581,22 +350,11 @@ class PublishedSurfaceTest(unittest.TestCase):
 
     @unittest.skipUnless(CLOCKED, "not a clocked part")
     def test_the_store_type_is_reachable_without_a_private_import(self) -> None:
-        """Whatever this member calls it, a caller can name the type.
-
-        By shape rather than by name: the type is read off a part that was built
-        rather than looked up under a spelling the checker chose.
-        """
         held = getattr(PACKAGE.Cpu(A_MODEL), store_attribute())
 
         self.assertIn(type(held).__name__, PACKAGE.__all__)
 
     def test_and_so_is_everything_it_can_raise(self) -> None:
-        """Read from the errors module rather than a list somebody keeps in step.
-
-        Every exception a caller can meet has to be importable by name, because
-        `except` takes a name and one that cannot be imported can only be handled
-        by catching everything.
-        """
         errors = importlib.import_module(f"{PACKAGE.__name__}.errors")
         public = [
             name
@@ -617,30 +375,7 @@ class PublishedSurfaceTest(unittest.TestCase):
 
 
 class OneDefinitionTest(unittest.TestCase):
-    """That no exception in the package is defined in two places under one name.
-
-    The standard calls this out because of how quietly it fails. Two exception
-    classes under one name both work, both are tested, and `except ThatName`
-    written against one of them sails straight past the other. A sibling package
-    shipped exactly that: two `Truncated` classes, one per decoder, with the
-    package exporting one of them, so catching it missed every case the other
-    raised.
-
-    Exceptions only, and deliberately. Two core classes under one name in two
-    modules is ordinary and safe, because nobody catches a core: the caller
-    reaches them through a factory and the one that needed a public name of its
-    own already has one. An exception is different precisely because its name is
-    the thing a caller writes down.
-
-    The runtime is asked rather than the text, because `__module__` says where a
-    class was defined and an import cannot fake it. Every module file is imported
-    rather than only the ones the package exposes as attributes: a module left out
-    of the package's own import list is exactly where a second definition hides,
-    and asking `dir()` would walk straight past it.
-    """
-
     def modules(self) -> list[Any]:
-        """Every module file in the package, imported whether or not it is exposed."""
         import importlib
 
         found = []
@@ -670,13 +405,6 @@ class OneDefinitionTest(unittest.TestCase):
         self.assertEqual(twice, {})
 
     def test_every_exception_a_caller_can_meet_is_published(self) -> None:
-        """One a caller cannot import is one they cannot catch by name.
-
-        `except` takes a name, so an exception reachable through the public
-        interface and absent from the package is a failure a caller can only
-        handle by catching everything. A leading underscore is how a genuinely
-        internal one says so.
-        """
         hidden = [
             name
             for name in self.defined()
@@ -686,25 +414,12 @@ class OneDefinitionTest(unittest.TestCase):
         self.assertEqual(hidden, [])
 
     def test_there_are_exceptions_to_check(self) -> None:
-        """Or a sweep that imported nothing would report no duplicate names.
-
-        Presence rather than a count. The members range from one chip with a
-        single refusal to a family of sixteen processors, so a floor high enough
-        to mean anything for the second would refuse the first for being small,
-        and being small is not a defect.
-        """
         self.assertGreater(len(self.modules()), 0)
         self.assertGreater(len(self.defined()), 0)
 
     def test_an_exception_imported_into_a_module_is_not_counted_as_defined_there(
         self,
     ) -> None:
-        """Where a class was written is what matters, not where it can be read.
-
-        Pointing several modules at one definition is the fix for a name defined
-        twice, so a check that counted an import as a definition would report the
-        fix as the fault it was meant to cure.
-        """
         home: Any = types.ModuleType("home")
         borrower: Any = types.ModuleType("borrower")
         held = type("Borrowed", (Exception,), {"__module__": "home"})
@@ -718,18 +433,9 @@ class OneDefinitionTest(unittest.TestCase):
 
 
 RECORD = ROOT / "conformance" / "hardware.json"
-"""The record every fact taken from a document is written into."""
 
 
 def declared(node: Any) -> dict[str, Any]:
-    """Every document a record declares, wherever it declares them.
-
-    Walked rather than read from the top, because where the block sits is
-    arrangement and not vocabulary. One member has two parts with different data
-    sheets and declares each part's beside it, which says something the top level
-    could not. What the rule is actually about is that there is one namespace of
-    keys and that a citation names one of them.
-    """
     found: dict[str, Any] = {}
     if isinstance(node, dict):
         held = node.get("documents")
@@ -744,12 +450,6 @@ def declared(node: Any) -> dict[str, Any]:
 
 
 def cited(node: Any, where: str = "") -> list[tuple[str, str]]:
-    """Every place in a record that names a document, with the path to it.
-
-    Walked for the same reason: a record is arranged the way the part is, one
-    keyed by pin, one by core, one by register file. What every one of them
-    shares is the key `document` on the fact that cites one.
-    """
     found: list[tuple[str, str]] = []
     if isinstance(node, dict):
         named = node.get("document")
@@ -764,13 +464,6 @@ def cited(node: Any, where: str = "") -> list[tuple[str, str]]:
 
 
 def quoted_sentences(node: Any) -> int:
-    """How many sentences a record attributes to a document, however the key reads.
-
-    Counted by the substring rather than by an exact `quote`, because one member
-    spells one of them `countRangeQuote` and a walk looking for the exact key
-    goes straight past it. That is not hypothetical: the first version of the
-    listing in that member's checker missed exactly this one.
-    """
     if isinstance(node, dict):
         held = sum(1 for key in node if "quote" in str(key).lower())
         return held + sum(quoted_sentences(one) for one in node.values())
@@ -780,27 +473,9 @@ def quoted_sentences(node: Any) -> int:
 
 
 QUOTED = quoted_sentences(json.loads(RECORD.read_text())) if RECORD.is_file() else 0
-"""How many sentences this record attributes to a document. Zero for three members."""
 
 
 class OneVocabularyForADocumentTest(unittest.TestCase):
-    """That a document is named one way, so a check can follow the name.
-
-    Held in one field, a key here, a file name there and a prose title with the
-    section glued on somewhere else, nothing can check any of them: a check
-    written against keys skips the rest in silence and reports a clean run over
-    the part it understood.
-
-    Eight of the ten members carried a single `document` object, or a source
-    named only in prose, while the standard asked for a `documents` block. None
-    of them reported it, because this check did not exist.
-
-    A member with no document at all declares an empty block rather than no
-    block. That is the difference between saying there is nothing to cite and
-    saying nothing, and for two of these parts the absence of any manufacturer
-    document is the most important thing the record has to say.
-    """
-
     def record(self) -> Any:
         return json.loads(RECORD.read_text())
 
@@ -811,7 +486,6 @@ class OneVocabularyForADocumentTest(unittest.TestCase):
         self.assertIsInstance(self.record().get("documents"), dict)
 
     def test_every_source_declared_anywhere_names_the_file_it_is(self) -> None:
-        """Two scans of one book paginate differently, so a page needs a file."""
         held = declared(self.record())
 
         nameless = sorted(key for key, one in held.items() if not one.get("file"))
@@ -827,13 +501,11 @@ class OneVocabularyForADocumentTest(unittest.TestCase):
         self.assertEqual(astray, [])
 
     def test_there_is_a_record_to_check(self) -> None:
-        """A file holding only an empty block would satisfy every line above."""
         held = self.record()
 
         self.assertGreater(len([key for key in held if key != "documents"]), 0)
 
     def test_the_reader_of_that_finds_a_citation_wherever_it_sits(self) -> None:
-        """Driven against a shape no member has, so it is the walk being tested."""
         held = {
             "facts": {"pin": {"document": "sheet", "page": 6}},
             "parts": [{"timing": [{"document": "book"}]}],
@@ -856,7 +528,6 @@ class OneVocabularyForADocumentTest(unittest.TestCase):
     def test_a_block_declared_beside_a_part_is_read_as_well_as_a_top_level_one(
         self,
     ) -> None:
-        """Two makers, two blocks. Where it sits is arrangement, not vocabulary."""
         held = {
             "documents": {},
             "parts": [
@@ -870,7 +541,6 @@ class OneVocabularyForADocumentTest(unittest.TestCase):
     def test_a_source_reached_through_a_sibling_still_has_to_name_the_sibling(
         self,
     ) -> None:
-        """A digest somebody else read is a pin, and a reader has to know whose."""
         held = {"documents": {"manual": {"file": "book1.pdf", "through": "snes-graphics-python"}}}
 
         borrowed = {key: one["through"] for key, one in declared(held).items() if "through" in one}
@@ -878,7 +548,6 @@ class OneVocabularyForADocumentTest(unittest.TestCase):
         self.assertEqual(borrowed, {"manual": "snes-graphics-python"})
 
     def test_an_empty_block_is_a_declaration_and_not_a_missing_one(self) -> None:
-        """Three members have no document, and that absence is the claim."""
         held = {"documents": {}, "facts": {"pin": 1}}
 
         self.assertIsInstance(held.get("documents"), dict)
@@ -901,40 +570,7 @@ class OneVocabularyForADocumentTest(unittest.TestCase):
 
 
 class EveryModuleIsReachedTest(unittest.TestCase):
-    """That no module sits in the package with nothing reaching it.
-
-    A module nothing imports and the package does not publish is dead, and dead
-    code is worse than absent code when it holds names that also live somewhere
-    real. One member carried a `dump.py` defining `read` and `has_copier_stub`
-    beside the published ones in `header.py`, superseded by a sibling repository
-    and left behind. Both READMEs described it as not exported and not imported,
-    which is a defect written down rather than fixed.
-
-    Nothing else catches it. The linter sees a module it was never asked about,
-    the type checker checks it and finds it sound, coverage measures it and finds
-    it tested, and the one-definition check above is exceptions-only for reasons
-    of its own. Every gate passes on code no caller can run.
-
-    Reached means one of two things, and the second is why this reads imports
-    rather than asking `dir()`. A module the package binds as an attribute is
-    reached by a caller. A module only ever imported by a sibling module is
-    reached too, and never appears on the package.
-
-    Test files do not count, and that is the whole difficulty. A dead module
-    usually has a test file beside it, written when the module was alive, and it
-    is the only thing left importing it. Counting that would make the module look
-    reached by the very file that proves nobody else needs it, which is exactly
-    what this check found when it was first written and first run.
-
-    A module nobody imports is reached anyway when a person runs it. The doctor
-    is exactly that: it is deliberately importable by nothing, because it has to
-    survive a package that will not import, and it is run as a file. What makes
-    it an entry point rather than dead code is a `__main__` guard, so that is
-    what this looks for rather than the doctor's name.
-    """
-
     def an_entry_point(self, path: Path) -> bool:
-        """Whether a module is meant to be run rather than imported."""
         return any(
             isinstance(node, ast.If)
             and isinstance(node.test, ast.Compare)
@@ -951,7 +587,6 @@ class EveryModuleIsReachedTest(unittest.TestCase):
         }
 
     def modules(self) -> set[str]:
-        """Every module file in the package, by stem."""
         return {
             path.stem
             for path in Path(PACKAGE.__file__ or "").resolve().parent.glob("*.py")
@@ -959,7 +594,6 @@ class EveryModuleIsReachedTest(unittest.TestCase):
         }
 
     def imported(self, where: Path | None = None) -> set[str]:
-        """Every module name any file in the repository imports, however written."""
         held = ROOT if where is None else where
         name = PACKAGE.__name__
         found: set[str] = set()
@@ -996,14 +630,12 @@ class EveryModuleIsReachedTest(unittest.TestCase):
         self.assertIn("doctor", self.entry_points())
 
     def test_a_module_with_no_main_guard_is_not_an_entry_point(self) -> None:
-        """So the carve-out cannot be claimed by a module nobody can run."""
         where = Path(tempfile.mkdtemp()) / "quiet.py"
         where.write_text("VALUE = 1\n")
 
         self.assertFalse(self.an_entry_point(where))
 
     def test_the_reader_of_that_counts_a_module_a_sibling_imports(self) -> None:
-        """Driven against a tree of its own, so it is the walk being tested."""
         where = Path(tempfile.mkdtemp())
         (where / "one.py").write_text(f"from {PACKAGE.__name__} import held\n")
 
@@ -1016,19 +648,12 @@ class EveryModuleIsReachedTest(unittest.TestCase):
         self.assertIn("sibling", self.imported(where))
 
     def test_and_does_not_count_a_module_reached_only_by_its_own_test(self) -> None:
-        """The case this check exists for, and the one it first got wrong."""
         where = Path(tempfile.mkdtemp())
         (where / "stranded.test.py").write_text("from . import stranded\n")
 
         self.assertNotIn("stranded", self.imported(where))
 
     def test_and_a_module_reached_by_its_full_dotted_name(self) -> None:
-        """The dotted form rather than the from-import one, which nothing here writes.
-
-        Both reach a module. Only one of them is written in this family, so the
-        other would go unread by a walk built from what the source happens to
-        contain, and a module reached only that way would read as stranded.
-        """
         where = Path(tempfile.mkdtemp())
         (where / "one.py").write_text(f"import {PACKAGE.__name__}.reached\n")
 
@@ -1042,27 +667,9 @@ class EveryModuleIsReachedTest(unittest.TestCase):
 
 
 class EveryLinkResolvesTest(unittest.TestCase):
-    """That a link to a file in this repository points at a file that is here.
-
-    The link survey beside this one asks the network whether an address still
-    answers. Nothing asked the same question of a link that never leaves the
-    repository, and three members linked their readme's "Citing this" section to
-    a `CITATION.cff` that was not there, under a sentence promising a script kept
-    it in step with the release. Every gate passed. A reader following it got a
-    404 on the project's own front page.
-
-    Markdown that renders is not markdown that resolves, which is what makes this
-    invisible: GitHub shows the link as a link whether or not the target exists,
-    and only a reader clicking it finds out.
-
-    Anchors are dropped before resolving, because `file.md#section` is a link to
-    `file.md`. A bare `#section` is a link within one document and is left alone.
-    """
-
     LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 
     def documents(self) -> list[Path]:
-        """Every markdown file this repository tracks, wherever it sits."""
         held = subprocess.run(
             ["git", "ls-files", "*.md"],
             cwd=ROOT,
@@ -1073,13 +680,6 @@ class EveryLinkResolvesTest(unittest.TestCase):
         return [ROOT / one for one in held.stdout.split()]
 
     def tracked(self) -> set[str]:
-        """Every path this repository tracks, and every directory along the way.
-
-        Tracked rather than present, because the two differ on exactly the
-        machine that matters. `specs/` and `docs/` are ignored here, so a link
-        into one resolves on the author's disk and 404s for everybody who clones.
-        One member linked its agent brief at `specs/current/` and only CI said so.
-        """
         held = subprocess.run(
             ["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True
         )
@@ -1092,7 +692,6 @@ class EveryLinkResolvesTest(unittest.TestCase):
         return found
 
     def targets(self, where: Path) -> list[str]:
-        """Every link in that file that names something in this repository."""
         found = []
         for target in self.LINK.findall(where.read_text()):
             held = target.split("#", 1)[0].split(" ", 1)[0]
@@ -1102,17 +701,9 @@ class EveryLinkResolvesTest(unittest.TestCase):
         return found
 
     def said_from_the_root(self, inside: PurePosixPath, target: str) -> str:
-        """One link, rewritten as the path the repository tracks it under.
-
-        Normalised, because a link out of a subdirectory carries `..` and the
-        repository tracks nothing under that name. Joining without normalising
-        produces `cartridges/../cartridges.manifest.json`, which matches nothing
-        and reports a link that resolves perfectly well as broken.
-        """
         return posixpath.normpath(str(inside / target)).rstrip("/")
 
     def unresolved(self, where: Path, known: set[str]) -> list[str]:
-        """Those of them the repository does not track, said against its root."""
         inside = PurePosixPath(where.parent.relative_to(ROOT))
         return [
             f"{where.relative_to(ROOT)} -> {one}"
@@ -1121,7 +712,6 @@ class EveryLinkResolvesTest(unittest.TestCase):
         ]
 
     def test_every_markdown_file_here_is_checked(self) -> None:
-        """So a run over nothing cannot read as a run that found nothing."""
         named = {one.name for one in self.documents()}
 
         self.assertTrue({"README.md", "AGENTS.md", "FAMILY.md"} <= named, named)
@@ -1144,18 +734,11 @@ class EveryLinkResolvesTest(unittest.TestCase):
         self.assertEqual(self.unresolved(held, self.tracked()), [])
 
     def test_a_link_out_of_a_subdirectory_resolves_to_what_it_names(self) -> None:
-        """The check reported a working link as broken until it normalised.
-
-        A README inside a directory linking to a file at the repository root
-        writes `../thing`, and the repository tracks `thing`. Joining without
-        normalising asks for `directory/../thing` and finds nothing.
-        """
         held = self.said_from_the_root(PurePosixPath("cartridges"), "../manifest.json")
 
         self.assertEqual(held, "manifest.json")
 
     def test_and_one_that_climbs_past_the_root_still_resolves_to_nothing(self) -> None:
-        """So normalising does not turn an escape into a match."""
         held = self.said_from_the_root(PurePosixPath("."), "../outside.json")
 
         self.assertEqual(held, "../outside.json")
@@ -1179,39 +762,11 @@ class EveryLinkResolvesTest(unittest.TestCase):
         self.assertEqual(self.targets(where), [])
 
     def test_a_path_this_repository_ignores_does_not_count_as_resolved(self) -> None:
-        """The case only CI saw: a link into `specs/`, which is never tracked."""
         self.assertNotIn("specs/current", self.tracked())
 
 
 class NothingOutsideTheStandardLibraryTest(unittest.TestCase):
-    """That the readme's "no dependencies" is a fact rather than a habit.
-
-    Every readme in the family advertises it, and for a while only some members
-    checked it. Those built a bill of materials from a fresh environment holding
-    the package and nothing else, and failed the release when a second name
-    turned up. The three that consume a sibling as a submodule cannot do that,
-    because a wheel built from one installs and then raises on its first import,
-    so they publish no packaging block at all and had nothing holding the claim.
-
-    Reading the imports holds every member to it the same way, needs no
-    environment, and runs on a machine with no network. What it allows is the
-    standard library, the package itself, `conformance` beside it, and the
-    submodules this repository declares in `.gitmodules`, which are vendored
-    rather than depended on.
-
-    `conformance` is allowed because it is a directory this repository ships, not
-    something fetched. One doctor reads the exhaustive check from it to say
-    whether that check can run here, which is the doctor doing its job.
-    """
-
     def declared_submodules(self, root: Path | None = None) -> set[str]:
-        """Every sibling this repository carries, by the package name it provides.
-
-        Read from `.gitmodules` rather than from a list here, so a member that
-        gains or drops a submodule needs no edit. It takes a root so it can be
-        driven against a repository shaped like one that has them, which three
-        members do and the other seven do not.
-        """
         where = ROOT if root is None else root
         held = where / ".gitmodules"
         if not held.is_file():
@@ -1226,7 +781,6 @@ class NothingOutsideTheStandardLibraryTest(unittest.TestCase):
         return found
 
     def imports(self, where: Path) -> set[str]:
-        """Every top-level module name imported by a file."""
         found: set[str] = set()
         for node in ast.walk(ast.parse(where.read_text())):
             if isinstance(node, ast.Import):
@@ -1258,7 +812,6 @@ class NothingOutsideTheStandardLibraryTest(unittest.TestCase):
     def test_a_submodule_is_allowed_because_it_is_carried_rather_than_fetched(
         self,
     ) -> None:
-        """Driven against a repository shaped like the three that have them."""
         where = Path(tempfile.mkdtemp())
         (where / ".gitmodules").write_text(
             '[submodule "sibling-python"]\n\tpath = sibling-python\n'
@@ -1273,7 +826,6 @@ class NothingOutsideTheStandardLibraryTest(unittest.TestCase):
         self.assertEqual(self.declared_submodules(Path(tempfile.mkdtemp())), set())
 
     def test_the_reader_of_that_sees_an_import_from_outside(self) -> None:
-        """Driven against a file written for it, so it is the walk being tested."""
         where = Path(tempfile.mkdtemp()) / "one.py"
         where.write_text("import json\nimport numpy\nfrom yaml import safe_load\n")
 
@@ -1289,26 +841,6 @@ class NothingOutsideTheStandardLibraryTest(unittest.TestCase):
 
 
 class EveryQuoteIsCheckableTest(unittest.TestCase):
-    """That a record which quotes a document ships something that looks for it.
-
-    A quote is a checkable claim and until a checker exists nothing checks it.
-    Reading quotes against documents by hand found three defects in this family:
-    an answer that read 8259 where the page prints 8080, a quote labelled
-    verbatim that had dropped a parenthetical, and a sentence about a divided
-    clock that appears in none of the twelve documents its project pins.
-
-    Four members carried quotes with no checker at all, one of them forty-one
-    sentences deep, so a sentence its manual never printed could have sat there
-    indefinitely. The checker also found something else on arrival: forty of
-    those quotes name the sentence and no page.
-
-    The documents are not redistributable and are not in any of these
-    repositories, so on most machines the checker reports that it checked
-    nothing. That is the point rather than a weakness: it is a real answer for
-    anybody holding the document, and a run without one cannot be mistaken for
-    a pass.
-    """
-
     @unittest.skipUnless(QUOTED, "this record quotes nothing")
     def test_a_record_that_quotes_ships_a_checker_for_it(self) -> None:
         self.assertTrue((ROOT / "conformance" / "quotes.py").is_file())
@@ -1320,7 +852,6 @@ class EveryQuoteIsCheckableTest(unittest.TestCase):
         self.assertIn("conformance.quotes", held)
 
     def test_the_reader_of_that_counts_a_quote_however_its_key_is_spelled(self) -> None:
-        """One was called `countRangeQuote`, and a first attempt walked past it."""
         self.assertEqual(quoted_sentences({"a": {"quote": "x"}, "b": {"countRangeQuote": "y"}}), 2)
 
     def test_and_counts_none_in_a_record_that_quotes_nothing(self) -> None:
@@ -1328,24 +859,6 @@ class EveryQuoteIsCheckableTest(unittest.TestCase):
 
 
 class EveryRecordStatesItsAuthorityTest(unittest.TestCase):
-    """That a record says which rung each of its facts came from.
-
-    The ladder in FAMILY.md is the family's whole argument: a manufacturer's
-    page beats a dump, a dump beats a die simulation, and all of them beat a
-    recording. It only means something if each record says where it actually
-    stands, because the rungs a member reaches differ enormously. One holds its
-    claims to 2,781 retail cartridges. One reaches no rung below the page at all
-    and walks the format instead. One has no document in existence.
-
-    Nine members said so and one did not, and nothing noticed, so a reader of
-    that record had no way to tell a figure quoted from Nintendo from a figure
-    somebody found convenient.
-
-    `whatIsMissing` is required only where a rung above the highest one reached
-    is empty, which the member itself decides. What is not optional is naming
-    the order and saying why it is that order.
-    """
-
     def record(self) -> Any:
         return json.loads(RECORD.read_text())
 
@@ -1363,15 +876,6 @@ class EveryRecordStatesItsAuthorityTest(unittest.TestCase):
         self.assertTrue(str(self.authority().get("why", "")).strip())
 
     def test_the_record_names_what_this_member_is_held_to(self) -> None:
-        """Something outside itself, or the checks only prove self-consistency.
-
-        Every member here is compared against something it does not own: retail
-        cartridges, a recorded suite, a simulation of the die, or an independent
-        implementation. One was not. It walked its whole input space and proved
-        the decoder and the encoder agreed with each other, which they do just as
-        perfectly when both are wrong, and a swapped pair of flip bits passed
-        every gate it had.
-        """
         held = self.authority().get("comparedAgainst")
         assert isinstance(held, dict)
 
@@ -1387,23 +891,12 @@ class EveryRecordStatesItsAuthorityTest(unittest.TestCase):
         self.assertIn("The authority ladder", FAMILY)
 
     def test_a_record_with_no_ladder_at_all_is_reported(self) -> None:
-        """Driven against the shape the one member that had none actually had."""
         held = {"note": "layouts, pinned to the figures", "documents": {}}
 
         self.assertEqual(held.get("authority"), None)
 
 
 class SharedFileTest(unittest.TestCase):
-    """That every file the standard's table names is here.
-
-    The table is the list, so adding a row is how a file becomes required. What
-    counts as a row naming a file is anything with a directory in it or an
-    extension on it. The first version of this asked for a slash or a `.md`,
-    which quietly excused `CITATION.cff`: the row was added, the file was absent
-    in three members, and this check said nothing. A neighbouring check caught it
-    only because the readme happened to link to it.
-    """
-
     NAMED = re.compile(r"^\| `([^`]+)` \|", re.M)
 
     FILE = re.compile(r"[./]")
@@ -1417,22 +910,13 @@ class SharedFileTest(unittest.TestCase):
         self.assertEqual(missing, [])
 
     def test_and_there_is_something_to_check(self) -> None:
-        """Or a standard naming no file would pass for one every member kept."""
         self.assertGreater(len(self.promised()), 6)
 
     def test_a_file_named_with_no_directory_in_it_is_still_required(self) -> None:
-        """The exclusion that let three members ship without a citation file."""
         self.assertIn("CITATION.cff", self.promised())
 
 
 def accounts_for_a_reset(node: Any) -> bool:  # pragma: no cover
-    """Whether a record says anything at all about a reset, as a key or in prose.
-
-    Deliberately loose. What it is guarding against is a part offering `reset()`
-    with nothing anywhere accounting for what that reset does, which is an
-    invented pin. Whether the account is a quote or an admission that no document
-    states it is for a reader to judge; that there is one is checkable.
-    """
     if isinstance(node, dict):
         if any("reset" in str(key).lower() for key in node):
             return True
@@ -1443,23 +927,6 @@ def accounts_for_a_reset(node: Any) -> bool:  # pragma: no cover
 
 
 def catalogue(package: Any = None) -> dict[str, Any]:
-    """The mapping of variants that package publishes, whatever it calls it.
-
-    Found by shape rather than by name. A member calls its catalogue whatever the
-    thing it models is called, `MODELS` for parts and `FORMATS` for layouts, and
-    a check keyed to one name does not fail on the other: it finds nothing, skips
-    itself, and reports a clean run over a catalogue it never looked at. That is
-    how seven graphics formats went unchecked.
-
-    The shape is a mapping from a name to something carrying that same name and a
-    tuple of aliases, which is what every catalogue in the family is and what the
-    checks below actually need.
-
-    It takes a package so it can be handed one that should fail it. Which of its
-    branches a member exercises depends on what that member happens to publish
-    and on where the catalogue's name sorts, so left driven only by the package
-    it lives in, two of them are never taken anywhere.
-    """
     held = PACKAGE if package is None else package
     for name in sorted(getattr(held, "__all__", ())):
         found = getattr(held, name, None)
@@ -1471,40 +938,14 @@ def catalogue(package: Any = None) -> dict[str, Any]:
 
 
 VARIANTS: dict[str, Any] = catalogue()
-"""Every variant this package accepts, read from the package rather than listed.
-
-A member that has none publishes no such mapping, and the checks below say they
-were skipped rather than passing in silence.
-
-Inferring the absence from an empty mapping is safe here, and it is not safe for
-the machine names further down, because this one is read out of the package at
-run time. An empty answer means the package publishes no catalogue. It cannot
-mean somebody forgot to fill a list in, because there is no list to fill.
-"""
 
 
 def built(name: str, readme: str) -> bool:
-    """Whether the readme shows that variant being passed to a call.
-
-    A call rather than the bare name, because a name in prose tells a reader the
-    variant exists and a call tells them how to reach it, and the second is what
-    they came for.
-
-    Which call it is differs between members and is deliberately not pinned. A
-    clocked part hands back a `Cpu`, a board hands back a description of a
-    layout, and a check that demanded one spelling would be describing one
-    implementation rather than the promise every member makes.
-    """
     return re.search(rf"""\w\(\s*["']{re.escape(name)}["']""", readme) is not None
 
 
 @unittest.skipUnless(VARIANTS, "this package names no variants")
 class DocumentedModelTest(unittest.TestCase):
-    """That the readme shows how to reach every variant the package accepts.
-
-    A variant nobody can find in the readme is a variant nobody uses.
-    """
-
     def test_every_model_has_a_worked_construction(self) -> None:
         readme = (ROOT / "README.md").read_text()
 
@@ -1522,7 +963,6 @@ class DocumentedModelTest(unittest.TestCase):
         self.assertEqual(unnamed, [])
 
     def test_the_reader_of_that_tells_a_call_from_a_mention(self) -> None:
-        """Driven both ways, because one that matched everything would also pass."""
         self.assertTrue(built("a-part", 'Chip("a-part")'))
         self.assertTrue(built("a-part", "Cpu('a-part')"))
         self.assertFalse(built("a-part", "the a-part is covered here"))
@@ -1530,14 +970,6 @@ class DocumentedModelTest(unittest.TestCase):
 
 
 class CatalogueReaderTest(unittest.TestCase):
-    """That the reader finds a catalogue by shape and steps over what is not one.
-
-    Driven against packages built here rather than against this one. Which
-    branches a real package exercises depends on what it publishes and on where
-    its catalogue's name sorts, so a reader left to be driven by its own package
-    has branches nobody has ever taken.
-    """
-
     def package(self, **published: Any) -> Any:
         held: Any = types.ModuleType("published")
         held.__all__ = sorted(published)
@@ -1569,7 +1001,6 @@ class CatalogueReaderTest(unittest.TestCase):
         self.assertEqual(sorted(catalogue(held)), ["z80"])
 
     def test_and_over_a_mapping_whose_entries_are_not_variants(self) -> None:
-        """A package can publish a lookup table that is not a catalogue."""
         held = self.package(SIZES={"small": 8, "large": 64})
 
         self.assertEqual(catalogue(held), {})
@@ -1584,26 +1015,7 @@ class CatalogueReaderTest(unittest.TestCase):
 
 
 class ClaimedCountTest(unittest.TestCase):
-    """That the number of tests the readme advertises is the number there are.
-
-    It went stale four times before this existed, every time by somebody adding
-    tests and not thinking about a badge line. A count in prose is a claim about
-    the repository, and a claim nothing checks is one that drifts silently until
-    a reader believes something false.
-
-    Counted from the source rather than by running the suites, because a test
-    that runs every other test to check a number would cost minutes to answer a
-    question worth milliseconds. The two agree: `unittest` reports one test per
-    `def test_`, and nothing here generates cases at runtime.
-    """
-
     def counted(self) -> int:
-        """Every test in the directories the pipeline runs, and nowhere else.
-
-        Scoped rather than swept for a reason. `docs/` is not in the repository,
-        so a sweep of the whole tree counts files a fresh checkout does not have
-        and the number disagrees with itself depending on which machine asks.
-        """
         return sum(
             len(re.findall(r"^\s+def test_", found.read_text(), re.M))
             for directory in ("mos65xx", "conformance")
@@ -1619,7 +1031,6 @@ class ClaimedCountTest(unittest.TestCase):
 
 
 def as_a_script(text: str) -> list[int]:
-    """The line numbers where a conformance tool is invoked as a script."""
     return [
         number
         for number, line in enumerate(text.splitlines(), start=1)
@@ -1628,13 +1039,6 @@ def as_a_script(text: str) -> list[int]:
 
 
 class StandardIsKeptTest(unittest.TestCase):
-    """That the conventions the standard added are the ones this repository follows.
-
-    A standard is prose, and prose about code goes stale silently. These are the
-    claims the file makes that a check can settle, so it settles them rather than
-    trusting that a convention written down once is a convention still kept.
-    """
-
     def test_the_standard_names_the_errors_module_as_the_one_home(self) -> None:
         self.assertIn("errors.py", FAMILY)
 
@@ -1645,11 +1049,6 @@ class StandardIsKeptTest(unittest.TestCase):
         self.assertIn("python3 -m conformance.name", FAMILY)
 
     def test_and_no_workflow_runs_one_as_a_script(self) -> None:
-        """The invocation is what actually decides, so it is what is read.
-
-        Run as a script, the tool's own directory goes on the import path and a
-        file there shadows a standard library module of the same name.
-        """
         astray = [
             f"{path.name}:{number}"
             for path in sorted((ROOT / ".github" / "workflows").glob("*.yml"))
@@ -1668,7 +1067,6 @@ class StandardIsKeptTest(unittest.TestCase):
         self.assertEqual(astray, [])
 
     def test_the_reader_of_those_two_finds_a_script_invocation(self) -> None:
-        """Both checks rest on one reader, so the reader is what is tested."""
         self.assertEqual(as_a_script("run: python conformance/speed.py\n"), [1])
         self.assertEqual(as_a_script("run: python3 -m conformance.speed\n"), [])
         self.assertEqual(as_a_script("a\nb\npython conformance/links.py\n"), [3])
@@ -1682,15 +1080,6 @@ class StandardIsKeptTest(unittest.TestCase):
         self.assertGreater(speed.FLOOR, 0)
 
     def test_and_it_is_this_repository_s_floor(self) -> None:
-        """Not one belonging to a member this one consumes as a submodule.
-
-        A member with a submodule on the import path has two packages called
-        `conformance` reachable at once, and whichever sits earlier on the path
-        wins. Put the submodule first and this check imports the wrong floor,
-        finds a positive number, and passes: it was measuring a package this
-        repository does not own. That is what it did, in two members, until this
-        line existed.
-        """
         from conformance import speed
 
         held = Path(speed.__file__ or "").resolve()
@@ -1698,7 +1087,6 @@ class StandardIsKeptTest(unittest.TestCase):
         self.assertEqual(held, ROOT / "conformance" / "speed.py", held)
 
     def test_the_floor_is_checked_outside_the_coverage_step(self) -> None:
-        """Under a tracer the check measures the tracer, so it must not run there."""
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
 
         self.assertIn("python -m conformance.speed", workflow)
@@ -1707,18 +1095,7 @@ class StandardIsKeptTest(unittest.TestCase):
 
 @unittest.skipUnless(CLOCKED, "not a clocked part")
 class SuppliedMemoryTest(unittest.TestCase):
-    """That what a core runs on is handed in the same way in every package.
-
-    The second parameter is the shared half: every core takes `Cpu(model,
-    memory)`, keeps the one it is given, and builds its own when it is left out.
-    What that argument is differs because the parts do, and the standard names
-    the difference: one flat space called `memory` on the Z80 and the 65xx, three
-    stores called `stores` on the uPD7725, which has three of them at three
-    widths reached by three different registers.
-    """
-
     def test_a_supplied_store_is_the_one_the_part_uses(self) -> None:
-        """Taken off one part and handed to the next, so no type has to be named."""
         where = store_attribute()
         own = getattr(PACKAGE.Cpu(A_MODEL), where)
 
@@ -1732,12 +1109,10 @@ class SuppliedMemoryTest(unittest.TestCase):
         self.assertIsNotNone(getattr(built, store_attribute()))
 
     def test_the_standard_names_this_part_spelling(self) -> None:
-        """The spelling is a documented difference, so the document has to carry it."""
         self.assertIn(f"cpu.{store_attribute()}", FAMILY)
 
 
 def still_holding(classes: Any) -> list[str]:
-    """Every class that has a dictionary despite whatever it declared."""
     return [
         one.__qualname__
         for one in classes
@@ -1746,28 +1121,7 @@ def still_holding(classes: Any) -> list[str]:
 
 
 class NoStrayAttributeTest(unittest.TestCase):
-    """That a name a class does not have cannot be written to one.
-
-    Without slots the write is accepted in silence: a stray attribute appears,
-    the one the caller meant keeps whatever it held, and nothing reports that it
-    went nowhere. The family has two spellings for one flag, `.i` on the eight
-    bit 65xx parts and `.irq_disable` on the 65816, so reaching for the wrong one
-    is a mistake somebody will make and the readme warned about it in prose for
-    as long as it existed.
-
-    Exceptions are exempt. They carry whatever a raiser attached and are never
-    the thing a caller writes registers to.
-    """
-
     def published(self) -> list[type]:
-        """Every class this package hands a caller, whether directly or through a module.
-
-        The first condition is one test rather than two nested ones because the
-        inner one has no false case in a member that publishes only its own
-        classes, and a branch nothing can take reads as a gap in the gate. A type
-        from outside the package now falls through to the second condition, which
-        is false for it, so the outcome is unchanged.
-        """
         found = []
         for name in dir(PACKAGE):
             held = getattr(PACKAGE, name)
@@ -1800,12 +1154,6 @@ class NoStrayAttributeTest(unittest.TestCase):
         self.assertEqual(loose, [])
 
     def test_and_none_of_them_kept_a_dict_anyway(self) -> None:
-        """A slotted class whose base is not slotted still has one, silently.
-
-        Declaring the slots is not enough on its own. One unslotted class
-        anywhere in the chain gives every subclass a dictionary back, and the
-        guard is gone again with nothing to show it.
-        """
         self.assertEqual(still_holding(self.published()), [])
 
     def test_and_one_that_did_would_be_named(self) -> None:
@@ -1821,7 +1169,6 @@ class NoStrayAttributeTest(unittest.TestCase):
         self.assertTrue(found[0].endswith("Slotted"), found[0])
 
     def test_there_are_classes_to_check(self) -> None:
-        """Or a package publishing no class would pass for one that slotted them all."""
         self.assertGreater(len(self.published()), 0)
 
 
@@ -1834,49 +1181,19 @@ SECTIONS = (
     "Citing this",
     "License",
 )
-"""The sections every readme carries, whatever the member models.
-
-Seven, in this order, with anything a member adds sitting between the interface
-and the evidence. A reader who learned where something lives in one member finds
-it in the same place in the next, which is most of what a shared shape buys.
-"""
 
 CLOCKED_SECTIONS = (
     "Running it at a real speed",
     "Models",
     "Nothing starts clean",
 )
-"""Three more that only a clocked part has, in this order, after the interface.
-
-Two others sit among them and are not listed because their titles name the part:
-one about driving it a cycle at a time, where a Z80's cycle is a T state, and one
-about reading a program without running it. Both are checked for separately.
-
-A board, a format or a tool has no clock to pace, no power-on state to scramble
-and no models to choose between, so it carries none of these and is not asked to.
-"""
 
 DIRECTIVE = ("noqa", "type:", "pragma", "ruff:", "mypy:", "isort:", "fmt:")
-"""The comment forms a tool reads. Everything else is banned in source."""
+
+TEST_MARKERS = ("Arrange", "Act", "Assert")
 
 
 def prose_comments(where: Path) -> list[str]:
-    """Every comment in a source file that no tool parses.
-
-    Reasoning belongs in a docstring, where it sits with the thing it explains and
-    is read by anybody asking for help on it. A comment is the one part of a file
-    nothing checks, so it is the one part free to drift.
-
-    Read with the tokeniser rather than a line at a time. A docstring is free to
-    carry a line beginning with a hash, and it usually does exactly where the
-    docstring is worth reading: a worked example with the answer written beside
-    it. A reader that cannot tell the two apart reports a module's own example as
-    a comment, which is a finding against the one thing this rule is trying to
-    encourage.
-
-    `**/*.py` never reaches into `__pycache__`, which holds `.pyc` and nothing
-    else, so there is no directory to skip.
-    """
     found = []
     for path in sorted(where.glob("**/*.py")):
         with path.open("rb") as opened:
@@ -1884,18 +1201,12 @@ def prose_comments(where: Path) -> list[str]:
                 if token.type != tokenize.COMMENT:
                     continue
                 body = token.string.lstrip("#").strip()
-                if body and not body.startswith(DIRECTIVE):
+                if body and not body.startswith(DIRECTIVE) and body not in TEST_MARKERS:
                     found.append(f"{path.name}:{token.start[0]}")
     return found
 
 
 def mute_names(where: Path) -> list[str]:
-    """Every test named for the function it calls rather than the behaviour.
-
-    The floor is two words, which is as low as a floor goes. Length is not the
-    measure: several names here are short because they continue the sentence
-    their class began, which is the point of writing them that way.
-    """
     found = []
     for path in sorted(where.glob("**/*.test.py")):
         for name in re.findall(r"^    def test_(\w+)", path.read_text(), re.M):
@@ -1905,13 +1216,6 @@ def mute_names(where: Path) -> list[str]:
 
 
 class WrittenTheSameWayTest(unittest.TestCase):
-    """That this repository is written the way the others are.
-
-    Not taste. Every item here was settled once across the family, and a member
-    that drifts from it costs a reader the assumption that what they learned in
-    one repository holds in the next.
-    """
-
     def readme(self) -> str:
         return (ROOT / "README.md").read_text()
 
@@ -1936,7 +1240,6 @@ class WrittenTheSameWayTest(unittest.TestCase):
 
     @unittest.skipUnless(CLOCKED, "not a clocked part")
     def test_and_a_section_on_driving_it_a_cycle_at_a_time(self) -> None:
-        """Named for the part: a Z80's cycle is a T state and it says so."""
         self.assertTrue(any(one.startswith("Driving it one") for one in self.headings()))
 
     @unittest.skipUnless(CLOCKED, "not a clocked part")
@@ -1944,7 +1247,6 @@ class WrittenTheSameWayTest(unittest.TestCase):
         self.assertIn("Reading without running", self.headings())
 
     def test_anything_it_adds_sits_between_the_interface_and_the_evidence(self) -> None:
-        """So the spine reads the same in every member, whatever fills the middle."""
         held = self.headings()
         added = [one for one in held if one not in SECTIONS and one not in CLOCKED_SECTIONS]
         interface = held.index("The interface")
@@ -1955,28 +1257,11 @@ class WrittenTheSameWayTest(unittest.TestCase):
         self.assertEqual(stray, [])
 
     def test_the_readme_opens_with_what_was_measured(self) -> None:
-        """A line of numbers somebody ran, before any prose about the part.
-
-        It sits under the title block, so a reader who stops after the first
-        screen still leaves knowing what was compared and how much of it failed.
-
-        It opens with a count and the word for what is being counted, and the
-        word is the member's own: a processor covers parts, a board covers
-        layouts, a header fix covers images. Demanding one noun would make every
-        member that is not a processor write down something it does not model.
-        """
         held = self.readme().split("## ")[0]
 
         self.assertTrue(re.search(r"^\*\*[0-9,]+\*\* [a-z]", held, re.M), held[:400])
 
     def test_and_says_how_much_of_it_failed(self) -> None:
-        """A count of what was compared with no result is half a claim.
-
-        A qualifier before the noun is allowed and is the stronger form, not the
-        weaker one: "0 unexplained failures" beside a printed count of what was
-        left out says more than a bare zero, which would have to hide the
-        difference to stay true.
-        """
         held = self.readme().split("## ")[0]
 
         self.assertTrue(
@@ -1991,18 +1276,21 @@ class WrittenTheSameWayTest(unittest.TestCase):
     def test_no_source_file_carries_a_comment_a_tool_does_not_read(self) -> None:
         self.assertEqual(prose_comments(Path(PACKAGE.__file__ or "").resolve().parent), [])
 
+    def test_a_bare_test_marker_is_not_prose(self) -> None:
+        # Arrange
+        where = Path(tempfile.mkdtemp())
+        (where / "sample.py").write_text("# Arrange\nx = 1\n# Act now\n# Assert\n")
+
+        # Act
+        found = prose_comments(where)
+
+        # Assert
+        self.assertEqual(found, ["sample.py:3"])
+
     def test_nor_does_any_conformance_file(self) -> None:
         self.assertEqual(prose_comments(ROOT / "conformance"), [])
 
     def test_the_reader_of_that_tells_a_directive_from_prose(self) -> None:
-        """Fed both, because a reader that found nothing prints what a clean one does.
-
-        Every line below is a form that turned up in this family: a directive on
-        its own line, one with the reason a linter wants after it, a trailing
-        comment that is part of a statement rather than a line of its own, a
-        divider of bare hashes, and a hash inside a docstring, which is not a
-        comment at all however much it looks like one. Only the sentence is prose.
-        """
         with tempfile.TemporaryDirectory() as where:
             written = Path(where) / "sample.py"
             written.write_text(
@@ -2040,11 +1328,6 @@ class WrittenTheSameWayTest(unittest.TestCase):
         self.assertEqual(found, ["sample.test.py:test_step"])
 
     def test_every_test_is_named_as_a_sentence_about_behaviour(self) -> None:
-        """A name that states what the part does, not which function was called.
-
-        It catches `test_step` and `test_irq`, which say nothing a failure
-        message could use, and leaves the judgement of a good name to a reader.
-        """
         self.assertEqual(mute_names(ROOT), [])
 
     def test_the_checker_is_strict_everywhere_the_family_is(self) -> None:
@@ -2055,15 +1338,6 @@ class WrittenTheSameWayTest(unittest.TestCase):
         self.assertEqual(held["ruff"]["line-length"], 100)
 
     def test_a_protocol_stub_is_excluded_from_the_count_both_ways(self) -> None:
-        """A pattern is checked against a line rather than read for plausibility.
-
-        These live in a TOML literal string, where a doubled backslash is two
-        characters rather than an escape, so a pattern can look right in the file
-        and match nothing at all. Two members shipped exactly that, and it stayed
-        invisible because the newest runtime drops a protocol's stub before
-        coverage sees it and the older ones the pipeline runs do not. The gate
-        then meant one thing locally and another in CI.
-        """
         also = tomllib.loads((ROOT / "pyproject.toml").read_text())["tool"]["coverage"]["report"]
         patterns = also.get("exclude_also", [])
 
@@ -2074,7 +1348,6 @@ class WrittenTheSameWayTest(unittest.TestCase):
         self.assertTrue(alone, patterns)
 
     def test_and_a_pattern_that_matches_neither_would_be_reported(self) -> None:
-        """Driven against the doubled form the two members actually shipped."""
         doubled = r"^\\s*\\.\\.\\.$"
 
         self.assertIsNone(re.search(doubled, "        ..."))
@@ -2142,35 +1415,12 @@ MACHINES = {
         "cartridge",
     ),
 }
-"""The machines and product names each member must not carry.
-
-Named per repository because the list is: a Z80 went into different boxes than a
-6502 did. The entries are specific products, never categories, because a category
-is what an honest sentence about the part uses and flagging one would report
-prose rather than a leak.
-"""
 
 
 NOT_THIS_PACKAGES_WORDS = ("conformance/family.test.py", "FAMILY.md")
-"""Two files the machine sweep does not read, and why each is out of scope.
-
-`conformance/family.test.py` is the list of names to search for, so finding them
-there is finding the list. `FAMILY.md` is the standard every member carries
-identically, and it describes members that model a cartridge memory map, an
-image format and a board. Those exist only as part of one machine and name it
-because that is what they model. A shared file cannot be held to one member's
-vocabulary.
-"""
 
 
 def unquoted(text: str, suffix: str) -> str:
-    """The same text with a record's quoted passages blanked out.
-
-    A quote is a document's words, and a document is free to name whatever
-    machine it likes. The rule here governs what this package says about the
-    part, so a manufacturer's sentence about a disk controller is not a mention
-    by this package. Blanking rather than dropping keeps every line number.
-    """
     if suffix != ".json":
         return text
     try:
@@ -2187,7 +1437,6 @@ def unquoted(text: str, suffix: str) -> str:
 
 
 def _passages(node: Any) -> list[str]:
-    """Every string a record holds under a key naming it a quote."""
     found: list[str] = []
     if isinstance(node, dict):
         for key, value in node.items():
@@ -2206,17 +1455,6 @@ def _passages(node: Any) -> list[str]:
 
 
 def machine_mentions(where: Path, names: tuple[str, ...], run: Any = None) -> list[str]:
-    """Every tracked file that names a machine this part was put in.
-
-    A processor is not the machine somebody put it in, and a package that names
-    one becomes a catalogue of that machine's parts wearing a processor's name.
-
-    Three things are out of scope and each says something. Untracked files are
-    not checked, because what a copy of a document says is the document's
-    business and it is not published from here. A record's quoted passages are
-    not checked, for the same reason one step closer in. And the file declaring
-    these names is not checked, because it is the list.
-    """
     runner = subprocess.run if run is None else run
     listed = runner(
         ["git", "ls-files"], cwd=where, capture_output=True, text=True, check=False
@@ -2240,7 +1478,6 @@ def machine_mentions(where: Path, names: tuple[str, ...], run: Any = None) -> li
 
 
 def imported_by(path: Path) -> set[str]:
-    """Every module a source file imports, as written."""
     tree = ast.parse(path.read_text())
     found: set[str] = set()
     for node in ast.walk(tree):
@@ -2252,12 +1489,6 @@ def imported_by(path: Path) -> set[str]:
 
 
 def reaching_inside(names: Iterable[str], package: str) -> list[str]:
-    """The imports in that set that come from this package rather than outside it.
-
-    A relative import counts however deep it goes, and an absolute one counts
-    when it is the package or a module under it. A package whose name merely
-    begins the same way is somebody else's, which is why the dot is required.
-    """
     return sorted(
         name
         for name in names
@@ -2266,14 +1497,6 @@ def reaching_inside(names: Iterable[str], package: str) -> list[str]:
 
 
 class ErrorsCloseNoCycleTest(unittest.TestCase):
-    """That the one home for exceptions imports nothing from the package.
-
-    Everything here raises, so everything here imports `errors`. If `errors`
-    imports back, the cycle is closed and the order modules happen to load in
-    decides whether an import works. The standard says it imports nothing from
-    the package, and until now nothing checked the second half of that sentence.
-    """
-
     def errors(self) -> Path:
         return Path(PACKAGE.__file__ or "").resolve().parent / "errors.py"
 
@@ -2281,7 +1504,6 @@ class ErrorsCloseNoCycleTest(unittest.TestCase):
         self.assertEqual(reaching_inside(imported_by(self.errors()), PACKAGE.__name__), [])
 
     def test_the_reader_of_that_tells_the_package_from_the_standard_library(self) -> None:
-        """Driven on both, because a filter that matched nothing would also pass."""
         held = {"__future__", "re", "typing", PACKAGE.__name__, f"{PACKAGE.__name__}.core", "."}
 
         self.assertEqual(
@@ -2290,13 +1512,11 @@ class ErrorsCloseNoCycleTest(unittest.TestCase):
         )
 
     def test_and_a_package_whose_name_merely_starts_the_same_is_not_inside(self) -> None:
-        """`z80asm` is somebody else's package, and so is `mos65xxtools`."""
         held = {f"{PACKAGE.__name__}asm", f"{PACKAGE.__name__}_tools"}
 
         self.assertEqual(reaching_inside(held, PACKAGE.__name__), [])
 
     def test_the_reader_of_that_sees_the_imports_that_are_there(self) -> None:
-        """Or an empty answer would pass for a file it never opened."""
         with tempfile.TemporaryDirectory() as where:
             written = Path(where) / "sample.py"
             written.write_text(
@@ -2318,18 +1538,9 @@ class ErrorsCloseNoCycleTest(unittest.TestCase):
 
 
 DOCUMENT_SUFFIXES = frozenset({".pdf", ".djvu", ".epub", ".rom", ".bin", ".img"})
-"""Extensions that name a file somebody else owns rather than one written here."""
 
 
 def unignored(where: Path, run: Any = None) -> list[str]:
-    """Every path this repository's own ignore file leaves exposed.
-
-    A machine-global ignore file is configured once and does not travel with a
-    clone, so a path protected only there is exposed in every other checkout and
-    in CI. Nothing shows locally, because the status a person reads has the
-    global file applied. Reading it with that file switched off is the only way
-    to see what a fresh clone would.
-    """
     runner = subprocess.run if run is None else run
     done = runner(
         ["git", "-c", "core.excludesFile=/dev/null", "status", "--porcelain", "-uall"],
@@ -2357,26 +1568,12 @@ AGENTS_SECTIONS = (
     "Before calling anything finished",
     "What a change is expected to leave behind",
 )
-"""The sections every AGENTS.md carries, in the order it carries them.
-
-A member may add sections of its own about the part it models. Those sit after
-"What is settled and what is not", so the shared spine reads the same everywhere
-and a reader who learned where something lives in one member finds it in the
-same place in the next.
-"""
 
 
 SETTLED_SECTIONS = ("What is not in question", "What is deliberately not modelled")
-"""Sections of OPEN-QUESTIONS.md that hold decisions rather than questions."""
 
 
 def open_questions(where: Path | None = None) -> list[str]:
-    """Every entry in OPEN-QUESTIONS.md that is actually an open question.
-
-    Counting `###` headings counts the sections that exist to say what is not in
-    doubt and what is left out on purpose. Those belong in the file and do not
-    belong in a count of what is unsettled.
-    """
     held = ((ROOT if where is None else where) / "OPEN-QUESTIONS.md").read_text()
     found: list[str] = []
     section = ""
@@ -2389,13 +1586,6 @@ def open_questions(where: Path | None = None) -> list[str]:
 
 
 class BriefedTheSameWayTest(unittest.TestCase):
-    """That the instructions read the same way across members.
-
-    Not taste. Three members had three orders and one was missing the two
-    sections that say what the interface is and what is settled, which are the
-    two an agent reads first.
-    """
-
     def agents(self) -> str:
         return (ROOT / "AGENTS.md").read_text()
 
@@ -2413,7 +1603,6 @@ class BriefedTheSameWayTest(unittest.TestCase):
         self.assertEqual(kept, list(AGENTS_SECTIONS))
 
     def test_anything_it_adds_of_its_own_sits_in_one_place(self) -> None:
-        """After what is settled and before the gates, so the spine stays whole."""
         held = self.held()
         added = [one for one in held if one not in AGENTS_SECTIONS]
         gates = held.index("Every gate, in the order to run them")
@@ -2422,30 +1611,18 @@ class BriefedTheSameWayTest(unittest.TestCase):
         self.assertTrue(all(settled < held.index(one) < gates for one in added), added)
 
     def test_the_count_of_open_questions_is_the_count_there_is(self) -> None:
-        """Two of the three said a number that had stopped being true."""
         claimed = re.search(r"\*\*Not settled: (\d+) things\*\*", self.agents())
 
         assert claimed is not None
         self.assertEqual(int(claimed.group(1)), len(open_questions()))
 
     def test_and_counts_questions_rather_than_headings(self) -> None:
-        """A file that ends with what it deliberately leaves out is not four questions."""
         held = (ROOT / "OPEN-QUESTIONS.md").read_text()
 
         self.assertLessEqual(len(open_questions()), len(re.findall(r"^### ", held, re.M)))
 
 
 class PublishesNamesNotModulesTest(unittest.TestCase):
-    """That `__all__` lists what a caller uses rather than how it is arranged.
-
-    A submodule is reachable whether or not it is listed, because importing a
-    name out of one makes it an attribute of the package. Listing it therefore
-    changes nothing except what `import *` binds, while presenting the
-    arrangement of the code as part of the interface. The three members had
-    three different answers to this: one published nine modules, one published
-    four, and one published ten.
-    """
-
     def test_no_module_is_published_as_a_name(self) -> None:
         published = sorted(
             name
@@ -2456,25 +1633,14 @@ class PublishesNamesNotModulesTest(unittest.TestCase):
         self.assertEqual(published, [])
 
     def test_a_module_is_still_reachable_without_being_published(self) -> None:
-        """Which is why removing them cost a caller nothing."""
         self.assertTrue(hasattr(PACKAGE, "errors"))
         self.assertNotIn("errors", PACKAGE.__all__)
 
     def test_there_are_names_published(self) -> None:
-        """Or an empty list would pass for one holding no module."""
         self.assertGreater(len(PACKAGE.__all__), 0)
 
 
 class CarriesNobodyElsesWorkTest(unittest.TestCase):
-    """That nothing licensed to somebody else is in the repository or reachable from it.
-
-    Documents live beside the code and are never committed, which is why every
-    check that reads one says so when it cannot find it. The rule held by hand
-    until a sweep found one member's own ignore file missing seven entries the
-    others had, with build output protected only by a file configured on one
-    machine.
-    """
-
     def tracked(self) -> list[str]:
         listed = subprocess.run(
             ["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=False
@@ -2492,11 +1658,9 @@ class CarriesNobodyElsesWorkTest(unittest.TestCase):
         self.assertEqual([rel for rel in self.tracked() if rel.startswith("docs/")], [])
 
     def test_there_are_tracked_files_to_look_through(self) -> None:
-        """Or an empty listing would pass for a repository with nothing in it."""
         self.assertGreater(len(self.tracked()), 20)
 
     def test_the_ignore_file_here_covers_everything_on_its_own(self) -> None:
-        """Without leaning on one configured on this machine and nowhere else."""
         self.assertEqual(unignored(ROOT), [])
 
     def test_the_reader_of_that_names_an_untracked_file(self) -> None:
@@ -2510,7 +1674,6 @@ class CarriesNobodyElsesWorkTest(unittest.TestCase):
         self.assertEqual(found, [])
 
     def test_a_run_that_failed_is_not_read_as_a_clean_tree(self) -> None:
-        """An empty answer and a broken one look the same, so one of them raises."""
 
         def refused(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
             return subprocess.CompletedProcess([], 128, stdout="", stderr="not a repository")
@@ -2535,12 +1698,6 @@ class CarriesNobodyElsesWorkTest(unittest.TestCase):
 
 
 class QuotedPassageTest(unittest.TestCase):
-    """That a document's own words are blanked before the sweep reads a record.
-
-    Without this the rule would ask a manufacturer to stop naming a disk
-    controller in a sentence it printed in 1984.
-    """
-
     def test_a_quote_is_blanked_and_the_line_numbers_survive(self) -> None:
         held = '{"quote": "the SNES is named here", "note": "and here too"}'
 
@@ -2561,7 +1718,6 @@ class QuotedPassageTest(unittest.TestCase):
         self.assertNotIn("SNES", unquoted(held, ".json"))
 
     def test_a_short_passage_is_left_alone(self) -> None:
-        """Blanking a handful of characters would blank them everywhere else too."""
         held = '{"quote": "SNES", "note": "SNES"}'
 
         self.assertEqual(unquoted(held, ".json"), held)
@@ -2572,7 +1728,6 @@ class QuotedPassageTest(unittest.TestCase):
         self.assertEqual(unquoted(held, ".md"), held)
 
     def test_and_so_is_one_that_claims_to_be_and_is_not(self) -> None:
-        """A malformed record is a finding for another check, not silence here."""
         held = "{this is not json at all, and it names the SNES"
 
         self.assertEqual(unquoted(held, ".json"), held)
@@ -2585,13 +1740,6 @@ class QuotedPassageTest(unittest.TestCase):
 
 @unittest.skipUnless(SOLD_AS_A_COMPONENT, "this part only existed inside one machine")
 class NamesNoMachineTest(unittest.TestCase):
-    """That this package does not name the machines its part went into.
-
-    The rule is in FAMILY.md and was kept by hand until a sweep found five
-    mentions of a product line in one member's own section of that file, and
-    twenty uses of a word for a host that presumed which kind of machine it was.
-    """
-
     def names(self) -> tuple[str, ...]:
         return MACHINES[PACKAGE.__name__ if PACKAGE.__name__ in MACHINES else ROOT.name]
 
@@ -2599,7 +1747,6 @@ class NamesNoMachineTest(unittest.TestCase):
         self.assertEqual(machine_mentions(ROOT, self.names()), [])
 
     def test_the_sweep_would_report_one_if_it_were_there(self) -> None:
-        """Driven against a name that is certainly present, so silence means checked."""
         found = machine_mentions(ROOT, ("README",))
 
         self.assertNotEqual(found, [])
@@ -2651,13 +1798,6 @@ DIVERGENCE_STATUS = (
     "notADisagreement",
     "notModelled",
 )
-"""Where an entry stands, in words that mean the same thing in every member.
-
-`narrowed` is kept apart from `open` because an entry that has been cut down to
-a smaller question is not the same as one nobody has touched. `acknowledged` is
-kept apart from `closed` because a standing limitation this project accepts and
-will not close is not a question that was answered.
-"""
 
 DIVERGENCE_SEVERITY = (
     "contradiction",
@@ -2668,14 +1808,6 @@ DIVERGENCE_SEVERITY = (
     "unchecked",
     "outOfScope",
 )
-"""How much the disagreement costs, in words that mean the same thing everywhere.
-
-`contradiction` is for a source that disagrees with itself or with a recording,
-which is worse than a gap because both readings look sourced. `unstated` is for
-a document that says nothing, and `unchecked` for something nobody has measured
-yet. Why a given entry is only `low` belongs in its prose, not in a severity
-nobody else uses.
-"""
 
 DIVERGENCE_SOURCES = (
     "document",
@@ -2686,22 +1818,9 @@ DIVERGENCE_SOURCES = (
     "microcode",
     "neither",
 )
-"""What the package followed, named as a kind of source rather than as an argument.
-
-The argument for following it is prose and belongs in the entry's own reasoning.
-A field that holds a paragraph in one member and a single word in another cannot
-be counted across the family, and counting is the only reason the field is
-structured at all.
-"""
 
 
 def divergence_entries(where: Path) -> list[Any]:
-    """Every entry in a divergence record, whatever the member calls the list.
-
-    The list key differs between members and the prose fields differ more, both
-    on purpose: what a part disagrees about is not the same shape twice. Only the
-    three fields a cross-family question is asked of are held to one vocabulary.
-    """
     if not where.is_file():
         return []
     held = json.loads(where.read_text())
@@ -2712,19 +1831,15 @@ def divergence_entries(where: Path) -> list[Any]:
 
 
 def outside_vocabulary(entries: Any, field: str, allowed: Any) -> list[str]:
-    """Every value of one field that is not in the vocabulary, without repeats."""
     return sorted({str(one.get(field)) for one in entries if one.get(field) not in allowed})
 
 
 class DivergenceRecordTest(unittest.TestCase):
-    """That the record can be counted across the family, not only read one at a time."""
-
     @property
     def entries(self) -> Any:
         return divergence_entries(DIVERGENCES)
 
     def test_there_is_a_record_to_check(self) -> None:
-        """So the three checks below cannot pass by having nothing to look at."""
         self.assertTrue(self.entries)
 
     def test_every_entry_says_where_it_stands(self) -> None:
@@ -2737,7 +1852,6 @@ class DivergenceRecordTest(unittest.TestCase):
         self.assertEqual(outside_vocabulary(self.entries, "packageFollows", DIVERGENCE_SOURCES), [])
 
     def test_a_value_nobody_agreed_on_is_caught(self) -> None:
-        """The check driven against a record that should fail it."""
         found = outside_vocabulary([{"status": "mostly open"}], "status", DIVERGENCE_STATUS)
 
         self.assertEqual(found, ["mostly open"])
@@ -2763,19 +1877,12 @@ class DivergenceRecordTest(unittest.TestCase):
 
 
 def stamped_paths(script: Path) -> list[str]:
-    """Every path the version script rewrites, relative to the repository root.
-
-    Both shapes this script takes across the family build their targets from
-    `${root}/`, so that prefix is what marks a file it writes rather than a
-    variable it reads.
-    """
     if not script.is_file():
         return []
     return sorted(set(re.findall(r"\$\{root\}/([^\"'\s]+)", script.read_text())))
 
 
 def released_assets(config: Path) -> list[str]:
-    """Every path the release commits, as the git plugin is configured to."""
     if not config.is_file():
         return []
     document = json.loads(config.read_text())
@@ -2786,27 +1893,11 @@ def released_assets(config: Path) -> list[str]:
 
 
 def unreleased(stamped: Iterable[str], released: Iterable[str]) -> list[str]:
-    """The stamped paths the release throws away."""
     committed = set(released)
     return [path for path in stamped if path not in committed]
 
 
 class EveryStampedFileIsReleasedTest(unittest.TestCase):
-    """That the release commits every file the version script rewrites.
-
-    The script stamps the version into the package and into the citation. The
-    release plugin commits only the files it is named, so a file stamped and not
-    named is stamped into a working tree that is then thrown away. Nothing fails:
-    the release is cut, the tag is right, and the citation on the front page goes
-    on saying whatever it said before, under a sentence promising a script keeps
-    it in step with the release.
-
-    Five members were doing exactly that when this was written. One of them named
-    a path inside a submodule rather than its own package, so no release it ever
-    cut committed its version file either. Every gate passed in all five, because
-    the only thing that reads both files is a person comparing them by eye.
-    """
-
     SCRIPT = "scripts/set-version.sh"
 
     CONFIG = ".releaserc.json"
@@ -2818,7 +1909,6 @@ class EveryStampedFileIsReleasedTest(unittest.TestCase):
         self.assertEqual(unreleased(stamped, released), [])
 
     def test_and_there_is_something_to_check(self) -> None:
-        """A script naming no file would pass for one naming every file."""
         self.assertGreaterEqual(len(stamped_paths(ROOT / self.SCRIPT)), 2)
 
     def test_a_path_the_release_leaves_out_is_reported(self) -> None:
@@ -2864,7 +1954,6 @@ class EveryStampedFileIsReleasedTest(unittest.TestCase):
 
 
 def recorded_version(module: Path) -> str | None:
-    """The version the package reports, read out of the file rather than imported."""
     if not module.is_file():
         return None
     found = re.search(r'^VERSION = "([^"]*)"$', module.read_text(), re.M)
@@ -2872,7 +1961,6 @@ def recorded_version(module: Path) -> str | None:
 
 
 def cited_version(citation: Path) -> str | None:
-    """The version the citation publishes."""
     if not citation.is_file():
         return None
     found = re.search(r"^version: (.*)$", citation.read_text(), re.M)
@@ -2880,18 +1968,6 @@ def cited_version(citation: Path) -> str | None:
 
 
 class TheVersionAndTheCitationAgreeTest(unittest.TestCase):
-    """That the two files the version script stamps say the same thing.
-
-    Neither can be held to the published tag from inside a checkout, and they can
-    be held to each other, which catches the case that actually happened: a
-    release that stamped both and committed one left them apart, and they stayed
-    apart for as many releases as it took somebody to compare them by eye.
-
-    Five members were apart when this was added. One was reporting version 0.0.0
-    from a package on its fifteenth release, because the file its release
-    committed was a path inside a submodule rather than its own.
-    """
-
     def stamped(self) -> list[str]:
         return stamped_paths(ROOT / "scripts" / "set-version.sh")
 
@@ -2940,6 +2016,96 @@ class TheVersionAndTheCitationAgreeTest(unittest.TestCase):
             found = cited_version(path)
 
         self.assertIsNone(found)
+
+
+DOCUMENTED = (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
+
+
+def is_bare_string(node: ast.stmt) -> bool:
+    return (
+        isinstance(node, ast.Expr)
+        and isinstance(node.value, ast.Constant)
+        and isinstance(node.value.value, str)
+    )
+
+
+def documents_its_holder(body: list[ast.stmt], index: int) -> bool:
+    opens_the_body = index == 0
+    follows_an_assignment = index > 0 and isinstance(body[index - 1], (ast.Assign, ast.AnnAssign))
+    return is_bare_string(body[index]) and (opens_the_body or follows_an_assignment)
+
+
+def documentation_strings(text: str) -> list[int]:
+    holders = [node for node in ast.walk(ast.parse(text)) if isinstance(node, DOCUMENTED)]
+    return sorted(
+        holder.body[index].lineno
+        for holder in holders
+        for index in range(len(holder.body))
+        if documents_its_holder(holder.body, index)
+    )
+
+
+def tracked_python_files() -> list[Path]:
+    listed = subprocess.run(
+        ["git", "ls-files", "*.py"], cwd=ROOT, capture_output=True, text=True, check=True
+    ).stdout.split()
+    return [ROOT / one for one in listed]
+
+
+class NoDocumentationStringTest(unittest.TestCase):
+    def test_no_tracked_file_carries_a_documentation_string(self) -> None:
+        # Arrange
+        files = tracked_python_files()
+
+        # Act
+        found = [
+            f"{path.relative_to(ROOT)}:{line}"
+            for path in files
+            for line in documentation_strings(path.read_text())
+        ]
+
+        # Assert
+        self.assertEqual(found, [])
+
+    def test_and_there_are_files_to_check(self) -> None:
+        # Arrange
+        minimum = 5
+
+        # Act
+        files = tracked_python_files()
+
+        # Assert
+        self.assertGreater(len(files), minimum)
+
+    def test_a_module_class_and_function_string_are_each_found(self) -> None:
+        # Arrange
+        text = '"""M."""\n\n\nclass A:\n    """C."""\n\n\ndef f() -> None:\n    """F."""\n'
+
+        # Act
+        found = documentation_strings(text)
+
+        # Assert
+        self.assertEqual(found, [1, 5, 9])
+
+    def test_a_string_after_an_assignment_is_found(self) -> None:
+        # Arrange
+        text = 'LIMIT = 3\n"""What the limit is."""\n'
+
+        # Act
+        found = documentation_strings(text)
+
+        # Assert
+        self.assertEqual(found, [2])
+
+    def test_a_string_used_as_a_value_is_not_one(self) -> None:
+        # Arrange
+        text = 'NAME = "a value"\nprint("a call")\n'
+
+        # Act
+        found = documentation_strings(text)
+
+        # Assert
+        self.assertEqual(found, [])
 
 
 if __name__ == "__main__":

@@ -1,12 +1,3 @@
-"""Holds each part to the row of Table 8-1 that describes it.
-
-The W65C816S data sheet is the only document here that sets the four parts side
-by side, so it is the one place a claim about a difference between them can be
-checked rather than inferred from two documents that never mention each other.
-Every row is driven on every model, and the row's own numbers are what the run
-is compared against.
-"""
-
 import json
 import sys
 import unittest
@@ -27,11 +18,9 @@ PARTS = HELD["columns"]
 START = 0x0200
 
 VECTOR = {0x12FF: 0x34, 0x1200: 0xAB, 0x1300: 0xCD}
-"""A jump vector whose low byte sits at the top of a page, which is the case row B is about."""
 
 
 def drive(row: dict[str, Any], model: str) -> list[tuple[int, str]]:
-    """One run of one row's program on one part, as a list of bus cycles."""
     start = row.get("start", START)
     space = SparseMemory()
     for offset, byte in enumerate(row["program"]):
@@ -52,7 +41,6 @@ def drive(row: dict[str, Any], model: str) -> list[tuple[int, str]]:
 
 
 def third(row: dict[str, Any], model: str) -> str:
-    """What the discarded cycle of an indexed access lands on."""
     address = drive(row, model)[3][0]
     return {
         (row.get("start", START) + len(row["program"]) - 1): "last instruction byte",
@@ -97,8 +85,6 @@ class RecordTest(unittest.TestCase):
 
 
 class DifferenceTest(unittest.TestCase):
-    """Every row driven on every part."""
-
     def cells(self) -> list[tuple[str, Any, Any]]:
         return [
             (f"{row['id']} on {model}", observed(row, model), row["says"][model])
@@ -121,8 +107,6 @@ class DifferenceTest(unittest.TestCase):
 
 
 class IndirectJumpTest(unittest.TestCase):
-    """Row B, where one instruction gets three different answers."""
-
     def row(self) -> dict[str, Any]:
         return next(row for row in ROWS if row["id"] == "indirectJumpOffThePageEdge")
 
@@ -148,8 +132,6 @@ class IndirectJumpTest(unittest.TestCase):
 
 
 class DiscardedReadTest(unittest.TestCase):
-    """The row that says the sixteen bit part kept the older behaviour."""
-
     def row(self) -> dict[str, Any]:
         return next(row for row in ROWS if row["id"] == "discardedReadOfAnIndexedAccess")
 
@@ -182,8 +164,6 @@ class DiscardedReadTest(unittest.TestCase):
 
 
 class ProgramTest(unittest.TestCase):
-    """That each row is driven by a program that exercises what it describes."""
-
     def test_the_shift_row_indexes_without_leaving_its_page(self) -> None:
         row = next(one for one in ROWS if one["id"] == "shiftOfAnIndexedAbsolute")
 

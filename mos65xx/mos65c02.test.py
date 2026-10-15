@@ -72,13 +72,6 @@ class FixedBugTest(unittest.TestCase):
         self.assertTrue(cpu.c)
 
     def test_a_decimal_subtract_of_an_operand_that_is_not_a_decimal_number(self) -> None:
-        """Where the two parts genuinely disagree about the answer, not the flags.
-
-        Nothing stops a program subtracting a byte whose nibbles are not digits.
-        The older part borrows out of the low digit into the high one; this part
-        subtracts in binary and corrects afterwards. Given `$FC` they differ by a
-        whole digit, and the suite says this part is the one that produces `$AE`.
-        """
 
         cpu, _ = machine([0xE9, 0xFC], a=0x10)
         cpu.d = True
@@ -418,8 +411,6 @@ class EveryOpcodeTest(unittest.TestCase):
 
 
 class HardwareInterruptTest(unittest.TestCase):
-    """What this part does differently when a pin goes low."""
-
     def vectored(self, vector: int, target: int = 0x9000) -> Any:
         cpu, memory = machine([0xEA])
         memory.write8(vector, target & 0xFF)
@@ -481,8 +472,6 @@ class HardwareInterruptTest(unittest.TestCase):
 
 
 class CycleShapeTest(unittest.TestCase):
-    """The spare cycles this part spends where the older one spends others."""
-
     def trace(self, program: Sequence[int], at: int = 0x8000, **registers: Any) -> list[Any]:
         cpu, _ = machine(program, at=at, **registers)
         cpu.trace = []
@@ -611,8 +600,6 @@ class CycleShapeTest(unittest.TestCase):
 
 
 class ResetTest(unittest.TestCase):
-    """That a reset defines the one flag this part defines and no others."""
-
     def machine(self, seed: int) -> Any:
         memory = SparseMemory(seed=seed)
         memory.write8(0xFFFC, 0x00)

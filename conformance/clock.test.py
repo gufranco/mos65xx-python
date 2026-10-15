@@ -1,12 +1,3 @@
-"""That a part can be driven one cycle at a time, and stopped between any two.
-
-The claim worth testing is not that the count comes out right. It is that the
-part is genuinely suspended part way through an instruction, which is shown by
-changing what memory answers between two cycles and watching the instruction
-pick the new value up. A model that ran the instruction and replayed its cycles
-afterwards would pass a count test and fail that one.
-"""
-
 from __future__ import annotations
 
 import sys

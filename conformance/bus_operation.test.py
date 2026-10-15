@@ -1,17 +1,3 @@
-"""Holds the sixteen bit part's bus to Table 6-7 of its data sheet.
-
-The table prints all eight output lines for every cycle of every addressing
-mode. Nothing else here states that at rung one, so without it the 65816's
-timing rests entirely on a recording. Each group is driven with one
-representative instruction and the table's own address expressions are resolved
-against that run, so a row that stops matching names the page it came from.
-
-Rows whose cycle label carries a letter are the conditional ones the notes add,
-for a sixteen bit register, a direct register with a low byte, an index that
-crosses a page. The runs below take the base path, so those rows are expected to
-be absent and their absence is checked rather than assumed.
-"""
-
 import json
 import sys
 import unittest
@@ -32,15 +18,11 @@ GROUPS = {group["id"]: group for group in HELD["groups"]}
 START = 0x000200
 
 HALTS = ("19c", "19d")
-"""Stop the clock and wait for an interrupt, which never finish a step."""
 
 BY_PIN = ("22a",)
-"""The hardware interrupts, which a pin drives rather than an opcode."""
 
 
 class Scene:
-    """One run of one group, with the quantities the table's expressions name."""
-
     def __init__(self, group: str, program: tuple[int, ...], **named: Any) -> None:
         self.group = group
         self.program = program
@@ -90,7 +72,6 @@ def bank(name: str, values: Mapping[str, int]) -> int:
 
 
 def offsets() -> dict[str, Callable[[Mapping[str, int]], int]]:
-    """Every offset expression the table prints, one function each."""
     return {
         "PC": lambda v: v["PC"],
         "PC+1": lambda v: v["PC"] + 1,
@@ -142,29 +123,11 @@ def offsets() -> dict[str, Callable[[Mapping[str, int]], int]]:
 
 
 def resolve(printed: str, values: Mapping[str, int]) -> int:
-    """One of the table's address cells, as a full twenty-four bit address.
-
-    Two cells name the bank and both halves of the offset, DBR,AAH,AAL+XL, so
-    the split is on the first comma only and the rest is one expression.
-    """
     head, _, tail = printed.partition(",")
     return (bank(head, values) | offsets()[tail](values)) & 0xFFFFFF
 
 
 def base(group: str) -> list[dict[str, Any]]:
-    """The rows a run in the configuration below should produce.
-
-    Eight bit registers, a direct register with no low byte, no index crossing a
-    page and no branch taken, which is the one configuration where every note
-    the table carries is inactive. That matters because the Note column is a
-    merged cell whose row alignment the extracted text cannot recover, so any
-    configuration that switched a note on would be relying on a guess about
-    which row the note belongs to. Here every lettered row is off, and a lettered
-    row is exactly a row the notes add.
-
-    The block moves print three consecutive executions of one instruction; one
-    step runs the first.
-    """
     rows = [
         row
         for row in GROUPS[group]["bus"]
@@ -192,7 +155,6 @@ TARGET = 0x1234
 
 
 def scenes() -> list[Scene]:
-    """One run per group, with the quantities its rows name."""
     vector = {TARGET: 0x78, TARGET + 1: 0x56, TARGET + 2: 0x7E}
     direct = {POINTER: 0x34, POINTER + 1: 0x12, POINTER + 2: 0x7E}
     stack = {0x01F1: 0x24, 0x01F2: 0x34, 0x01F3: 0x12, 0x01F4: 0x7E}
@@ -304,8 +266,6 @@ class RecordTest(unittest.TestCase):
 
 
 class BusTest(unittest.TestCase):
-    """Every drivable group run, and every line of every cycle checked."""
-
     def rows(self) -> list[tuple[str, str, str]]:
         found = []
         for scene in scenes():
@@ -396,8 +356,6 @@ class BusTest(unittest.TestCase):
 
 
 class QualifierTest(unittest.TestCase):
-    """The two lines the eight bit parts do not have, which this table is for."""
-
     def test_exactly_one_cycle_of_each_group_is_an_opcode_fetch(self) -> None:
         counts = {
             group["id"]: sum(1 for row in base(group["id"]) if (row["vda"], row["vpa"]) == (1, 1))

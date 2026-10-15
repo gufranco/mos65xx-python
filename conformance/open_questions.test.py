@@ -1,11 +1,3 @@
-"""That the open questions document names every question that is actually open.
-
-A file like this is worth having only while it is complete. One divergence added
-to the record and not to the document, and the document quietly becomes a claim
-that the project knows more than it does, which is the failure it exists to
-prevent.
-"""
-
 import json
 import sys
 import unittest

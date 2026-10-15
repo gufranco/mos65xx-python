@@ -1,28 +1,3 @@
-"""That every worked example in the readme still does what it says.
-
-A readme example is a promise a reader tests by pasting it, so an example that
-has stopped working is worse than an absent one: it is the first thing a new
-reader runs and the first impression they get. Nothing else in the suite touches
-these lines, because they live in prose rather than in a module, which is exactly
-why they rot quietly.
-
-Each example runs in a fresh interpreter rather than in this one. An example that
-only works because a test already imported something is not an example a reader
-can paste, and running it here in-process would hide that.
-
-An example that cannot run at all here is reported as skipped rather than as
-broken, and only when the member itself says why. Two members model a part that
-runs a program their repository is not allowed to carry, so on a machine without
-one every example that builds a part refuses. That refusal is the package working
-correctly, and counting it as a broken example would make a bare checkout look
-like a defect while hiding real ones behind it.
-
-What decides is the member's own `why_not`, which is the same sentence its doctor
-prints. A member that publishes none skips nothing, and on a machine that has the
-files nothing is skipped either, so the check keeps its teeth exactly where it
-had them.
-"""
-
 from __future__ import annotations
 
 import importlib
@@ -39,11 +14,6 @@ README = ROOT / "README.md"
 
 
 def packages() -> list[str]:
-    """The importable package in this repository, which is the member itself.
-
-    The conformance directory is one too and is not the member, so it is left
-    out by name rather than by position.
-    """
     return sorted(
         found.name
         for found in ROOT.iterdir()
@@ -52,16 +22,6 @@ def packages() -> list[str]:
 
 
 def cannot_run_here(named: list[str] | None = None) -> str | None:
-    """Why this member cannot build its part on this machine, or nothing.
-
-    Read off the package rather than guessed from a traceback, so the sentence
-    an example is excused by is the sentence the member itself publishes.
-
-    The names are a parameter so this can be driven against a member that
-    publishes a reason from a member that does not, and the other way round.
-    Nine of the sixteen publish nothing, and a branch only two of them reach is
-    a branch nobody has seen work.
-    """
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
     for name in packages() if named is None else named:
@@ -73,12 +33,6 @@ def cannot_run_here(named: list[str] | None = None) -> str | None:
 
 
 def excused(failure: str, reason: str | None = None) -> bool:
-    """Whether that failure is the member saying it has no file to run.
-
-    Matched on a run of the member's own sentence rather than on an exception
-    name, because the name differs per member and the sentence is the thing the
-    member publishes for exactly this purpose.
-    """
     said = cannot_run_here() if reason is None else reason
     return bool(said) and str(said)[:40] in failure
 
@@ -94,12 +48,6 @@ def blocks(text: str | None = None) -> list[tuple[str, str]]:
 
 
 def examples(text: str | None = None) -> list[tuple[str, str | None]]:
-    """Each python block, paired with the output block that follows it.
-
-    `text` is here so the collectors below can be driven against a readme that
-    is deliberately wrong. A checker nothing has ever seen fail is a checker
-    nobody knows the failure path of.
-    """
     found = blocks(text)
     paired: list[tuple[str, str | None]] = []
     for index, (lang, body) in enumerate(found):
@@ -122,12 +70,6 @@ def ran(source: str) -> subprocess.CompletedProcess[str]:
 
 
 def broken(found: list[tuple[str, str | None]], reason: str | None = None) -> list[str]:
-    """The last line of the traceback of every example that will not run.
-
-    A process can exit non-zero and print nothing, so the reason falls back to
-    the exit code rather than indexing an empty list. A checker that raises
-    while collecting a fault reports neither that fault nor any after it.
-    """
     failed = []
     reason = cannot_run_here() if reason is None else reason
     for source, _ in found:
@@ -144,7 +86,6 @@ def broken(found: list[tuple[str, str | None]], reason: str | None = None) -> li
 def mismatched(
     found: list[tuple[str, str | None]], reason: str | None = None
 ) -> list[tuple[str, str]]:
-    """What the readme claims each example prints, beside what it printed."""
     wrong = []
     reason = cannot_run_here() if reason is None else reason
     for source, expected in found:
@@ -172,18 +113,7 @@ class WorkedExampleTest(unittest.TestCase):
 
 
 class CheckerTest(unittest.TestCase):
-    """That the two collectors above report a fault rather than sailing past one.
-
-    They are the only thing standing between a rotted example and a reader, so a
-    run in which they have never been seen to fail says nothing about them.
-    """
-
     def test_an_example_that_runs_is_not_reported(self) -> None:
-        """Driven rather than inherited from whichever readme this member has.
-
-        On a member whose every example needs a file it may not ship, no example
-        succeeds on a runner, so this arc was covered here and uncovered there.
-        """
         readme = "```python\nprint(1)\n```\n"
 
         self.assertEqual(broken(examples(readme)), [])
@@ -204,12 +134,6 @@ class CheckerTest(unittest.TestCase):
         self.assertEqual(mismatched(examples(readme)), [("2", "1")])
 
     def test_and_a_later_example_is_still_checked_after_an_earlier_one_failed(self) -> None:
-        """The loop has to keep going, and one crafted example cannot show that.
-
-        A single mismatching example proves the report is produced and nothing
-        about what happens next. Two of them, with the failure first, is the only
-        arrangement where continuing after a failure is observable.
-        """
         readme = (
             "```python\nprint(1)\n```\n\n```\n2\n```\n\n```python\nprint(3)\n```\n\n```\n3\n```\n"
         )
@@ -217,7 +141,6 @@ class CheckerTest(unittest.TestCase):
         self.assertEqual(mismatched(examples(readme)), [("2", "1")])
 
     def test_a_member_that_can_run_everything_excuses_nothing(self) -> None:
-        """The teeth stay where they were on every member that ships its own part."""
         self.assertFalse(excused("anything at all", None if cannot_run_here() else "x" * 60))
 
     def test_a_failure_the_member_says_it_expects_is_excused(self) -> None:
@@ -226,7 +149,6 @@ class CheckerTest(unittest.TestCase):
         self.assertTrue(excused(f"Traceback\nNoFirmware: {reason}", reason))
 
     def test_and_any_other_failure_is_not(self) -> None:
-        """Driven against the shape that would otherwise slip through."""
         reason = "no firmware image was found: this backend runs the part's own microcode"
 
         self.assertFalse(excused("Traceback\nZeroDivisionError: division by zero", reason))
@@ -235,7 +157,6 @@ class CheckerTest(unittest.TestCase):
         self.assertFalse(excused("Traceback\nNoFirmware: anything", ""))
 
     def test_an_example_that_only_this_machine_can_run_is_reported_as_broken(self) -> None:
-        """So the excuse cannot be claimed by an example that simply does not work."""
         readme = "```python\nraise ValueError('nope')\n```\n"
 
         self.assertEqual(broken(examples(readme)), ["ValueError: nope"])
@@ -246,13 +167,11 @@ class CheckerTest(unittest.TestCase):
         self.assertEqual(broken(examples(readme), "no image is here"), [])
 
     def test_and_its_stated_output_is_not_compared_either(self) -> None:
-        """An example that never ran produced no output to compare."""
         readme = "```python\nraise SystemExit('no image is here')\n```\n\n```\n7\n```\n"
 
         self.assertEqual(mismatched(examples(readme), "no image is here"), [])
 
     def test_a_member_that_publishes_a_reason_is_read(self) -> None:
-        """Driven against a stand-in, because nine of the sixteen publish none."""
         speaking = ModuleType("speaking")
         speaking.why_not = lambda: "no image is here"  # type: ignore[attr-defined]
         sys.modules["speaking"] = speaking
@@ -279,7 +198,6 @@ class CheckerTest(unittest.TestCase):
             del sys.modules["silent"]
 
     def test_the_member_this_repository_holds_is_found_by_name(self) -> None:
-        """So the sweep cannot start reading the conformance directory instead."""
         self.assertNotIn("conformance", packages())
 
     def test_an_example_with_no_stated_output_is_only_run(self) -> None:

@@ -1,27 +1,3 @@
-"""The CMOS tables, written as what they changed rather than as a second copy.
-
-The CMOS part removed every undocumented instruction the NMOS part had and spent
-the freed opcodes on real ones: a pointer mode with no index, a store of zero, a
-branch that always takes, a test-and-set and a test-and-clear, pushes and pulls
-for both index registers, and an increment of the accumulator on its own. What it
-did not spend, it filled with no-operations of stated length, so that a program
-running off the end of its code advances predictably instead of executing rubbish.
-
-Three parts shipped and they are not the same part. The base CMOS design has none
-of the bit instructions. Rockwell added thirty two of them, eight each of set,
-clear, branch-if-set and branch-if-clear, in the two opcode columns the base
-design had left as no-operations. WDC took Rockwell's and added two more that stop
-the processor or make it wait for an interrupt.
-
-Keeping all three matters because a machine has whichever one it was built with. A
-program written for the Rockwell part running on the base part meets a
-no-operation where it expected to clear a bit, and nothing reports it.
-
-The tables are built by naming what changed against the NMOS table rather than by
-writing two hundred and fifty six entries again. The difference is the interesting
-part, and a second literal would hide it while inviting a transcription error.
-"""
-
 from __future__ import annotations
 
 from typing import Any
@@ -32,10 +8,6 @@ ONE_BYTE = "implied"
 TWO_BYTE = "immediate"
 THREE_BYTE = "absolute"
 INDEXED_THREE_BYTE = "absoluteX"
-"""The mode names carry the length, and for the opcodes nobody documented they
-carry the shape too: the pair of columns the base part left empty behave as the
-indexed forms of the two beside them, which is what the recorded cycles show and
-what decides how many of them an instruction spends."""
 
 CHANGED = {
     0x00: ("brk", "implied"),

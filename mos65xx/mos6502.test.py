@@ -572,8 +572,6 @@ class ReachTest(unittest.TestCase):
 
 
 class HardwareInterruptTest(unittest.TestCase):
-    """The two pins, which no instruction reaches and nothing else models."""
-
     def waiting_at(self, vector: int, target: int = 0x9000) -> Any:
         cpu, memory = machine([0xEA], s=0xFD)
         memory.write8(vector, target & 0xFF)

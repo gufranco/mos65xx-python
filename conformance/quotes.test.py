@@ -1,10 +1,3 @@
-"""That every sentence these records call a quote is one a pinned document carries.
-
-Nothing here needs a document. The documents are not redistributable, so a run on
-a machine without them checks nothing, and the part worth pinning is that such a
-run says so rather than reporting a pass it did not earn.
-"""
-
 import builtins
 import contextlib
 import io
@@ -74,7 +67,6 @@ class ReadingTest(unittest.TestCase):
         self.assertEqual(found, [("aboutQuotes[0]", "one"), ("aboutQuotes[1]", "two")])
 
     def test_and_a_numbered_map_of_them_keeps_the_number_printed_beside_each(self) -> None:
-        """A page of notes is numbered, and the number is how a row cites one."""
         found = quotes.said({"noteQuotes": {"1": "first", "14": "fourteenth"}})
 
         self.assertEqual(found, [("noteQuotes.1", "first"), ("noteQuotes.14", "fourteenth")])
@@ -248,8 +240,6 @@ class EntryPointTest(unittest.TestCase):
 
 
 class CitationTest(unittest.TestCase):
-    """That a reader can look up every sentence the manufacturer is quoted saying."""
-
     def test_every_manufacturer_quote_names_a_page(self) -> None:
         self.assertEqual(quotes.unpaged(), [])
 
@@ -304,14 +294,6 @@ class CitationTest(unittest.TestCase):
 
 
 class SectionTest(unittest.TestCase):
-    """That a fact from a book covering many parts names which part's pages it came from.
-
-    This is the one thing searching the document cannot answer. The flattened
-    text holds every section at once, so a table lifted from a sibling part
-    matches just as well as the right one, and the sibling in this particular
-    book prints the same six flag bits under the same names.
-    """
-
     def a_record(self, page: object, span: object = None) -> tuple[str, object]:
         document: dict[str, object] = {"title": "a book"}
         if span is not None:
@@ -427,14 +409,6 @@ class SectionTest(unittest.TestCase):
 
 
 class DeclaredDocumentTest(unittest.TestCase):
-    """That every citation names a document the record declares.
-
-    The field held three vocabularies at once here: a declared key, a bare file
-    name, and a prose title with the section glued on the end. Nothing could
-    check any of them, because a check written against keys skipped the other two
-    in silence and reported a clean run over the third.
-    """
-
     def a_record(self, cited: str, declared: object = None) -> tuple[str, object]:
         held: dict[str, object] = {"facts": {"a": {"document": cited, "quote": "words"}}}
         if declared is not None:
@@ -480,15 +454,6 @@ class DeclaredDocumentTest(unittest.TestCase):
 
 
 class AttributionTest(unittest.TestCase):
-    """That a quote is in the document its own record names.
-
-    Scoring a quote against whichever document places it best answers "did
-    somebody publish this sentence" and not "did the document this record cites
-    publish it". The two come apart exactly when a fact is filed under the wrong
-    source, and then the words are real, the run is green, and the citation sends
-    a reader somewhere the sentence is not.
-    """
-
     def a_record(self, cited: str, quote: str) -> tuple[str, object]:
         return (
             "held.json",
@@ -561,11 +526,6 @@ class AttributionTest(unittest.TestCase):
         self.assertEqual(quotes.misattributed([held], self.BOOKS), [])
 
     def test_a_declared_document_naming_no_file_cannot_be_checked(self) -> None:
-        """The block may hold an entry with no file, and it is simply skipped.
-
-        A record can declare a document it has never had a copy of. There is
-        nothing to search, so there is nothing to say about a quote citing it.
-        """
         held = (
             "held.json",
             {
@@ -581,13 +541,6 @@ class AttributionTest(unittest.TestCase):
 
 
 class PhantomTableTest(unittest.TestCase):
-    """That a section naming a table is held to the document beside it.
-
-    The words of a quote were checked and the table pointed at was not, so a
-    citation could name the right document, quote it correctly, and send a
-    reader to a table only a different sheet has.
-    """
-
     TABLES: ClassVar[dict[str, set[str]]] = {
         "right.pdf": {"4-1", "7-1"},
         "other.pdf": {"6-5", "6-76"},
@@ -633,20 +586,17 @@ class PhantomTableTest(unittest.TestCase):
         self.assertEqual(found, [])
 
     def test_a_longer_table_number_does_not_pass_off_as_a_shorter_one(self) -> None:
-        """`Table 6-7` is absent from a document whose only near name is `Table 6-76`."""
         found = quotes.phantom([self.a_record("other", "Table 6-7")], self.TABLES)
 
         self.assertEqual(len(found), 1)
 
     def test_a_bare_table_number_is_not_satisfied_by_a_subdivided_one(self) -> None:
-        """NEC numbers a table `6`. A document whose only six is `6-5` has no `6`."""
         found = quotes.phantom([self.a_record("other", "Table 6. ALU Field")], self.TABLES)
 
         self.assertEqual(len(found), 1)
         self.assertIn("Table 6,", found[0])
 
     def test_a_document_whose_reading_names_no_table_is_skipped(self) -> None:
-        """A scan whose text layer lost the labels says nothing about the record."""
         found = quotes.phantom(
             [self.a_record("right", "Table 6-5")], {"right.pdf": set(), "other.pdf": {"6-5"}}
         )
@@ -693,8 +643,6 @@ class PhantomTableTest(unittest.TestCase):
 
 
 class TableCatalogueTest(unittest.TestCase):
-    """That the table names come off the page rather than off the flattened body."""
-
     def answering(self, text: str) -> Any:
         def run(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
             return subprocess.CompletedProcess([], 0, stdout=text, stderr="")
@@ -737,13 +685,6 @@ class TableCatalogueTest(unittest.TestCase):
 
 
 class BorrowedTextTest(unittest.TestCase):
-    """That a document's words are found wherever a record puts them.
-
-    A quote is checked because of the key it sits under, so a passage under any
-    other name was document text nothing held to the document. Twenty-one of
-    them were here at once.
-    """
-
     LONG = "the quick brown fox jumps over the lazy dog and then turns around and runs home"
     BOOKS: ClassVar[dict[str, str]] = {"right.pdf": quotes.flatten(LONG)}
 
@@ -767,7 +708,6 @@ class BorrowedTextTest(unittest.TestCase):
         self.assertIn("right.pdf", found[0])
 
     def test_a_short_string_is_left_alone_however_it_is_keyed(self) -> None:
-        """A record repeats a mnemonic or a column heading legitimately."""
         found = quotes.borrowed([self.a_record("title", "the quick brown fox")], self.BOOKS)
 
         self.assertEqual(found, [])

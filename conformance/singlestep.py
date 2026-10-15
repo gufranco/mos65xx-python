@@ -1,32 +1,3 @@
-"""Check a core against the per-opcode suite published for the part it models.
-
-Each suite gives ten thousand tests per opcode, and the 65816 gives that twice
-over because it has two modes. Each test carries a complete starting state, the
-bytes of memory the instruction touches, and the state one instruction later.
-Nothing in any of them starts clean: every register holds an arbitrary value,
-which is the point, and a core that quietly assumes a cleared machine fails on
-the first case.
-
-The family shares one runner because the suites share one shape. What differs is
-which registers a part has, and that comes from the model rather than from a
-second copy of this file.
-
-The suite is not carried here. It is gigabytes of JSON that belongs to its own
-project, and this takes a path to a local checkout and reports honestly when
-there is not one, the way every other check in this repository treats data it
-does not own.
-
-    git clone --filter=blob:none --sparse --depth=1 \\
-        https://github.com/SingleStepTests/ProcessorTests.git
-    git -C ProcessorTests sparse-checkout set 65816
-    python3 -m conformance.singlestep ProcessorTests/65816/v1
-
-    git clone --filter=blob:none --sparse --depth=1 \\
-        https://github.com/SingleStepTests/65x02.git
-    git -C 65x02 sparse-checkout set 6502
-    python3 -m conformance.singlestep 65x02/6502/v1 --model 6502
-"""
-
 from __future__ import annotations
 
 import json
@@ -57,7 +28,6 @@ REGISTERS = (
 
 
 def suite_files(directory: Path) -> list[Path]:
-    """Every test file in the suite, in a fixed order, or none if it is absent."""
     directory = Path(directory)
     if not directory.is_dir():
         return []
@@ -65,16 +35,6 @@ def suite_files(directory: Path) -> list[Path]:
 
 
 def machine_for(initial: Mapping[str, Any], model: str = DEFAULT_MODEL) -> Any:
-    """A processor and memory in exactly the state the test declares.
-
-    Memory outside the bytes the test names is scrambled rather than cleared. The
-    suite says nothing about those addresses, so an instruction that reads one is
-    reading something undefined, and filling them with zeroes would make such a
-    read look deliberate.
-
-    Only the registers the test names are set, because only the registers the
-    part has are named. Everything else keeps what the reset left it holding.
-    """
     memory = SparseMemory(seed=initial["pc"])
     for address, value in initial["ram"]:
         memory.write8(address, value)
@@ -90,13 +50,6 @@ def machine_for(initial: Mapping[str, Any], model: str = DEFAULT_MODEL) -> Any:
 
 
 def check(test: Mapping[str, Any], model: str = DEFAULT_MODEL) -> list[tuple[str, Any, Any]]:
-    """Where the interpreter and the suite disagree after one instruction.
-
-    The suite records how many cycles it let the instruction have, which matters
-    only for the block moves: those are interruptible and the suite captures a
-    hundred cycle window rather than a move of sixty thousand bytes. Every other
-    instruction finishes well inside its window, so the budget changes nothing.
-    """
     cpu, memory = machine_for(test["initial"], model)
     if hasattr(cpu, "cycle_budget"):
         cpu.cycle_budget = len(test.get("cycles", ())) or None
@@ -127,20 +80,6 @@ def check(test: Mapping[str, Any], model: str = DEFAULT_MODEL) -> list[tuple[str
 
 
 def recorded_divergence(test: Mapping[str, Any], model: str) -> str:
-    """The name of the entry explaining this case, or an empty string.
-
-    One case is left out, narrowly and by opcode, and it is reported rather than
-    hidden. PLB pulls one byte, and section 8.1 of the W65C816S data sheet puts
-    the emulation stack range at 000100 to 0001FF and lists the opcodes that
-    leave it when they access two or three bytes. PLB is not on that list and
-    does not access two or three bytes, so this model keeps it inside page one.
-    The corpus records the read one byte past the top of the page, and the two
-    disagree on exactly the cases where the pointer sits at the page edge.
-
-    The condition is the disagreement itself rather than a list of case names: a
-    list would go stale the moment the corpus is regenerated, and would say
-    nothing about why those names and no others.
-    """
     if model != "65816":
         return ""
     initial = test["initial"]
@@ -155,7 +94,6 @@ def recorded_divergence(test: Mapping[str, Any], model: str) -> str:
 def run_tests(
     tests: Iterable[Mapping[str, Any]], model: str = DEFAULT_MODEL
 ) -> tuple[int, int, int, list[tuple[str, list[tuple[str, Any, Any]]]]]:
-    """How many agreed, how many did not, how many were left out, and examples."""
     passed = failed = skipped = 0
     examples: list[tuple[str, list[tuple[str, Any, Any]]]] = []
     for test in tests:
@@ -178,16 +116,6 @@ def run_tests(
 def run_file(
     path: Path, limit: int | None = None, model: str = DEFAULT_MODEL
 ) -> tuple[int, int, int, list[tuple[str, list[tuple[str, Any, Any]]]]]:
-    """One test file, optionally only its first few cases.
-
-    A file with nothing in it is a file with no cases rather than a failure. The
-    suites carry one per opcode, and the two whose whole behaviour is to stop the
-    part are empty because there is nothing to record.
-
-    The caller counts those and names them, because a run that compares two
-    hundred and fifty four files out of two hundred and fifty six and reports only
-    the two hundred and fifty six reads as a run that checked them all.
-    """
     held = Path(path).read_text().strip()
     if not held:
         return 0, 0, 0, []
@@ -205,7 +133,6 @@ class Usage(Exception):
 
 
 def options(argv: Sequence[str]) -> Any:
-    """The suite to run, how much of it, and which part it is a suite for."""
     model = DEFAULT_MODEL
     rest = []
     argv = list(argv)

@@ -1,30 +1,3 @@
-"""Check the bus, cycle by cycle, against the suite that recorded it.
-
-The other runner compares state: where the registers, the flags and the touched
-bytes ended up. This one compares what happened on the way there. Every cycle of
-these parts is a bus cycle, so the recorded list of accesses is the instruction's
-timing and its side effects at once, and a model that agrees with it agrees about
-both.
-
-Nothing is inferred from a cycle count here. The comparison is address by address,
-value by value, read against write, in order. A model that takes the right number
-of cycles by reading the wrong address fails.
-
-    python3 -m conformance.cycles 65x02/6502/v1 --model 6502
-
-One thing is outside the comparison and it is named in the output: a cycle whose
-recorded address is a placeholder rather than a measurement. Nothing else is
-skipped. The instructions that halt the part used to be, on the grounds that what
-a halted part puts on the bus is a property of the recording's length rather than
-of the instruction. Only the length is. The shape is fixed, and the recordings
-pin it down, so a model is clocked out to the recorded length and compared over
-all of it.
-
-A model this runner has not been held to is refused rather than reported on,
-because an agreement it cannot establish is worse than no answer. Which parts
-those are is in VERIFIED below.
-"""
-
 from __future__ import annotations
 
 import json
@@ -48,39 +21,17 @@ from mos65xx import UnknownModelError, models  # noqa: E402
 EXAMPLE_LIMIT = 3
 
 PLACEHOLDER_OPCODES = frozenset({0x69, 0xE9})
-"""Add and subtract with an immediate operand, on the CMOS parts.
-
-Decimal arithmetic costs those parts one extra cycle, and the data sheet says an
-internal cycle's address may be invalid. The recordings fill it with a constant:
-one value per suite for the add, zero for the subtract, the same whatever the
-program counter and the operands are. That is a recorder's placeholder rather
-than a measurement, so a case that differs only there is counted apart instead of
-being called a disagreement, and conformance/divergences.json carries the numbers.
-"""
 
 VERIFIED = frozenset({"6502", "6507", "2a03", "65c02", "r65c02", "w65c02", "65816", "65802"})
-"""The parts whose bus activity has been held to a suite, cycle for cycle.
-
-Anything else is refused rather than reported on. A runner that compared a part it
-had never been held to would report a disagreement per case and teach a reader
-nothing, and one that skipped the comparison silently would be worse.
-"""
 
 Cycle = tuple[int | None, int | None, str]
 Example = tuple[str, list[Cycle], list[Cycle]]
 
 
-class Unsupported(Exception):
-    """Raised rather than reporting agreement the comparison cannot establish."""
+class Unsupported(Exception): ...
 
 
 def recorded(test: Mapping[str, Any]) -> list[Cycle]:
-    """The cycles the suite recorded, in the shape the model reports its own.
-
-    A cycle with no value is one where the part drove neither address line, so
-    nothing answered. The 65816 records those; the eight-bit parts have none,
-    because they drive a real address in every cycle they run.
-    """
     return [
         (
             None if address is None else int(address),
@@ -92,23 +43,12 @@ def recorded(test: Mapping[str, Any]) -> list[Cycle]:
 
 
 def opcode_of(initial: Mapping[str, Any]) -> int | None:
-    """The byte the part is about to fetch, wherever the bank register puts it.
-
-    On the 65816 the program counter is only sixteen of the twenty four bits, and
-    a lookup that forgets the program bank finds the wrong byte or none at all.
-    """
     at = (int(initial.get("pbr", 0)) << 16) | int(initial["pc"])
     found = dict(initial["ram"]).get(at)
     return None if found is None else int(found)
 
 
 def only_placeholder(test: Mapping[str, Any], seen: Sequence[Cycle]) -> bool:
-    """Whether the one cycle that differs is the one with no address to compute.
-
-    Narrow on purpose: same length, exactly one cycle apart, both of them reads,
-    and the opcode one of the two whose extra decimal cycle has nowhere to point.
-    Anything wider would hide a real disagreement.
-    """
     opcode = opcode_of(test["initial"])
     if opcode not in PLACEHOLDER_OPCODES:
         return False
@@ -123,16 +63,6 @@ def only_placeholder(test: Mapping[str, Any], seen: Sequence[Cycle]) -> bool:
 
 
 def check(test: Mapping[str, Any], model: str = DEFAULT_MODEL) -> list[Cycle] | None:
-    """What the model put on the bus, when that differs from the recording.
-
-    None means they agree. A list means they do not, and it is the model's own
-    sequence, which is what a reader needs beside the recorded one.
-
-    An instruction that halts the part never finishes, so one step does not fill
-    a recording. The part is clocked on to the recorded length instead, which is
-    fair rather than generous: what it drives in those cycles is fixed, and a
-    model that drove anything else would differ here rather than pass.
-    """
     try:
         cpu, _ = machine_for(test["initial"], model)
         if not hasattr(cpu, "trace"):
@@ -155,16 +85,6 @@ def check(test: Mapping[str, Any], model: str = DEFAULT_MODEL) -> list[Cycle] | 
 def run_tests(
     tests: Iterable[Mapping[str, Any]], model: str = DEFAULT_MODEL
 ) -> tuple[int, int, int, list[Example]]:
-    """How many agreed, how many did not, how many were left out, and examples.
-
-    Two kinds are left out and both are reported rather than hidden: a case that
-    differs only at a cycle whose recorded address is a placeholder rather than a
-    measurement, and a case where the corpus and a manufacturer statement give
-    different answers and this project follows the document. The second is the
-    same predicate `singlestep` uses, imported rather than copied, so the rule
-    lives in one place and a change to it cannot reach one runner and miss the
-    other.
-    """
     agreed = differed = skipped = 0
     examples: list[Example] = []
     for test in tests:
@@ -184,12 +104,6 @@ def run_tests(
 def run_file(
     path: Path, limit: int | None = None, model: str = DEFAULT_MODEL
 ) -> tuple[int, int, int, list[Example]]:
-    """One test file, optionally only its first few cases.
-
-    A file with nothing in it is a file with no cases, not a failure. The suites
-    carry one for every opcode including the two whose whole behaviour is to stop
-    the part, and those two are empty because there is nothing to record.
-    """
     held = Path(path).read_text().strip()
     if not held:
         return 0, 0, 0, []
@@ -200,7 +114,6 @@ def run_file(
 
 
 def options(argv: Sequence[str]) -> tuple[list[str], str]:
-    """The suite to run, how much of it, and which part it is a suite for."""
     model = DEFAULT_MODEL
     rest = []
     remaining = list(argv)
@@ -228,7 +141,6 @@ USAGE = "usage: python3 -m conformance.cycles <suite directory> [tests per file]
 
 
 def report(examples: Sequence[Example]) -> None:
-    """One disagreement, both sequences, so a reader can see which cycle moved."""
     first, want, got = examples[0]
     print(f"      first {first}")
     print(f"      recorded {want}")

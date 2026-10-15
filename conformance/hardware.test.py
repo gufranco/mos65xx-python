@@ -1,10 +1,3 @@
-"""That the recorded manufacturer facts and the cores actually agree.
-
-A datasheet fact copied into a file nobody checks is decoration, and it drifts.
-Every entry in hardware.json that names a number this project uses is compared
-against the code here, so a change to either side has to answer for itself.
-"""
-
 from __future__ import annotations
 
 import json
@@ -35,20 +28,12 @@ def fact(name: str) -> dict[str, Any]:
 
 
 class DocumentTest(unittest.TestCase):
-    """That the file names its sources well enough for somebody to go and check."""
-
     def test_every_document_is_named_with_a_revision_and_a_date_read(self) -> None:
         for named in declared()["documents"].values():
             for key in ("publisher", "title", "revision", "readOn"):
                 self.assertIn(key, named)
 
     def test_and_says_where_the_copy_that_was_read_is_pinned(self) -> None:
-        """Every document names somewhere a reader can check they have the same file.
-
-        That used to be a manifest under docs, which the repository does not
-        carry, so the answer pointed at nothing for anyone who cloned it. It is
-        the readme now, which is tracked and lists the digest of each file.
-        """
         missing = [
             held["title"]
             for held in declared()["documents"].values()
@@ -80,8 +65,6 @@ class DocumentTest(unittest.TestCase):
 
 
 class VectorTest(unittest.TestCase):
-    """That the addresses the cores read are the addresses the pins describe."""
-
     def test_the_native_break_vector_is_the_one_this_project_uses(self) -> None:
         self.assertEqual(wdc65816.BREAK_VECTOR, 0x00FFE6)
 
@@ -121,8 +104,6 @@ class VectorTest(unittest.TestCase):
 
 
 class ResetStateTest(unittest.TestCase):
-    """That a reset leaves the part where the document says it leaves it."""
-
     def machine(self) -> Any:
         cpu = wdc65816.Cpu(Memory(0x1000000), seed=99)
         cpu.reset(99)
@@ -168,8 +149,6 @@ class ResetStateTest(unittest.TestCase):
 
 
 class InterruptEffectTest(unittest.TestCase):
-    """That an interrupt does the two things to the status register it must."""
-
     def broken(self, emulation: bool) -> Any:
         memory = Memory(0x1000000)
         cpu = wdc65816.Cpu(memory)
@@ -198,8 +177,6 @@ class InterruptEffectTest(unittest.TestCase):
 
 
 class TransferWidthTest(unittest.TestCase):
-    """That the four always-wide transfers are wide whatever the accumulator is."""
-
     def machine(self) -> Any:
         cpu = wdc65816.Cpu(Memory(0x1000000))
         cpu.emulation = False
@@ -250,8 +227,6 @@ class TransferWidthTest(unittest.TestCase):
 
 
 class HonestyTest(unittest.TestCase):
-    """That the entries with nothing behind them say so."""
-
     def test_the_late_arriving_rotate_is_recorded_as_not_modelled(self) -> None:
         self.assertIn("notModelled", fact("nmosRorArrivedLate"))
 
@@ -284,7 +259,6 @@ class HonestyTest(unittest.TestCase):
         self.assertIn("lands above 0001FF rather than wrapping", recorded["note"])
 
     def packages(self) -> list[str]:
-        """The ten the data sheet lists."""
         return [str(name) for name in fact("nmosFamilyPackages")["packages"]]
 
     def test_the_second_source_names_all_but_one_of_them(self) -> None:
@@ -326,7 +300,6 @@ class HonestyTest(unittest.TestCase):
 
 
 def overreaching(facts: dict[str, Any], documents: dict[str, Any]) -> list[str]:
-    """Every fact reaching parts the document it cites does not describe."""
     found = []
     for name, fact in facts.items():
         held = documents.get(fact["document"], {}).get("appliesTo")
@@ -336,18 +309,6 @@ def overreaching(facts: dict[str, Any], documents: dict[str, Any]) -> list[str]:
 
 
 class CoreScopeTest(unittest.TestCase):
-    """That every fact says which core it governs, and could have come from its source.
-
-    Sixteen part names build three cores here, and a claim is about a core. Left
-    unsaid, the part a fact governs was carried by the key's spelling and by which
-    document it cited, so a claim read from the CMOS sheet and filed among the
-    16-bit facts would read exactly like the others.
-
-    The core list is taken from the package rather than written down twice, so a
-    part that changes core is a failure here rather than a record that quietly
-    disagrees with the code.
-    """
-
     def cores(self) -> dict[str, list[str]]:
         held: dict[str, list[str]] = {}
         for name in sorted(mos65xx.MODELS):
@@ -399,12 +360,6 @@ class CoreScopeTest(unittest.TestCase):
         self.assertEqual(overreaching(declared()["facts"], declared()["documents"]), [])
 
     def test_and_one_that_did_would_be_reported(self) -> None:
-        """The check has to be seen failing to be worth running.
-
-        Three facts about the CMOS part were filed under the 16-bit part's data
-        sheet, and this rule catches that shape on its own: a fact reaching parts
-        its source does not describe.
-        """
         facts = {
             "borrowed": {
                 "document": "wide-only",
@@ -423,13 +378,6 @@ class CoreScopeTest(unittest.TestCase):
 
 
 class ClosingConditionTest(unittest.TestCase):
-    """That evidence named as reachable is named honestly and is not carried.
-
-    The section exists so a question can point at something better than a bench
-    nobody has. That only helps if each entry names a document this record
-    declares, says what it would settle, and says plainly that it is not here.
-    """
-
     def held(self) -> dict[str, Any]:
         return {
             name: one for name, one in declared()["closingConditions"].items() if name != "note"
@@ -457,7 +405,6 @@ class ClosingConditionTest(unittest.TestCase):
         self.assertEqual(carried, [])
 
     def test_none_of_them_is_scoped_as_though_it_were_a_fact(self) -> None:
-        """A fact covers the models of a core. A thing somebody sells covers one part."""
         scoped = sorted(
             name
             for name, one in self.held().items()

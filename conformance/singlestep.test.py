@@ -165,14 +165,6 @@ class RunTest(unittest.TestCase):
 
 
 class RecordedDivergenceTest(unittest.TestCase):
-    """That the one case left out is left out by its condition, and only it.
-
-    The corpus and the data sheet disagree about where a one byte pull lands when
-    the stack pointer sits at the top of emulation page one. Leaving those cases
-    out by name would go stale the moment the corpus is regenerated and would say
-    nothing about why those names and no others.
-    """
-
     def a_pull(self, **changes: Any) -> dict[str, Any]:
         held = a_test(name="ab e 75")
         held["initial"] = dict(held["initial"], **{"e": 1, "s": 0x01FF, **changes})
@@ -276,7 +268,6 @@ class MainTest(unittest.TestCase):
         self.assertIn("no suite at", output)
 
     def test_a_recorded_divergence_is_named_rather_than_counted_as_a_pass(self) -> None:
-        """Silence would let the count read as agreement it did not earn."""
         held = a_test(name="ab e 75")
         held["initial"] = dict(held["initial"], **{"e": 1, "s": 0x01FF})
         held["final"] = dict(held["final"], dbr=0xFF)
@@ -341,14 +332,6 @@ class MainTest(unittest.TestCase):
 
 
 class NarrowPartTest(unittest.TestCase):
-    """A suite for a part with fewer registers than the one this file grew up on.
-
-    The 6502 suite names no emulation flag, no direct page, and no bank
-    registers, because the part has none of them. Only what a test names is set,
-    so a runner that reached for all of them would fail on every case of every
-    suite except one.
-    """
-
     def case(self) -> dict[str, Any]:
         return {
             "name": "a9 42",
@@ -437,13 +420,6 @@ class RefusalTest(unittest.TestCase):
 
 
 class EmptyFileTest(unittest.TestCase):
-    """That a file with nothing in it is no cases rather than a crash.
-
-    The suites carry one file per opcode, and the two whose whole behaviour is to
-    stop the part are empty because there is nothing to record. A runner that
-    raises on them cannot run the suite at all.
-    """
-
     def test_an_empty_file_holds_no_cases(self) -> None:
         with tempfile.TemporaryDirectory() as where:
             path = Path(where) / "cb.json"

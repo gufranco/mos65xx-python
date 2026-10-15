@@ -1,33 +1,3 @@
-"""Which parts of the 65xx family this package covers, and what each one is.
-
-A model is more than an opcode set. It is the address bus the part was given, the
-instructions its maker added, and the mistakes its silicon shipped with. The
-Ricoh 2A03 has decimal arithmetic disabled because the adder is not wired for
-it. The 6507 has thirteen address lines and no interrupt pins. The NMOS parts execute undocumented opcodes that programs came to
-rely on. None of that is a defect to be corrected here: a core that quietly fixes
-a hardware bug is wrong for the machine that shipped it.
-
-Adding a model means adding an entry here and holding it to a conformance suite.
-A model with no suite behind it does not belong in this table, because then its
-fidelity would be a claim rather than a measurement.
-
-Ten of these have no suite of their own, and each says which part it narrows.
-None is a different processor. Nine are the 6502 die in a smaller package, with
-address lines left inside and, on most of them, one or both interrupt pins gone;
-the 65802 is a 65816 in a forty pin part whose bank registers reach nothing
-outside the first bank. What holds them is the suite of the part they narrow
-plus a check that the narrowing is the only difference, so the claim is still
-measured; it is measured against a sibling rather than against a recording of
-its own.
-
-A pin the package does not bring out is not a pin a system can assert, so
-pulling one here raises rather than quietly taking the interrupt. That is the
-whole of what separates the 6503, 6504, 6505 and 6506 from one another: they
-have the same core, the same instructions and the same timing, and they differ
-in how far an address reaches and which of the two interrupt lines survived the
-pin count.
-"""
-
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
@@ -37,8 +7,6 @@ from .errors import UnknownModelError
 
 
 class Model:
-    """One part of the family: what it is, what it reaches, and how to build it."""
-
     __slots__ = (
         "address_bits",
         "aliases",
@@ -78,15 +46,6 @@ class Model:
         self.narrows = narrows
         self.pins = tuple(pins)
         self.reset_cycles = reset_cycles
-        """How long a reset takes on this part, counting the vector fetch.
-
-        Eight everywhere the manufacturer said so: "the microprocessor will
-        delay 6 cycles and then fetch the new program count vectors", which with
-        the two cycles of that fetch is eight. WDC states a different figure for
-        its own CMOS part, seven, and says nothing about the sixteen bit ones.
-        Rockwell and Synertek state nothing at all, so their parts keep the
-        figure of the design they are built from rather than borrowing WDC's.
-        """
 
     @property
     def address_mask(self) -> int:
@@ -367,19 +326,6 @@ def _normalise(name: str) -> str:
 
 
 def lookup(name: str | None) -> Model:
-    """The model of that name, however it happens to be written.
-
-    Naming nothing is refused rather than filled in. A default would be the one
-    implicit thing in the call that builds a part, and it is worst where it looks
-    most harmless: a caller who learns to leave the model out against a member
-    covering one part writes the same call against a member covering sixteen.
-    The refusal names every model there is, so somebody who did not know what to
-    pass learns it here rather than from the source.
-
-    Not exported from the package. What a caller wants is the part, and the part
-    carries its own model; handing back a description of a part nobody built
-    reads like a test fixture rather than an interface.
-    """
     if name is None:
         raise UnknownModelError(
             "no model was named, and this package will not choose one for you."

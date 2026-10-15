@@ -1,24 +1,3 @@
-"""Look for every sentence these records call a quote in the documents they cite.
-
-A record that quotes a document is making a checkable claim, and until this file
-existed nothing checked it. Reading the quotes against the documents by hand
-found three defects across this family: a Q and A answer that read 8259 where the
-page prints 8080, inverting which part generates three acknowledge pulses; a
-quote that dropped a parenthetical while labelled verbatim; and, in the sibling
-repository, a sentence about a clock divided into phases that appears in none of
-the twelve documents that project pins.
-
-The documents are not in the repository and never will be: none is
-redistributable. So this reports what it could not check rather than passing
-quietly, and a run with no documents on disk checks nothing and says so.
-
-Matching is deliberately loose. Every document here is a photograph of a printed
-book, and the text layer a scan carries prints lhe for the and OP for DP, so an
-exact search finds nothing and the absence means nothing. A quote is scored on
-how many of its five-word windows appear, which survives hyphenation, collapsed
-spaces and a misread word, and still fails a sentence that was never printed.
-"""
-
 from __future__ import annotations
 
 import json
@@ -39,21 +18,10 @@ RECORDS = ROOT / "conformance"
 WINDOW = 5
 
 BORROWED = 12
-"""How long a run of words has to be before a document carrying it is not chance."""
 
 TABLE = re.compile(r"Table\s+(\d+(?:[-.]\d+)*)")
-"""How a numbered table is named, in either family the documents here use."""
-"""Words per window. Short enough to survive a misread word, long enough that
-matching one is not a coincidence."""
 
 BAR = 0.4
-"""The share of windows a quote must place to count as found.
-
-A scan misreads perhaps a word in twenty, and a quote of thirty words has
-twenty-six windows, so a passing quote usually places most of them. The bar sits
-low because the question is whether the sentence is on the page at all, not
-whether the recogniser read it well.
-"""
 
 DASHES = (0x2013, 0x2014, 0x2212)
 
@@ -62,17 +30,9 @@ SINGLES = (0x2018, 0x2019, 0x2032)
 DOUBLES = (0x201C, 0x201D)
 
 ELSEWHERE = ("suiteSays",)
-"""Trails whose quotes are not a manufacturer speaking.
-
-suiteSays quotes the recording this project is measured against, which is not in
-a pinned document, so looking for it there would report an absence that means
-nothing.
-"""
 
 
 class Verdict(NamedTuple):
-    """One quote, and the best any pinned document could do with it."""
-
     where: str
     quote: str
     document: str | None
@@ -85,7 +45,6 @@ class Verdict(NamedTuple):
 
 
 def flatten(text: str) -> str:
-    """Letters and digits only, so a scan's spacing and punctuation stop mattering."""
     text = unicodedata.normalize("NFKD", text)
     for code in DASHES:
         text = text.replace(chr(code), "-")
@@ -97,7 +56,6 @@ def flatten(text: str) -> str:
 
 
 def windows(quote: str) -> list[str]:
-    """The overlapping word runs a quote is scored on."""
     words = [one for one in re.split(r"\s+", quote) if one]
     if len(words) <= WINDOW:
         return [flatten(quote)]
@@ -105,20 +63,6 @@ def windows(quote: str) -> list[str]:
 
 
 def said(node: Any, trail: str = "") -> list[tuple[str, str]]:
-    """Every quoted sentence in a record that a document should carry contiguously.
-
-    A key ending in `quote` holds one passage. A key ending in `quotes` holds
-    several, either as a list or as a map from the number a document prints
-    beside each one. The plural form is what a page of numbered notes is, and
-    holding it under a name of its own is what keeps it inside the checker
-    rather than beside it.
-
-    Two markers take a quote out of scope, and each says something a reader can
-    check. ``assembled`` means the words are the document's but the order is not:
-    a table or a figure flattened into a sentence, which no search for a run of
-    words can find. ``saysNothing`` means the document is silent and the text is
-    this record summarising that silence, so there is nothing to look for.
-    """
     found: list[tuple[str, str]] = []
     if isinstance(node, dict):
         for key, value in node.items():
@@ -143,7 +87,6 @@ def said(node: Any, trail: str = "") -> list[tuple[str, str]]:
 
 
 def quoted(records: Iterable[tuple[str, Any]] | None = None) -> list[tuple[str, str]]:
-    """Every quote a pinned document is supposed to carry."""
     found: list[tuple[str, str]] = []
     for name, held in loaded() if records is None else records:
         for where, quote in said(held, name):
@@ -166,25 +109,12 @@ PAGE_KEYS = frozenset(
         "manualSection",
     }
 )
-"""Every key this family uses to say where in a document something is printed.
-
-A page named on a parent counts for the quotes beneath it, because a fact that
-names one page and quotes three sentences from it is citing all three.
-"""
 
 
 LOCATOR = re.compile(r"\d+[.\-]\d|page|table|appendix|section", re.IGNORECASE)
-"""What makes a document reference specific enough to look up.
-
-Naming a document is not a citation; naming a section, a table or a page in it
-is. A record that says W65C816S Data Sheet, 8.11.2 has told a reader where to
-look, and demanding a page number on top of that would be asking for a second
-form of the same thing.
-"""
 
 
 def pointed(node: dict[str, Any]) -> bool:
-    """Whether this object says where in a document its quote is printed."""
     if PAGE_KEYS & set(node):
         return True
     for key in ("document", "source"):
@@ -195,11 +125,6 @@ def pointed(node: dict[str, Any]) -> bool:
 
 
 def uncited(node: Any, inherited: bool = False, trail: str = "") -> list[str]:
-    """Every quote no page can be reached from.
-
-    A quote a reader cannot look up is a claim they have to take on trust, which
-    is the thing this whole record exists not to ask of them.
-    """
     found: list[str] = []
     if isinstance(node, dict):
         here = inherited or pointed(node)
@@ -217,12 +142,10 @@ def uncited(node: Any, inherited: bool = False, trail: str = "") -> list[str]:
 
 
 def loaded() -> list[tuple[str, Any]]:
-    """Every record beside this file, by name."""
     return [(path.name, json.loads(path.read_text())) for path in sorted(RECORDS.glob("*.json"))]
 
 
 def unpaged(records: Iterable[tuple[str, Any]] | None = None) -> list[str]:
-    """Every manufacturer quote in these records that names no page."""
     found: list[str] = []
     for name, held in loaded() if records is None else records:
         for where in uncited(held, False, name):
@@ -232,22 +155,6 @@ def unpaged(records: Iterable[tuple[str, Any]] | None = None) -> list[str]:
 
 
 def readable(path: Path, run: Any = None) -> str:
-    """The text a document carries, flattened. Empty when nothing can read it.
-
-    A machine without pdftotext installed is the same case as a machine without
-    the documents: nothing can be checked, and saying so is the whole point.
-    Letting the missing binary raise would turn a check that cannot run into a
-    run that failed.
-
-    ``-layout`` is what makes a table readable at all, and it is also the reason
-    a quote can be in a document and unfindable here. Reading proceeds by visual
-    row, so a heading stacked over two lines interleaves with whatever sits
-    beside it: page 20 of the W65C02S data sheet carries "Instruction Times in
-    Memory Cycle" over two lines next to another two-line heading, and comes out
-    as the two first lines followed by the two second ones. Quote a single line
-    of such a heading, or mark the entry ``assembled``. Without ``-layout`` the
-    columns of every opcode table run together instead, which loses more.
-    """
     runner = subprocess.run if run is None else run
     try:
         done = runner(
@@ -262,20 +169,11 @@ def readable(path: Path, run: Any = None) -> str:
 
 
 def second(path: Path) -> str:
-    """A second reading of the same document, taken from the pages as images.
-
-    A scan carries two descriptions of itself and neither is reliable alone: the
-    text layer prints lhe for the, and a reader of the images misses a faint line
-    outright. Where somebody has read the pages and left the result beside the
-    document as a text file, it is pooled with the layer the file already had.
-    Neither reading is committed, because neither is redistributable.
-    """
     beside = path.with_suffix(".txt")
     return beside.read_text(errors="replace") if beside.is_file() else ""
 
 
 def library(where: Path | None = None, run: Any = None) -> dict[str, str]:
-    """Every pinned document on this machine, flattened once."""
     folder = DOCUMENTS if where is None else where
     if not folder.is_dir():
         return {}
@@ -286,7 +184,6 @@ def verify(
     held: Iterable[tuple[str, str]] | None = None,
     books: dict[str, str] | None = None,
 ) -> list[Verdict]:
-    """Every quote, scored against the best document that could place it."""
     books = library() if books is None else books
     found = []
     for where, quote in quoted() if held is None else held:
@@ -304,28 +201,6 @@ def misattributed(
     records: Iterable[tuple[str, Any]] | None = None,
     books: dict[str, str] | None = None,
 ) -> list[str]:
-    """Every quote absent from the document its own record names.
-
-    `verify` scores a quote against whichever document places it best, which
-    answers "did somebody publish this sentence" and not "did the document this
-    record cites publish it". Those come apart exactly when a fact is filed under
-    the wrong source, and then the words are real, the check is green, and the
-    citation sends a reader to a document that does not contain the sentence.
-
-    Three facts about the CMOS part were filed under the 16-bit part's data sheet
-    for that reason. Both sheets have a Table 7-1 and they are about different
-    things.
-
-    The rule is deliberately narrow: report only when the quote is absent from the
-    document it names and present in another one. That is the signature of a fact
-    filed under the wrong source, and it stays true for a table flattened into a
-    sentence, where a search may legitimately find nothing anywhere. Reporting a
-    quote that is simply unfindable would flag every such table and say nothing
-    about where it came from.
-
-    A document with no file on this machine is skipped, the same as everywhere
-    else here: a check that cannot run says so rather than reporting a pass.
-    """
     held = library() if books is None else books
     found: list[str] = []
     for name, record in loaded() if records is None else records:
@@ -353,7 +228,6 @@ def misattributed(
 
 
 def _files(node: Any) -> dict[str, str]:
-    """The file each declared document names, so a quote can be held to it."""
     found: dict[str, str] = {}
     if isinstance(node, dict):
         declared = node.get("documents")
@@ -370,7 +244,6 @@ def _files(node: Any) -> dict[str, str]:
 
 
 def _quoted_with_document(node: Any, trail: str = "") -> list[tuple[str, str, str]]:
-    """Every quote that names a document, skipping the ones nothing can search."""
     found: list[tuple[str, str, str]] = []
     if isinstance(node, dict):
         document = node.get("document")
@@ -386,17 +259,6 @@ def _quoted_with_document(node: Any, trail: str = "") -> list[tuple[str, str, st
 
 
 def labelled(path: Path, run: Any = None) -> set[str]:
-    """Every table a document names, spelled the way it prints them.
-
-    Read from the text rather than from the flattened body, and compared as whole
-    labels rather than by containment. Flattening removes the separator that
-    tells `Table 6-7` from `Table 6-76`, and containment would call a bare
-    `Table 6` present in a document whose only table is `6-5`.
-
-    The families here are `Table 6`, which NEC uses, and `Table 6-5`, which WDC
-    uses. A full stop counts as a separator only when a digit follows it, so
-    "Table 6. ALU Field" is table six and "Table 1.2" is table one point two.
-    """
     runner = subprocess.run if run is None else run
     try:
         done = runner(
@@ -411,7 +273,6 @@ def labelled(path: Path, run: Any = None) -> set[str]:
 
 
 def catalogue(where: Path | None = None, run: Any = None) -> dict[str, set[str]]:
-    """The tables each pinned document names."""
     folder = DOCUMENTS if where is None else where
     if not folder.is_dir():
         return {}
@@ -422,25 +283,6 @@ def phantom(
     records: Iterable[tuple[str, Any]] | None = None,
     tables: dict[str, set[str]] | None = None,
 ) -> list[str]:
-    """Every section that sends a reader to a table its document does not have.
-
-    A quote is held to the document beside it. The section was held to nothing,
-    and four citations here named a Table 6-5 of the W65C02S data sheet. That
-    sheet's tables are 3-1, 3-2, 4-1, 5-1, 5-2, 6-1 through 6-4 and 7-1; the
-    sixteen bit sheet is the one with a 6-5, and that is where the number came
-    from. The words quoted were right, the document named was right, and the
-    table pointed at did not exist, so nothing failed and a reader looking for
-    it found the wrong sheet or nothing.
-
-    Only a numbered table is checked, because that is the one form whose presence
-    is decidable. A section named in prose is left alone.
-
-    Two things are skipped rather than counted as a pass: a document with no file
-    on this machine, and one whose reading names no table at all. The second is a
-    scan whose text layer did not carry the labels, and reporting every citation
-    into it as a phantom would say something about the scan rather than about the
-    record.
-    """
     held = catalogue() if tables is None else tables
     found: list[str] = []
     for name, record in loaded() if records is None else records:
@@ -465,7 +307,6 @@ def phantom(
 
 
 def _sectioned(node: Any, trail: str = "") -> list[tuple[str, str, str]]:
-    """Every section that names a document, so the tables in it can be held to one."""
     found: list[tuple[str, str, str]] = []
     if isinstance(node, dict):
         document = node.get("document")
@@ -484,19 +325,6 @@ def borrowed(
     records: Iterable[tuple[str, Any]] | None = None,
     books: dict[str, str] | None = None,
 ) -> list[str]:
-    """Every passage a document carries, under a key this checker does not read.
-
-    A quote is verified because of the name it sits under. A passage under any
-    other name is a document's words that nothing holds to the document, and it
-    drifts the way a comment drifts: quietly, while still reading as evidence.
-    Twenty-one of them were found here in one pass, under `footnote`, under
-    `notes`, and under `pushedBytes`.
-
-    The rule is that a long run of words appearing verbatim in a pinned document
-    is that document's, whatever the key is called. Short strings are left alone
-    because a record repeats a mnemonic, a register name or a column heading
-    legitimately, and reporting those would bury the finding among them.
-    """
     held = library() if books is None else books
     found: list[str] = []
     for name, record in loaded() if records is None else records:
@@ -513,7 +341,6 @@ def borrowed(
 
 
 def _plain(node: Any, trail: str = "") -> list[tuple[str, str]]:
-    """Every string in a record that is not already held as a quote."""
     found: list[tuple[str, str]] = []
     if isinstance(node, dict):
         for key, value in node.items():
@@ -530,18 +357,6 @@ def _plain(node: Any, trail: str = "") -> list[tuple[str, str]]:
 
 
 def undeclared(records: Iterable[tuple[str, Any]] | None = None) -> list[str]:
-    """Every citation that names something the record does not declare as a document.
-
-    A citation is only worth as much as the reader's ability to follow it. When
-    the same field holds a declared key in one place, a file path in another and
-    a prose title with a section glued on in a third, nothing can check any of
-    them: a check written against keys silently skips the other two, and reports
-    a clean run over the half it understood.
-
-    So `document` always names a key in a `documents` block, and where the
-    citation points inside that document goes in `section`. A record with no such
-    block declares nothing and is left alone.
-    """
     found: list[str] = []
     for name, held in loaded() if records is None else records:
         declared = _declared(held)
@@ -554,7 +369,6 @@ def undeclared(records: Iterable[tuple[str, Any]] | None = None) -> list[str]:
 
 
 def _declared(node: Any) -> set[str]:
-    """The keys of every documents block in a record."""
     found: set[str] = set()
     if isinstance(node, dict):
         held = node.get("documents")
@@ -569,25 +383,6 @@ def _declared(node: Any) -> set[str]:
 
 
 def sections(records: Iterable[tuple[str, Any]] | None = None) -> list[str]:
-    """Every fact that cites a multi-part document without landing in this part's section.
-
-    A data book covers a dozen parts, and several of them are close relatives
-    that print the same table under the same name with the same column headings.
-    A quote taken from the wrong one reads as perfectly sourced: the words are
-    the document's, the table number may even match, and the part is not this
-    part. Searching the flattened document cannot catch it, because the flattened
-    document contains every section at once.
-
-    So a document record may declare `sectionPages`, the file pages its own part
-    occupies. Where it does, every fact citing that document has to name a
-    `filePage` inside them. A document that declares no range is single-part and
-    nothing here applies to it.
-
-    The pages need not be contiguous. A questions-and-answers section runs
-    through the whole family, a few pages per part and back again, so one part's
-    material is several blocks with other parts' material between them. A record
-    may give a list of ranges for that, and one range is the common case.
-    """
     found: list[str] = []
     for name, held in loaded() if records is None else records:
         ranges = _ranges(held)
@@ -610,7 +405,6 @@ def sections(records: Iterable[tuple[str, Any]] | None = None) -> list[str]:
 
 
 def _ranges(node: Any, trail: str = "") -> dict[str, list[tuple[int, int]]]:
-    """Every document in a record that declares which pages are this part's."""
     found: dict[str, list[tuple[int, int]]] = {}
     if isinstance(node, dict):
         for key, value in node.items():
@@ -626,7 +420,6 @@ def _ranges(node: Any, trail: str = "") -> dict[str, list[tuple[int, int]]]:
 
 
 def _spans(declared: Any) -> list[tuple[int, int]]:
-    """One range or several, as pairs. Anything else declares nothing."""
     held = declared if isinstance(declared, list) else [declared]
     found = []
     for one in held:
@@ -639,7 +432,6 @@ def _spans(declared: Any) -> list[tuple[int, int]]:
 
 
 def _cited(node: Any, trail: str = "") -> list[tuple[str, str, int | None]]:
-    """Every fact that names a document, with the file page it claims."""
     found: list[tuple[str, str, int | None]] = []
     if isinstance(node, dict):
         document = node.get("document")
@@ -655,7 +447,6 @@ def _cited(node: Any, trail: str = "") -> list[tuple[str, str, int | None]]:
 
 
 def report(found: Sequence[Verdict], books: int) -> str:
-    """What was checked, what was not, and anything a person should read."""
     if not books:
         return (
             f"{len(found)} quotes checked against 0 documents: none is on this machine, "

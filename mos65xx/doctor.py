@@ -1,31 +1,3 @@
-"""Look at this machine and say what is actually here, so a report can be believed.
-
-Almost everything that goes wrong with this package is one of three things: the
-part is not the one the reporter thinks it is, the conformance suite it was
-measured against is not the one that was meant, or there is no suite at all and
-the run that looked like a pass never compared anything. All three are invisible
-in a traceback, and none is something a reporter thinks to mention.
-
-Sixteen parts share this package and they differ in address width, in whether a
-decimal adder is wired at all, and in which interrupt pins the package brings
-out. A result that looks wrong is very often the right answer from a different
-part, so every one of them is listed rather than only the one in use.
-
-So this looks, and prints what it found in a form that can be pasted into an
-issue as it stands.
-
-Two rules shape it. Nothing is hidden: a check that fails says what it saw, and a
-check that itself throws is caught and reported as what it threw, named by type,
-because a report that says everything is well on a machine where something is not
-is worse than no report. And nothing is inferred: every line is something looked
-at just now rather than something that ought to be true.
-
-The suite definition sits in the conformance directory rather than in the
-package, so an installed copy does not carry one. That is the ordinary case, and
-it is also the case this runs in most often, so it is reported as ordinary rather
-than raised.
-"""
-
 from __future__ import annotations
 
 import json
@@ -37,11 +9,6 @@ from typing import TYPE_CHECKING, Any, override
 
 
 def _version(where: Path | None = None) -> str:
-    """The package version, read out of the file beside this one.
-
-    Read rather than imported. Importing it would go through the package, and a
-    package that will not import is one of the things this exists to report.
-    """
     found = re.search(
         r"""VERSION\s*[:=][^"']*["']([^"']+)["']""",
         (where or Path(__file__).resolve().parent / "version.py").read_text(),
@@ -70,15 +37,11 @@ if TYPE_CHECKING:  # pragma: no cover
 OLDEST_PYTHON = (3, 12)
 
 DEFINITION = Path(__file__).resolve().parent.parent / "conformance" / "suites.json"
-"""Where a checkout keeps the suite definition. An install has no such file."""
 
 CACHE = Path.home() / ".cache" / "conformance-suites"
-"""Where conformance/fetch.py puts a suite when told nowhere else."""
 
 
 class Finding:
-    """One thing that was looked at, and what was there."""
-
     def __init__(self, name: str, ok: bool, detail: str, advice: str | None = None) -> None:
         self.name = name
         self.ok = ok
@@ -87,12 +50,10 @@ class Finding:
 
     @property
     def line(self) -> str:
-        """The one-line form, which is what a reader scans."""
         return f"  {'ok  ' if self.ok else '   !'}  {self.name}: {self.detail}"
 
     @property
     def report(self) -> str:
-        """The same, with what to do about it when there is something to do."""
         if self.ok or not self.advice:
             return self.line
         return f"{self.line}\n         {self.advice}"
@@ -121,19 +82,6 @@ def _default_build(name: str) -> Cpu:
 
 
 def _processor(name: str, build: Callable[[str], Cpu]) -> Finding:
-    """Whether that part builds and resets, saying what stopped it if not.
-
-    The properties reported are the ones that change what an instruction leaves
-    behind or which pins exist to pull, so two people disagreeing about a result
-    are usually holding two different parts rather than two different opinions.
-
-    The reset is driven rather than described. A part built here comes up
-    scrambled, so the counter it holds before the pin is pulled is rubbish and
-    reporting it as where the part starts is wrong twice over: it is not where
-    execution begins, and it changes every run. Driving the pin also exercises
-    the vector fetch, which is the one thing every caller does first and the one
-    thing a build alone proves nothing about.
-    """
     try:
         cpu = build(name)
         cpu.reset()
@@ -168,7 +116,6 @@ def _read_definition(path: Path | str = DEFINITION) -> dict[str, Any]:
 
 
 def _declared(read: Callable[[], dict[str, Any]] = _read_definition) -> Finding:
-    """What the definition declares, or why it could not be read."""
     try:
         held = read()["suites"]
     except OSError:
@@ -195,12 +142,6 @@ def _suites(
     read: Callable[[], dict[str, Any]] = _read_definition,
     cache: Path = CACHE,
 ) -> list[Finding]:
-    """Every declared suite, and whether this machine has it.
-
-    The count of files is the line that matters. A directory that exists and
-    holds nothing is what a cancelled fetch leaves behind, and it reads as a
-    present suite to anything that only checks the path.
-    """
     try:
         held = read()["suites"]
     except OSError:
@@ -251,7 +192,6 @@ def examine(
     read: Callable[[], dict[str, Any]] = _read_definition,
     cache: Path = CACHE,
 ) -> list[Finding]:
-    """Everything worth looking at on this machine, in the order a reader wants it."""
     found = [_python(), _package()]
     found.extend(_processor(name, build) for name in sorted(models.MODELS))
     found.append(_where())
@@ -261,7 +201,6 @@ def examine(
 
 
 def report(found: Sequence[Finding]) -> list[str]:
-    """The lines a person pastes into an issue."""
     unwell = [one for one in found if not one.ok]
     lines = [f"mos65xx {VERSION} on {platform.python_version()}, {platform.system()}", ""]
     lines.append("  the machine")

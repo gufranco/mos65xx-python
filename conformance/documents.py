@@ -1,18 +1,3 @@
-"""Bring the documents down again, and refuse anything that is not what was read.
-
-The documents are the publishers' rather than this project's, so what the
-repository carries is their identity and this script, not the files. A reader who
-runs it ends up with the same twelve documents that every citation in this
-package was taken from, or with an error naming the one that differs.
-
-A digest is the whole point. Two documents can share a title, a publisher and a
-revision number and still not be the same file, and a citation against the wrong
-one is worse than no citation, because it looks checked.
-
-Usage:
-    python3 -m conformance.documents [--check] [--only SUBSTRING]
-"""
-
 from __future__ import annotations
 
 import hashlib
@@ -24,36 +9,19 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent / "docs"
-"""Where the documents go, which is not where this script lives.
-
-The folder is ignored by git, so a script inside it would be ignored too and the
-identity of every document would exist on one machine. It lives beside the rest
-of the record instead, and writes into the folder that is not carried.
-"""
 
 MANIFEST = Path(__file__).resolve().parent / "documents.json"
 
 USAGE = "usage: documents.py [--check] [--only SUBSTRING]"
 
 TIMEOUT = 120
-"""Seconds to wait on one document, none of which is larger than a few megabytes."""
 
 RENDERED = "renderedAs"
-"""The key naming a PDF this project made from a document published as text."""
 
 PRINTED = "printedFromPage"
-"""The key marking a document that was published as a page and printed to PDF.
-
-A print is not reproducible. A different browser, a different version of the same
-browser, or the page having changed since all give a different file, so the digest
-identifies this print rather than the page it came from. Fetching the address
-would return the page's markup, which would overwrite the thing that was read, so
-these are verified and never downloaded.
-"""
 
 
-class Refused(Exception):
-    """A document arrived that is not the one recorded."""
+class Refused(Exception): ...
 
 
 def documents(path: Path | str | None = None) -> list[dict[str, Any]]:
@@ -67,7 +35,6 @@ def digest(path: Path) -> str:
 
 
 def verify(entry: dict[str, Any], where: Path) -> None:
-    """That the file on disk is the one the manifest names, by digest and by size."""
     path = where / str(entry["file"])
     if not path.is_file():
         raise Refused(f"{entry['file']} is not here")
@@ -79,12 +46,6 @@ def verify(entry: dict[str, Any], where: Path) -> None:
 
 
 def download(entry: dict[str, Any], where: Path) -> None:
-    """One document, from the publisher, into the place the manifest names.
-
-    Only ever called for a document the publisher hosts as a file. A page that
-    was printed to PDF is verified and left alone, because fetching its address
-    would replace it with markup.
-    """
     path = where / str(entry["file"])
     path.parent.mkdir(parents=True, exist_ok=True)
     done = subprocess.run(

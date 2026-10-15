@@ -54,7 +54,6 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(cpu.model, "65816")
 
     def test_building_without_naming_a_model_is_refused(self) -> None:
-        """Sixteen parts, and no reason for the package to pick one of them."""
         with self.assertRaises(errors.UnknownModelError):
             mos65xx.Cpu()
 
@@ -136,8 +135,6 @@ class FamilyTest(unittest.TestCase):
 
 
 class NarrowingTest(unittest.TestCase):
-    """The parts with no suite, held to the sibling each of them narrows."""
-
     def parts(self) -> list[tuple[str, str]]:
         return [
             (model.name, model.narrows)
@@ -213,7 +210,6 @@ class NarrowingTest(unittest.TestCase):
             )
 
     def test_and_differs_only_in_how_far_an_address_reaches_or_which_pins_it_has(self) -> None:
-        """Lines left inside a smaller package, and a whole bank byte in the 65802."""
         held = {
             name: models.lookup(wider).address_bits - models.lookup(name).address_bits
             for name, wider in self.parts()
@@ -250,13 +246,6 @@ class NarrowingTest(unittest.TestCase):
 
 
 class PinTest(unittest.TestCase):
-    """Which lines each package brings out, and what happens when one does not.
-
-    The narrower parts are the same die with fewer pins on the package. A line
-    that is not there cannot be asserted by any system, so a model that took the
-    request anyway would be describing a part nobody could build.
-    """
-
     def part(self, name: str) -> Any:
         return models.lookup(name).build(memory.Memory())
 
@@ -325,15 +314,6 @@ class PinTest(unittest.TestCase):
 
 
 class QuietStoreTest(unittest.TestCase):
-    """`fill`, which is the one spelling across this family for a store of one byte.
-
-    Not what a board hands over and not the default: a caller asking for zeroes
-    is asking for something no machine does, so they have to say so. What it is
-    for is a run that has to get through a few dozen instructions without meeting
-    an opcode that stops the part, which is what every check of a cycle budget
-    needs and what scrambled memory cannot give.
-    """
-
     def test_a_fill_puts_that_byte_everywhere(self) -> None:
         part = mos65xx.Cpu("6502", fill=0)
 
@@ -345,12 +325,6 @@ class QuietStoreTest(unittest.TestCase):
         self.assertEqual({part.memory.read8(address) for address in range(0x40)}, {0xAA})
 
     def test_without_one_the_store_is_scrambled_rather_than_cleared(self) -> None:
-        """The default has to stay the thing a machine actually hands over.
-
-        Read address by address rather than off the store's own bytes, because
-        the default store allocates nothing until it is asked and has no bytes
-        to read.
-        """
         part = mos65xx.Cpu("6502")
 
         held = {part.memory.read8(address) for address in range(0x40)}
@@ -358,7 +332,6 @@ class QuietStoreTest(unittest.TestCase):
         self.assertNotEqual(held, {0})
 
     def test_and_a_store_handed_in_is_left_alone(self) -> None:
-        """So `fill` cannot quietly replace memory a caller already built."""
         own = mos65xx.Memory(fill=0xAA)
 
         part = mos65xx.Cpu("6502", own, fill=0)

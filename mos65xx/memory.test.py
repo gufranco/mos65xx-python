@@ -97,12 +97,6 @@ class MemoryTest(unittest.TestCase):
         self.assertNotEqual(memory.data, bytearray(0x1000))
 
     def test_a_cleared_one_has_to_be_asked_for_in_writing(self) -> None:
-        """The rule is the default, not the absence of an option.
-
-        A caller who genuinely wants zeroes says so, and the request is the same
-        word in every member of this family. What must never happen is getting
-        them without asking.
-        """
         self.assertEqual(set(Memory(size=0x100, fill=0).data), {0})
 
     def test_and_the_default_is_still_nothing_like_a_cleared_machine(self) -> None:

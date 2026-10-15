@@ -1,15 +1,3 @@
-"""Holds the CMOS reserved opcodes to the length and timing the data sheet gives.
-
-The NMOS parts leave these forty-four undefined, and some of them stop the part
-until it is reset, so nothing can be asserted about them. The CMOS parts turned
-every one into a no-operation of a stated length, which turns a row of a caveats
-table into forty-four checkable claims.
-
-Forty-three hold. The one that does not is 5C, where the data sheet and the
-recorded cycles disagree about the count and no source states the addresses, so
-it is recorded rather than guessed at.
-"""
-
 import json
 import sys
 import unittest
@@ -31,7 +19,6 @@ CMOS = ("w65c02", "65c02", "r65c02")
 
 
 def run(opcode: int, model: str = "w65c02") -> tuple[int, int]:
-    """How many bytes an opcode consumes and how many cycles it spends."""
     space = SparseMemory()
     for offset, byte in enumerate((opcode, 0x11, 0x22, 0xEA)):
         space.write8(START + offset, byte)
@@ -69,8 +56,6 @@ class RecordTest(unittest.TestCase):
 
 
 class LengthTest(unittest.TestCase):
-    """Every reserved opcode consumes the bytes the data sheet says it does."""
-
     def rows(self) -> list[tuple[str, int, int]]:
         return [
             (f"{code:02X}", run(code)[0], group["bytes"])
@@ -88,8 +73,6 @@ class LengthTest(unittest.TestCase):
 
 
 class TimingTest(unittest.TestCase):
-    """Every reserved opcode spends the cycles the data sheet says it does."""
-
     def rows(self) -> list[tuple[str, int, int]]:
         return [
             (f"{code:02X}", run(code)[1], group["cycles"])
@@ -113,8 +96,6 @@ class TimingTest(unittest.TestCase):
 
 
 class DisputedTest(unittest.TestCase):
-    """5C, where the data sheet says eight cycles and every recording says four."""
-
     def entry(self) -> dict[str, Any]:
         return next(group for group in GROUPS if 0x5C in group["opcodes"])
 

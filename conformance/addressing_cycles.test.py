@@ -1,17 +1,3 @@
-"""Holds the model's bus to Appendix A of the MCS6500 Hardware Manual.
-
-The appendix prints the address bus and the read write line for every cycle of
-every addressing mode, which makes it the one manufacturer statement of NMOS
-cycle behaviour strong enough to test against. Each shape is driven here with a
-concrete setup, and the manual's own address expressions are resolved against
-that setup rather than restated as numbers, so a row that stops matching names
-the page it came from.
-
-Four rows carry an expression the part does not drive. Those rows are run twice,
-once in the case where the two readings agree and once where they part, and the
-disagreement is asserted rather than smoothed over.
-"""
-
 import json
 import sys
 import unittest
@@ -31,22 +17,9 @@ SHAPES = HELD["shapes"]
 START = 0x0200
 
 STACK = 0x80
-"""A stack pointer far enough from either end that no pull or push wraps.
-
-The manual writes its stack addresses as plain sums, Stack Ptr. + 3 and the
-like, which only hold while the sum stays inside page one. Keeping the general
-runs away from the ends lets those expressions be checked as written, and the
-wrap is checked on its own below.
-"""
 
 
 def resolvers() -> dict[str, Callable[[Mapping[str, int]], int]]:
-    """The manual's address expressions, one function each.
-
-    A closed vocabulary rather than a parser: every expression printed anywhere
-    in the appendix appears here, so an expression the record grows that this
-    does not know about fails loudly instead of being skipped.
-    """
     return {
         "PC": lambda s: s["pc"],
         "PC + 1": lambda s: s["pc"] + 1,
@@ -86,25 +59,20 @@ def resolvers() -> dict[str, Callable[[Mapping[str, int]], int]]:
 
 
 def uncarried(scene: Mapping[str, int], index: int) -> int:
-    """The base address with the index added to its low byte only."""
     return (scene["bah"] << 8) | ((scene["bal"] + index) & 0xFF)
 
 
 def carried(scene: Mapping[str, int], index: int, apply: int) -> int:
-    """The same, with the carry out of that addition folded in or left out."""
     carry = 1 if scene["bal"] + index > 0xFF else 0
     return uncarried(scene, index) + 0x100 * carry * apply
 
 
 def partial(scene: Mapping[str, int]) -> int:
-    """A branch target with the offset added to the low byte of the counter only."""
     here = scene["pc"] + 2
     return (here & 0xFF00) | ((here + scene["offset"]) & 0xFF)
 
 
 class Scene:
-    """One concrete run of one shape, with the quantities its expressions name."""
-
     def __init__(self, shape: str, program: Sequence[int], **named: Any) -> None:
         self.shape = shape
         self.program = program
@@ -137,7 +105,6 @@ class Scene:
 
 
 def wanted(shape: str, scene: Scene) -> list[str]:
-    """The rows the record says appear for this run."""
     held = SHAPES[shape]
     crossing = set(held.get("onlyWhenCrossing", []))
     taken = set(held.get("onlyWhenTaken", []))
@@ -153,13 +120,11 @@ def wanted(shape: str, scene: Scene) -> list[str]:
 
 
 def access(shape: str, state: str) -> str:
-    """Whether the appendix prints a read or a write for one row."""
     found = next(row for row in SHAPES[shape]["bus"] if row["state"] == state)
     return str(found["access"])
 
 
 def expected(shape: str, state: str, values: Mapping[str, int]) -> int:
-    """The address the part drives, which is the printed one unless a row says otherwise."""
     row = next(row for row in SHAPES[shape]["bus"] if row["state"] == state)
     return resolvers()[row.get("partDrives") or row["address"]](values) & 0xFFFF
 
@@ -176,7 +141,6 @@ RESUME = {0x0100 + STACK + 1: 0x34, 0x0100 + STACK + 2: 0x12}
 
 
 def scenes() -> list[Scene]:
-    """One run per shape, plus a second for every shape with a page crossing."""
     return [
         Scene("single byte", (0xEA,)),
         Scene("immediate", (0xA9, 0x42)),
@@ -302,14 +266,7 @@ class RecordTest(unittest.TestCase):
 
 
 class BusTest(unittest.TestCase):
-    """Every shape driven, and every address the appendix prints checked."""
-
     def observed(self) -> list[tuple[str, str, str]]:
-        """Every driven cycle, as what the model did beside what the record says.
-
-        The count of cycles is one of the rows, so a run that comes out short is
-        reported by name rather than truncating the comparison silently.
-        """
         found = []
         for scene in scenes():
             trace, values = scene.run()
@@ -348,14 +305,6 @@ class BusTest(unittest.TestCase):
 
 
 class CarryTest(unittest.TestCase):
-    """The discarded indexed read, which the appendix writes two ways.
-
-    Four tables give the high byte of that cycle as BAH + C. One, the indirect Y
-    store at A.3.6, gives it as BAH with no carry. Only the second matches the
-    part, so a reader who followed the first would expect the corrected address
-    on the bus one cycle early.
-    """
-
     def crossing(self) -> list[Scene]:
         return [scene for scene in scenes() if scene.crossing and scene.shape != "branch"]
 
@@ -404,8 +353,6 @@ class CarryTest(unittest.TestCase):
 
 
 class BranchTest(unittest.TestCase):
-    """The branch table, whose two address rows sit one row lower than they run."""
-
     def taken(self) -> Scene:
         return next(s for s in scenes() if s.shape == "branch" and s.taken and not s.crossing)
 
@@ -437,8 +384,6 @@ class BranchTest(unittest.TestCase):
 
 
 class StackWrapTest(unittest.TestCase):
-    """The stack expressions, which are plain sums and so stop at the page edge."""
-
     def pulled(self, stack: int) -> list[int]:
         space = SparseMemory()
         space.write8(START, 0x40)

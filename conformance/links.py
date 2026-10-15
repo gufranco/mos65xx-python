@@ -1,21 +1,3 @@
-"""Ask every address this project cites whether it still answers.
-
-The readme names each document a claim rests on and links to where it can be
-fetched. A link is the one part of that record which decays without anyone
-touching the repository: a vendor reorganises a site, an archive moves a file,
-and the citation quietly becomes a dead end. Nothing in the build notices,
-because nothing in the build follows it.
-
-So this walks the readme, collects every address in it, and asks each one
-whether it is still there. It changes nothing on its own. The weekly job reads
-the report and opens an issue when an address has genuinely gone, which is worth
-a person reading, and stays quiet when the failure looks like weather.
-
-The distinction matters more than it sounds. A host that times out once is not a
-broken link, and a watcher that cannot tell the two apart teaches a reader to
-ignore it. Only a status the server itself returned counts as gone.
-"""
-
 from __future__ import annotations
 
 import json
@@ -36,25 +18,15 @@ ADDRESS = re.compile(r"https?://[^\s)\"'<>\\]+")
 TIMEOUT = 30
 
 ATTEMPTS = 3
-"""How many times a single address is asked before its silence is believed."""
 
 AGENT = "source-watch (+https://github.com/gufranco/mos65xx-python)"
 
 GONE = frozenset({404, 410})
-"""The statuses that mean the server looked and the thing is not there.
-
-Everything else a server returns is either fine or its own problem. A 403 is a
-door held shut rather than an empty room, and a 500 is the host having a bad
-day, so neither is reported as a broken link.
-"""
 
 SKIP = ("img.shields.io",)
-"""Badge images, which answer for the badge rather than for anything cited."""
 
 
 class Answer(NamedTuple):
-    """What one address said when it was asked."""
-
     address: str
     verdict: str
     detail: str
@@ -65,7 +37,6 @@ class Answer(NamedTuple):
 
 
 def addresses(text: str | None = None) -> list[str]:
-    """Every distinct address the readme names, in the order it names them."""
     found = ADDRESS.findall(README.read_text() if text is None else text)
     seen: dict[str, None] = {}
     for one in found:
@@ -76,13 +47,6 @@ def addresses(text: str | None = None) -> list[str]:
 
 
 def probe(address: str, opener: Any = None) -> Answer:
-    """Ask one address, cheaply first and then less cheaply.
-
-    A HEAD is free and most hosts answer it. Some do not: archive.org returns a
-    server error for HEAD on a file it will happily serve, so a refusal on the
-    cheap question is not an answer about the address. Falling back to a request
-    for the first byte costs one byte and settles it.
-    """
     fetch = opener or urllib.request.urlopen
     last = ""
     for attempt in range(ATTEMPTS):
@@ -110,7 +74,6 @@ def survey(found: Sequence[str] | None = None, opener: Any = None) -> list[Answe
 
 
 def report(answers: Iterable[Answer]) -> str:
-    """The survey as a workflow can consume it, broken addresses first."""
     held = list(answers)
     return json.dumps(
         {
@@ -124,7 +87,6 @@ def report(answers: Iterable[Answer]) -> str:
 
 
 def main(argv: Sequence[str]) -> int:
-    """Print the survey. Exit non-zero only when an address is genuinely gone."""
     answers = survey()
     print(report(answers))
     return 1 if any(one.broken for one in answers) else 0

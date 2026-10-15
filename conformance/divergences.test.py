@@ -1,11 +1,3 @@
-"""That each recorded disagreement is described honestly and matches the code.
-
-A divergence file is worth having only if the behaviour it describes is the
-behaviour the cores have. Each entry below is exercised: the code is driven into
-exactly the case the entry is about, and what it does is compared against what
-the entry claims this project does.
-"""
-
 from __future__ import annotations
 
 import json
@@ -22,7 +14,6 @@ from mos65xx import Memory, mos6502, wdc65816  # noqa: E402
 DIVERGENCES = Path(__file__).resolve().parent / "divergences.json"
 
 ALIGNED_PAGE = 0x0C00
-"""A direct register with a clear low byte, which is when the page wrap applies."""
 
 
 def declared() -> dict[str, Any]:
@@ -40,8 +31,6 @@ def about(subject: str) -> dict[str, Any]:
 
 
 class Watched(Memory):
-    """Memory that remembers which addresses were read, in order."""
-
     def __init__(self) -> None:
         super().__init__(0x1000000)
         self.seen: list[int] = []
@@ -53,16 +42,7 @@ class Watched(Memory):
 
 
 class ShapeTest(unittest.TestCase):
-    """That every entry says the four things a reader needs."""
-
     def test_each_one_names_the_document_and_quotes_it(self) -> None:
-        """Every entry quotes something, and names the document unless there is none.
-
-        A `saysNothing` entry usually still names the document that is silent,
-        which is the more useful record: it says where somebody looked. One entry
-        here is about the transistor level simulation and why it is not used, so
-        there is no document behind it at all and none is named.
-        """
         for one in declared()["divergences"]:
             self.assertIn("quote", one["documentSays"], one["subject"])
             if one["documentSays"].get("saysNothing"):
@@ -87,8 +67,6 @@ class ShapeTest(unittest.TestCase):
 
 
 class AppendixBusTest(unittest.TestCase):
-    """The three appendix entries, driven on the part the appendix describes."""
-
     def bus(self, program: bytes, **registers: int) -> list[tuple[int, str]]:
         memory = Memory(0x10000)
         for offset, byte in enumerate(program):
@@ -172,8 +150,6 @@ class AppendixBusTest(unittest.TestCase):
 
 
 class DataBankOnInterruptTest(unittest.TestCase):
-    """The first divergence, driven: does a software interrupt clear the bank."""
-
     def broken(self, emulation: bool) -> Any:
         memory = Memory(0x1000000)
         cpu = wdc65816.Cpu(memory)
@@ -200,8 +176,6 @@ class DataBankOnInterruptTest(unittest.TestCase):
 
 
 class PointerWrapTest(unittest.TestCase):
-    """The second divergence, driven: one case per mode, read off the addresses."""
-
     def addresses(self, opcode: int) -> list[int]:
         memory = Watched()
         cpu = wdc65816.Cpu(memory)

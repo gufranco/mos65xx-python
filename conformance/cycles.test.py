@@ -1,12 +1,3 @@
-"""That the cycle comparison compares, and refuses where it cannot.
-
-Two things are easy to get wrong in a runner like this and both are checked here.
-A comparison that quietly treats an absent suite, an unsupported model or a halted
-part as agreement is worse than no comparison. And a comparison that only counts
-cycles rather than reading their addresses would pass a model that spends the
-right number of cycles on the wrong bus activity.
-"""
-
 from __future__ import annotations
 
 import io
@@ -35,7 +26,6 @@ STP = 0xDB
 def a_case(
     program: dict[int, int], cycled: list[list[Any]], name: str = "made up", **state: Any
 ) -> dict[str, Any]:
-    """One test in the shape the suites use, with only the fields the runner reads."""
     initial: dict[str, Any] = {"pc": 0x8000, "s": 0xFD, "a": 0x00, "x": 0x00, "y": 0x00, "p": 0x24}
     initial.update(state)
     initial["ram"] = sorted(program.items())
@@ -49,8 +39,6 @@ LOADING = a_case(
 
 
 class ComparisonTest(unittest.TestCase):
-    """That a matching sequence passes and any change to it does not."""
-
     def test_a_case_the_model_reproduces_exactly_agrees(self) -> None:
         self.assertIsNone(cycles.check(LOADING, "6502"))
 
@@ -121,8 +109,6 @@ class ComparisonTest(unittest.TestCase):
 
 
 class HaltTest(unittest.TestCase):
-    """That an instruction which halts the part is compared rather than skipped."""
-
     def test_a_jam_is_compared_against_the_whole_recording(self) -> None:
         jam = a_case(
             {0x8000: JAM, 0x8001: 0xA1, 0xFFFE: 0x34, 0xFFFF: 0x12},
@@ -181,8 +167,6 @@ class HaltTest(unittest.TestCase):
 
 
 class RefusalTest(unittest.TestCase):
-    """That the runner refuses rather than reporting an agreement it cannot check."""
-
     def test_a_part_nobody_has_held_to_a_recording_is_refused(self) -> None:
         with (
             unittest.mock.patch.object(cycles, "VERIFIED", frozenset({"6502"})),
@@ -223,8 +207,6 @@ class RefusalTest(unittest.TestCase):
 
 
 class BudgetTest(unittest.TestCase):
-    """That a part with an interruptible instruction is given the window."""
-
     MOVE = 0x54
 
     def test_the_recorded_length_bounds_a_block_move(self) -> None:
@@ -253,8 +235,6 @@ class BudgetTest(unittest.TestCase):
 
 
 class PlaceholderTest(unittest.TestCase):
-    """That the one cycle with no address to compute is counted apart, narrowly."""
-
     ADC_IMMEDIATE = 0x69
 
     def decimal_add(self, third: int) -> dict[str, Any]:
@@ -307,8 +287,6 @@ class PlaceholderTest(unittest.TestCase):
 
 
 class SuiteTest(unittest.TestCase):
-    """That a directory of files is walked, reported, and answered for."""
-
     def written(self, directory: Path, name: str, tests: list[dict[str, Any]]) -> None:
         (directory / name).write_text(json.dumps(tests))
 

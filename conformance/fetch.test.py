@@ -44,15 +44,6 @@ class DefinitionTest(unittest.TestCase):
             self.assertTrue(suite["path"])
 
     def test_no_suite_is_pinned_to_a_repository_that_moved(self) -> None:
-        """A pin naming a repository nobody can push to can never move again.
-
-        The 65816 set was pinned to one that was archived and subdivided, so the
-        weekly job that proposes bumps was watching a dead repository. A
-        correction landed in the set's own repository fourteen months before
-        anybody here noticed, and this model disagreed with five of the six files
-        it touched. Where a suite has moved, the record says so and says what it
-        moved from.
-        """
         stale = [
             one["name"] for one in fetch.definitions() if "ProcessorTests" in one["repository"]
         ]
@@ -68,7 +59,6 @@ class DefinitionTest(unittest.TestCase):
             self.assertIn("why", one["movedFrom"])
 
     def test_the_record_says_where_these_recordings_come_from(self) -> None:
-        """They are not captures from a part, and a reader has to be able to see that."""
         held = json.loads(DEFINITION.read_text())
 
         self.assertIn("provenance", held)
@@ -76,13 +66,6 @@ class DefinitionTest(unittest.TestCase):
         self.assertIn("whichImplementation", held["provenance"])
 
     def test_the_readme_advertises_the_number_of_cases_the_pins_imply(self) -> None:
-        """A figure in a readme that nothing derives is a figure that drifts.
-
-        This one is derivable: every suite's file count times its cases per
-        opcode, less the files the publisher ships empty because the instruction
-        halts the part and leaves nothing to record. Holding the readme to that
-        sum means the claim cannot outlive a change to the pins.
-        """
         held = json.loads(DEFINITION.read_text())
         derived = sum(
             (one["files"] - one["emptyFiles"]) * one["tests_per_opcode"] for one in held["suites"]
@@ -93,12 +76,6 @@ class DefinitionTest(unittest.TestCase):
         self.assertEqual(int(claimed.group(1).replace(",", "")), derived)
 
     def test_and_the_number_it_advertises_for_the_cycle_comparison(self) -> None:
-        """Derivable too, once the placeholders are counted.
-
-        The cycle comparison judges every case the state comparison does, less
-        the ones whose recorded address for the extra decimal cycle is a constant
-        rather than a measurement. Those occur on the three CMOS parts alone.
-        """
         held = json.loads(DEFINITION.read_text())
         derived = sum(
             (one["files"] - one["emptyFiles"]) * one["tests_per_opcode"] for one in held["suites"]
@@ -109,19 +86,16 @@ class DefinitionTest(unittest.TestCase):
         self.assertEqual(int(both[1].replace(",", "")), derived)
 
     def test_every_suite_says_how_many_cases_carry_a_placeholder(self) -> None:
-        """Zero is an answer and has to be written, because absent is not."""
         missing = [one["name"] for one in fetch.definitions() if "placeholderCases" not in one]
 
         self.assertEqual(missing, [])
 
     def test_every_suite_says_how_many_files_it_ships_empty(self) -> None:
-        """Zero is an answer and has to be written, because absent is not."""
         missing = [one["name"] for one in fetch.definitions() if "emptyFiles" not in one]
 
         self.assertEqual(missing, [])
 
     def test_the_record_says_how_each_advertised_figure_is_known(self) -> None:
-        """One is derived and one is measured, and a reader cannot tell by looking."""
         held = json.loads(DEFINITION.read_text())["counted"]
 
         for name in ("stateCases", "cycleCases"):
@@ -168,13 +142,6 @@ class LatestTest(unittest.TestCase):
 
 
 def build_upstream(root: Path) -> Any:
-    """A real repository on disk, shaped like the suite this core is held to.
-
-    Nothing here is stubbed. The fetch path is git for its whole length, so a
-    stand-in for git would only prove the stand-in works. A repository in a
-    temporary directory is the same software the real fetch talks to, reached
-    over a path instead of over the network.
-    """
 
     upstream = Path(root) / "upstream"
     suite = upstream / "65816" / "v1"

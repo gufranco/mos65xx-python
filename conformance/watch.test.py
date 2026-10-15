@@ -1,5 +1,3 @@
-"""What the watcher surveys, and what it refuses to leave out."""
-
 import importlib
 import io
 import json
@@ -144,14 +142,6 @@ class ReportTest(unittest.TestCase):
 
 
 class UpstreamTest(unittest.TestCase):
-    """The one path that reaches the network, asked about somewhere that is not there.
-
-    `.invalid` is reserved by RFC 2606 and resolves nowhere, so this exercises
-    the real fetcher and the real failure path without depending on anything
-    being reachable. A machine with no network at all fails faster and answers
-    the same.
-    """
-
     def test_a_repository_that_does_not_exist_answers_nothing(self) -> None:
         group = {"repository": "https://example.invalid/nothing.git", "pinned": "aaa"}
 
@@ -168,8 +158,6 @@ class UpstreamTest(unittest.TestCase):
 
 
 class RealDefinitionTest(unittest.TestCase):
-    """The file this repository actually ships, which is the point of all this."""
-
     @override
     def setUp(self) -> None:
         self.groups = watch.by_repository(watch.declared())

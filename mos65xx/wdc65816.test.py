@@ -520,12 +520,6 @@ class MemoryFillTest(unittest.TestCase):
         self.assertNotEqual(emu.Memory(256, seed=1).data, emu.Memory(256, seed=2).data)
 
     def test_a_cleared_one_has_to_be_asked_for_in_writing(self) -> None:
-        """The rule is the default, not the absence of an option.
-
-        A caller who genuinely wants zeroes says so, and the request is the same
-        word in every member of this family. What must never happen is getting
-        them without asking.
-        """
         self.assertEqual(set(emu.Memory(4, fill=0).data), {0})
 
     def test_an_image_is_laid_at_the_front_and_the_rest_stays_undefined(self) -> None:
@@ -678,17 +672,6 @@ class WordAndLongReadTest(unittest.TestCase):
 
 
 class BankZeroWordTest(unittest.TestCase):
-    """A word touched through the direct page stays in bank zero, both halves.
-
-    The manufacturer puts the direct page in bank zero and keeps it there: the
-    cycle table addresses every direct access as `0,D+DO` and its second half as
-    `0,D+DO+1`, and the caveats say the effective address of Direct, Direct,X and
-    Direct,Y is always inside 000000 to 00FFFF. So a sixteen bit access whose low
-    half sits at $FFFF finds its high half at $0000 of the same bank rather than
-    at $010000, and that holds for a read, a write, and the read and the write of
-    one read-modify-write.
-    """
-
     def machine(self, code: Sequence[int]) -> Any:
         memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory)
@@ -763,20 +746,6 @@ class BankZeroWordTest(unittest.TestCase):
 
 
 class DirectPagePointerWrapTest(unittest.TestCase):
-    """Which pointer reads stay inside the direct page, per mode.
-
-    Emulation mode with a page-aligned direct register is the only place this
-    arises. Four of these six are what a recorded cycle address shows and all
-    four leave the page: the three the datasheet names and `(d,x)`, which it does
-    not. The remaining two have no case in any corpus that reaches the edge, so
-    they follow the datasheet and wrap. conformance/divergences.json names which
-    is which and holds the evidence.
-
-    Two of these expectations said the opposite until 2026-08-25, because the
-    corpus they were measured from carried a reading that its own publishers
-    corrected in 2024 and this project had pinned an archived copy from before.
-    """
-
     def addresses(self, code: Sequence[int], operand: int = 0xFF) -> list[int]:
         seen: list[int] = []
 
@@ -956,8 +925,6 @@ class DefensivePathTest(unittest.TestCase):
 
 
 class HardwareInterruptTest(unittest.TestCase):
-    """The three pins, in both modes, where the mode decides the stack depth."""
-
     def machine(self, emulation: bool, vector: int, target: int = 0x9000) -> Any:
         memory = emu.Memory(0x1000000)
         cpu = emu.Cpu(memory)
@@ -1110,14 +1077,6 @@ class HardwareInterruptTest(unittest.TestCase):
 
 
 class CycleShapeTest(unittest.TestCase):
-    """What this part puts on the bus, including the cycles nothing answers.
-
-    Every cycle here is checked as the recordings record one: the address, the
-    value or the absence of one, and the eight output lines. A cycle with both
-    address lines low is an internal cycle, and the manufacturer allows its
-    address to be wrong, which is why it carries no value.
-    """
-
     def trace(
         self,
         code: Sequence[int],
@@ -1323,15 +1282,6 @@ class CycleShapeTest(unittest.TestCase):
 
 
 class BoundedCallTest(unittest.TestCase):
-    """That a routine which never returns gives up rather than hanging.
-
-    `call` counts the calls it passes so it comes back at the right return, and
-    a routine that never reaches one would otherwise run for as long as the
-    process does. A caller driving a routine it did not write, which is what a
-    patch harness does, wants the bound: a raised limit names where it stopped
-    and a hang names nothing.
-    """
-
     def spinning(self) -> Any:
         memory = FlatMemory()
         for offset, byte in enumerate((0x4C, 0x00, 0x80)):

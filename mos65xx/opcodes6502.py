@@ -1,25 +1,3 @@
-"""The 6502 opcode table, documented and otherwise, and a disassembler for it.
-
-Every one of the two hundred and fifty six opcodes decodes to something. Fifty
-six mnemonics are the instruction set the datasheet describes. The rest were
-never documented and were never meant to work, and programs relied on them
-anyway, so a core that treats them as undefined is wrong for the machines that
-shipped.
-
-They fall into three groups. Some are two documented instructions sharing one
-cycle sequence, which is why one of them is an arithmetic shift and an or:
-entirely predictable, and widely used. Some do nothing but burn cycles and are
-used for exactly that. And a handful are unstable, meaning the value they produce
-depends on how the silicon settles rather than on anything the programmer chose.
-Those are still here, modelled the way the conformance suite measures them,
-because leaving them out would decode a real byte to nothing.
-
-The CMOS parts that followed removed all of it. Where the NMOS part has an
-undocumented instruction the CMOS part has either a new documented one or a
-no-operation of a stated length, so the two tables differ in more places than
-they agree and are kept separately rather than patched from one another.
-"""
-
 from __future__ import annotations
 
 from collections.abc import Iterator, Sequence
@@ -348,8 +326,6 @@ UNSTABLE = frozenset({"ane", "lxa", "sha", "shx", "shy", "tas"})
 
 
 class Instruction:
-    """One decoded instruction and where it was found."""
-
     __slots__ = (
         "address",
         "mnemonic",
@@ -389,18 +365,15 @@ class Instruction:
 
 
 def operand_size(mode: str) -> int:
-    """How many bytes follow the opcode."""
     return MODE_SIZE[mode]
 
 
 def branch_target(address: int, size: int, operand: int) -> int:
-    """Where a relative branch goes, counted from the instruction after it."""
     offset = operand - 0x100 if operand & 0x80 else operand
     return (address + size + offset) & 0xFFFF
 
 
 def render(mode: str, operand: int, address: int, size: int) -> str:
-    """The operand as a reader of assembly would write it."""
     if mode in ("implied", "accumulator"):
         return ""
     if mode == "immediate":
@@ -433,7 +406,6 @@ def render(mode: str, operand: int, address: int, size: int) -> str:
 
 
 def decode(data: Sequence[int], offset: int, address: int, table: Any = NMOS) -> Any:
-    """One instruction, or a refusal when the bytes run out before it ends."""
     if offset >= len(data):
         raise Truncated(f"no opcode at {offset}")
 
@@ -458,7 +430,6 @@ def disassemble(
     table: Any = NMOS,
     stop_at_return: bool = False,
 ) -> Iterator[Any]:
-    """Instructions from that offset, until the bytes or the count run out."""
     produced = 0
     while offset < len(data) and (count is None or produced < count):
         try:

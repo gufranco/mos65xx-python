@@ -1,40 +1,3 @@
-"""The 6502 core: eight bit registers, sixteen address lines, and its mistakes.
-
-The part is small enough that its bugs are as well known as its instruction set,
-and a core that quietly fixes any of them is wrong for every machine that shipped
-one. Three matter most.
-
-A jump through a pointer that ends a page reads the high byte from the start of
-the same page rather than from the next one, so a pointer at `$30FF` takes its
-high byte from `$3000`. Programs were built around it.
-
-A jump to a subroutine pushes the return address between reading the two halves
-of its own destination. Almost always that is invisible, and the once it is not
-is when the stack has walked into the instruction: the push overwrites the high
-byte of the destination, and the jump then goes wherever the pushed byte says.
-Reading the destination first and pushing afterwards produces the same answer
-every time except that one, which is the only time it matters.
-
-Anything indexed inside the first page stays inside the first page. The zero page
-index modes and both indirect modes wrap at `$FF`, so a pointer at `$FF` has its
-high byte at `$00`.
-
-And the break bit behaves like nothing else in the register. Pushing the status
-always sets it, whatever the register held. Pulling the status always clears it,
-whatever was pulled. In between it simply keeps its value, so it is stored like a
-flag and written like neither. A core that treats it as a normal flag disagrees
-the moment anything pulls, and a core that refuses to store it at all disagrees
-with every instruction that leaves the register alone.
-
-Decimal mode is a property of the part rather than of the program. The Ricoh
-2A03 has the adder wired without it, so setting the flag there changes nothing,
-which is why the model decides and not the flag.
-
-Nothing starts clean. Registers and memory hold arbitrary but reproducible values
-after a reset, because the hardware defines only the program counter, and a core
-that clears the rest makes a read of something never written look deliberate.
-"""
-
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -47,26 +10,15 @@ from .opcodes6502 import MODE_SIZE, NMOS
 RESET_VECTOR = 0xFFFC
 
 RESET_CYCLES = 8
-"""How long a reset takes on an NMOS part, counting the vector fetch.
-
-The manual gives it as a delay plus the fetch: the part "will delay 6 cycles and
-then fetch the new program count vectors". WDC states seven for its own CMOS
-part, which is a different part and a different manufacturer, so the figure is a
-property of the model rather than of the family.
-"""
 
 VECTOR_CYCLES = 2
-"""The two cycles of the vector fetch, which every part pays and none states apart."""
 BREAK_VECTOR = 0xFFFE
 NMI_VECTOR = 0xFFFA
 IRQ_VECTOR = 0xFFFE
 
 JAM_HIGH = 0xFFFF
-"""The address a hung part settles on, which is the top of the interrupt vector."""
 
 JAM_LOW = 0xFFFE
-"""The other half of that vector, which a hung part reads twice on the way in."""
-"""The same address the break instruction uses: one vector serves both."""
 
 STACK_PAGE = 0x0100
 
@@ -84,19 +36,9 @@ MAGIC = 0xEE
 READ = "read"
 WRITE = "write"
 MODIFY = "modify"
-"""What an access is for, which decides what indexing costs."""
 
 
 class Cpu:
-    """One 6502, holding whatever it held until something writes to it.
-    The slots are the point rather than a saving. Two names in this family mean
-    different things on different parts, `.i` here and `.irq_disable` on the
-    65816, and without them a caller reaching for the wrong one sets a stray
-    attribute in silence: the flag they meant keeps its value and the interrupt
-    code they wrote never fires. `status()` and `set_status()` are the portable
-    spelling, and this makes the unportable one fail instead of going nowhere.
-    """
-
     __slots__ = (
         "a",
         "address_mask",
@@ -150,39 +92,22 @@ class Cpu:
         self.package_pins: tuple[str, ...] = ("irq", "nmi", "rdy")
 
         self.ready_line = True
-        """The ready line, high when the part may proceed. Low halts it where it stands."""
 
         self.stalls_on_write = False
-        """Whether a low ready line stops a write cycle. It does not on an NMOS part."""
 
         self.irq_line = False
-        """The request line, active when true. Level sensitive: held, not pulsed."""
 
         self.nmi_line = False
-        """The non-maskable line, active when true. Edge sensitive: the transition interrupts."""
 
         self.nmi_seen = False
-        """The level the non-maskable line last had when it was read."""
 
         self.on_cycle: Callable[[], None] | None = None
-        """Called once per cycle, after that cycle's bus activity."""
 
         self.trace: list[tuple[int, int, str]] | None = None
 
         self.power_on(seed)
 
     def power_on(self, seed: int = UNSET_SEED) -> None:
-        """The state the part is in when the rail comes up and nothing else has.
-
-        Every register holds a byte derived from the seed. Not zero, and not the
-        0xFD that emulators write into the stack pointer, which is a value a 6502
-        reaches only after a reset has already run and is therefore a claim about
-        a reset rather than about power on.
-
-        This is where the scrambling belongs. A part that has been powered and
-        not yet reset holds rubbish, and a caller that steps it executes rubbish
-        from a rubbish address, which is what the silicon does.
-        """
         undefined = scramble(7, seed)
         self.a, self.x, self.y = undefined[0], undefined[1], undefined[2]
         self.s = undefined[3]
@@ -190,29 +115,6 @@ class Cpu:
         self.pc = undefined[5] | (undefined[6] << 8)
 
     def reset(self, seed: int = UNSET_SEED) -> Cpu:
-        """What a reset actually defines, and nothing beyond it.
-
-        The vector decides where execution starts and the interrupt disable is
-        set. Everything else keeps whatever it was already holding, because a
-        reset does not write into the accumulator. The manual is careful to say
-        only that the state afterwards is unknown: "It should be assumed that any
-        time the reset line has been pulled low and then high, the internal
-        states of the machine are unknown and all registers must be
-        re-initialized." Unknown is not the same as randomised, and the part that
-        does the randomising here is power on.
-
-        `seed` is accepted and unused. It is kept because a caller that resets a
-        part it built with a seed reasonably expects to name one, and because
-        removing it would change a signature the family shares.
-
-        The manual gives the timing plainly: the part "will delay 6 cycles and
-        then fetch the new program count vectors". Those six are charged, so a
-        host pacing against a real clock is not six cycles ahead of the wall
-        after every reset. They appear in `cycles` and not in `trace`, because
-        every cycle of this part drives an address and no source on hand names
-        the six it drives here. Six invented addresses would read as knowledge;
-        a gap that OPEN-QUESTIONS.md names does not.
-        """
         for _ in range(self.reset_cycles - VECTOR_CYCLES):
             self.spend()
         self.i = True
@@ -223,7 +125,6 @@ class Cpu:
         return self
 
     def status(self) -> int:
-        """The status byte as anything reading it would see."""
         value = FLAG_U
         value |= FLAG_B if self.b else 0
         value |= FLAG_N if self.n else 0
@@ -235,7 +136,6 @@ class Cpu:
         return value
 
     def set_status(self, value: int) -> None:
-        """Take a status byte, keeping only the bits the register actually has."""
         self.b = bool(value & FLAG_B)
         self.n = bool(value & FLAG_N)
         self.v = bool(value & FLAG_V)
@@ -245,17 +145,6 @@ class Cpu:
         self.c = bool(value & FLAG_C)
 
     def spend(self) -> None:
-        """Account for one cycle, and tell whoever is watching that it happened.
-
-        Every cycle this part runs passes through here and nowhere else. That is
-        deliberate: a counter kept in one place and a hook called from another
-        drift the moment somebody adds a cycle to only one of them, and a host
-        pacing against a clock would never find out.
-
-        `on_cycle` is what a board hangs off the pin. It is called once per
-        cycle, after that cycle's bus activity has happened, so what it observes
-        is a cycle the part has finished rather than one it is about to start.
-        """
         self.cycles += 1
         if self.on_cycle is not None:
             self.on_cycle()
@@ -277,20 +166,12 @@ class Cpu:
         self.spend()
 
     def dead(self, address: int) -> None:
-        """A cycle spent reading something the part will not use.
-
-        Every cycle of this processor is a bus cycle: it has no way to think
-        without driving an address, so what looks like internal work is a read
-        whose result is thrown away. Those reads reach real devices, and a device
-        that counts its own reads can tell. They are cycles, so they are here.
-        """
         self.read8(address)
 
     def read16(self, address: int) -> int:
         return self.read8(address) | (self.read8(address + 1) << 8)
 
     def read16_in_page(self, address: int) -> int:
-        """A pointer read the way the part reads one, without leaving its page."""
         high = (address & 0xFF00) | ((address + 1) & 0x00FF)
         return self.read8(address) | (self.read8(high) << 8)
 
@@ -327,13 +208,6 @@ class Cpu:
         self.n = bool(value & 0x80)
 
     def effective(self, mode: str, kind: str = READ) -> int:
-        """Where an instruction's operand lives, by the rules of its mode.
-
-        The kind of access decides how many cycles getting there costs, so it has
-        to be named. Indexing wrong and correcting it is free for a read that
-        happens to stay inside a page and never free for a write, and both are
-        below in `indexed`.
-        """
         if mode == "zeroPage":
             return self.fetch8()
         if mode == "zeroPageX":
@@ -361,19 +235,6 @@ class Cpu:
         raise UnsupportedError(f"{mode} has no effective address")
 
     def indexed(self, base: int, index: int, kind: str) -> int:
-        """Add an index, and pay what the part pays for adding it.
-
-        The part adds the index to the low byte and puts the result on the bus
-        before it knows whether a carry into the high byte is needed. For a read
-        that costs nothing when no carry is needed, because the address it read
-        was the right one. When a carry is needed it read the wrong address, and
-        the cycle spent doing that is visible: the wrong address appears on the
-        bus, and only then is the right one read.
-
-        A write never takes the shortcut. The part will not write to an address it
-        might have to correct, so it always spends the cycle, and always as a read
-        of the uncorrected address. The same is true of a read-modify-write.
-        """
         target = (base + index) & 0xFFFF
         uncorrected = (base & 0xFF00) | (target & 0x00FF)
         if kind != READ or uncorrected != target:
@@ -381,48 +242,18 @@ class Cpu:
         return target
 
     def idles_after_opcode(self, opcode: int, mnemonic: str, mode: str) -> bool:
-        """Whether a one byte instruction spends a cycle on the byte after it.
-
-        On this part every one of them does: it has no operand to fetch and
-        nothing else to drive, so it reads the next byte and ignores it. The CMOS
-        parts turned some of the opcodes nobody documented into single cycles,
-        which is why this is a question rather than a rule.
-        """
         return not MODE_SIZE[mode]
 
     def spare_for_index(self, base: int, target: int) -> int:
-        """Which address the spare cycle of an indexed access reads.
-
-        This part puts the half-formed address there: the low byte with the index
-        added and the high byte as it was. The CMOS parts do not, and that is a
-        per-part decision rather than a detail, so it is a method.
-        """
         return (base & 0xFF00) | (target & 0x00FF)
 
     def spare_in_page_zero(self, base: int) -> int:
-        """Which address the spare cycle of a page zero indexed access reads.
-
-        This part reads the page zero address before the index was added.
-        """
         return base
 
     def modify_kind(self, mnemonic: str) -> str:
-        """Whether a read-modify-write pays the indexing cycle unconditionally.
-
-        On this part every one of them does: it will not write to an address it
-        might have to correct, so the half-formed address goes on the bus first
-        whether or not a carry turns out to be needed. The CMOS parts pay it for
-        some of these instructions and not others, which is why this is a method.
-        """
         return MODIFY
 
     def settle(self, address: int, held: int) -> None:
-        """What this part does between reading a value and writing the new one.
-
-        It writes back what it just read. There is nowhere to keep the value while
-        the operation runs, so the address is written twice and the first write
-        carries the old contents.
-        """
         self.write8(address, held)
 
     def operand(self, mode: str) -> int:
@@ -433,7 +264,6 @@ class Cpu:
         return self.read8(self.effective(mode))
 
     def unindexed_base(self, mode: str) -> tuple[int, int]:
-        """The address before indexing, which the unstable stores need."""
         base = self.fetch16()
         index = self.x if mode == "absoluteX" else self.y
         return base, (base + index) & 0xFFFF
@@ -484,13 +314,6 @@ class Cpu:
         self.set_nz(result)
 
     def branch(self, taken: bool) -> None:
-        """Take the branch, and pay for it in the order the part pays.
-
-        A branch not taken costs nothing beyond its two bytes. Taken, the part
-        spends a cycle with the instruction it is not going to run on the bus
-        while it adds the offset to the low byte of the counter. If that addition
-        carries, it spends another with the half-corrected address on the bus.
-        """
         offset = self.fetch8()
         if not taken:
             return
@@ -504,13 +327,6 @@ class Cpu:
         self.pc = target
 
     def step(self) -> int:
-        """Run one instruction, and report the cycles it took.
-
-        The count is what a caller needs to keep a host in step with a real
-        clock. A part at 1.023 MHz spends 1,023,000 cycles a second, so a host
-        that adds up what each instruction returns knows exactly how far ahead
-        of the wall it has run.
-        """
         started = self.cycles
         if self.stopped:
             raise Stopped("the processor has been stopped")
@@ -527,20 +343,6 @@ class Cpu:
         return self.cycles - started
 
     def run_for(self, cycles: int) -> int:
-        """Run whole instructions until at least this many cycles have passed.
-
-        Returns what was actually spent, which is almost never the number asked
-        for: an instruction is not divisible, so the last one usually carries the
-        count past the budget. A host pacing against a clock carries the excess
-        into the next call rather than discarding it, which is what keeps a long
-        run from drifting.
-
-        A hung part still costs its host every cycle. Once a jam opcode has run
-        no further instruction ever completes, but the clock does not stop and
-        neither does this: it goes on driving $FFFF a cycle at a time and returns
-        the budget it spent, because that is what a board with a jammed processor
-        in it actually does.
-        """
         spent = 0
         while spent < cycles:
             if self.held():
@@ -551,13 +353,6 @@ class Cpu:
         return spent
 
     def run_until(self, predicate: Callable[[Cpu], bool], limit: int | None = None) -> Cpu:
-        """Step until the predicate holds.
-
-        `limit` bounds the number of instructions and raises when it is reached.
-        Without one this runs as long as the part would, which for a program
-        that never satisfies the predicate is forever. That is what the silicon
-        does, so it is what happens here unless a caller asks for otherwise.
-        """
         taken = 0
         while not predicate(self):
             self.step()
@@ -567,14 +362,6 @@ class Cpu:
         return self
 
     def call(self, address: int, limit: int | None = None) -> Cpu:
-        """Run from an address until the routine it names returns.
-
-        `limit` bounds the instructions and raises when it is reached, the same
-        way `run_until` does. Without one this runs as long as the part would,
-        which for a routine that never returns is forever. A caller driving a
-        routine it did not write wants the bound: the alternative to a raised
-        `RunLimit` is a harness that hangs with nothing to say about where.
-        """
         self.pc = address & 0xFFFF
         depth = 0
         taken = 0
@@ -745,14 +532,6 @@ class Cpu:
     def read_modify_write(
         self, mode: str, mnemonic: str, transform: Callable[[int], int]
     ) -> tuple[int | None, int]:
-        """Read it, write it back unchanged, then write the new value.
-
-        The second write is the one nobody expects. This part has nowhere to keep
-        the result while it decides, so it puts the value it just read straight
-        back and only then writes what the operation produced. A device mapped at
-        that address is written twice, the first time with its own old value, and
-        a device that acts on writes acts twice.
-        """
         if mode == "accumulator":
             self.a = transform(self.a)
             return None, self.a
@@ -782,14 +561,6 @@ class Cpu:
         self.pc = self.fetch16()
 
     def op_jsr(self, mode: str) -> None:
-        """Read half the destination, push, then read the other half.
-
-        The push happens between the two halves of the address it is jumping to,
-        which is invisible except when the stack has walked into the instruction:
-        then the push overwrites the byte that has not been read yet, and the
-        jump goes wherever the pushed byte says. Between the two, the part spends
-        a cycle reading the stack it is about to write.
-        """
         low = self.fetch8()
         self.dead(STACK_PAGE | self.s)
         self.push16(self.pc)
@@ -815,15 +586,6 @@ class Cpu:
         self.pc = self.read16(BREAK_VECTOR)
 
     def interrupt(self, vector: int) -> None:
-        """Take an interrupt the way a pin does, rather than the way BRK does.
-
-        Three things separate this from a break. The return address is the next
-        instruction rather than the byte after a signature, because no opcode was
-        consumed. The pushed status has the break bit clear, which is the only
-        thing a handler can look at to tell which of the two happened. And the
-        register itself keeps whatever that bit held: it is stored like a flag and
-        written like neither, the same rule the break instruction follows.
-        """
         self.dead(self.pc)
         self.dead(self.pc)
         self.push16(self.pc)
@@ -832,62 +594,18 @@ class Cpu:
         self.pc = self.read16(vector)
 
     def require(self, pin: str) -> None:
-        """Refuse a line this part does not bring out of its package."""
         if pin not in self.package_pins:
             raise NoSuchPin(
                 f"the {self.model} has no {pin} pin; it brings out {', '.join(self.package_pins)}"
             )
 
     def await_ready(self, write: bool = False) -> None:
-        """Spend cycles while the ready line is held low, which is what RDY does.
-
-        "A low input logic level on the Ready (RDY) will halt the microprocessor
-        in its current state." The part stops where it stands and the address
-        lines hold what they were driving, which is how slow memory is given time
-        to answer without slowing the clock.
-
-        The NMOS parts carve out one case and the MOS manual is explicit about
-        it: "The RDY function will not stop the processor in a cycle in which a
-        WRITE operation is being performed." A write already on its way out is
-        finished. The CMOS parts have no such exception, and that difference is a
-        property of the part rather than of this model, so it lives in
-        `stalls_on_write`.
-
-        A stall costs time and records nothing. The data sheet describes held
-        address lines rather than an access, and this trace records accesses, so
-        the cycle is charged and the bus picture is absent rather than invented.
-
-        A caller that holds the line low and never releases it will not get out
-        of here, which is exactly what a board that does the same gets. The cycle
-        hook fires on every stall, so a host driving the part by hand can release
-        the line from there, and a clock can release it between two cycles.
-        """
         if write and not self.stalls_on_write:
             return
         while not self.ready_line:
             self.spend()
 
     def sample_pins(self) -> bool:
-        """Read the interrupt lines the way the part reads them, and act on one.
-
-        The data sheet describes both pins as lines rather than as events, and
-        the difference is visible. The request line is level sensitive: "a low
-        input logic level initiates an interrupt sequence after the current
-        instruction is completed", and "no interrupt will occur if the interrupt
-        source is cleared prior to interrupt recognition". So a caller that holds
-        `irq_line` low and releases it before the instruction ends gets nothing,
-        which is what a device that withdrew its request would produce.
-
-        The non-maskable line is edge sensitive instead: an interrupt happens on
-        the transition, and "no interrupt will occur if NMIB remains low after
-        the negative transition was processed". That is why the level is compared
-        against the one last seen rather than simply tested.
-
-        Called where the data sheet puts the recognition, after the instruction
-        has completed. Which cycle within the instruction the part latches the
-        level on is not stated by any document here, and is recorded as open
-        rather than guessed at.
-        """
         edge = self.nmi_line and not self.nmi_seen
         self.nmi_seen = self.nmi_line
         if edge:
@@ -898,13 +616,6 @@ class Cpu:
         return False
 
     def irq(self) -> bool:
-        """Pull the interrupt request line, and say whether the part took it.
-
-        The line is level sensitive and the disable flag decides, so a request
-        that arrives with interrupts disabled is not remembered: it is simply not
-        taken, and a caller holding the line low will have it taken later when the
-        flag clears. False means the request is still outstanding.
-        """
         self.require("irq")
         if self.i:
             return False
@@ -912,13 +623,6 @@ class Cpu:
         return True
 
     def nmi(self) -> None:
-        """Pull the non-maskable line, which no flag defends against.
-
-        The real pin is edge sensitive, so it is the transition that interrupts
-        and holding the line low afterwards does nothing. A caller models that by
-        calling this once per transition, which is why there is nothing to poll
-        and nothing to report.
-        """
         self.require("nmi")
         self.interrupt(NMI_VECTOR)
 
@@ -972,25 +676,6 @@ class Cpu:
             self.operand(mode)
 
     def op_jam(self, mode: str) -> None:
-        """Hang the part, which is not the same as stopping it.
-
-        Nothing documents these opcodes, so the authority here is the recorded
-        corpus, and it is unanimous: 120,000 recordings across all twelve of them
-        agree cycle for cycle with no variation at all. After the opcode and the
-        byte behind it the part reads $FFFF, then $FFFE twice, and from there
-        drives $FFFF for as long as it is clocked.
-
-        Those are the interrupt vector, so what the part is doing looks like a
-        BRK that never finished: it began fetching a handler and stalled with the
-        address bus held high. It is still a running processor. The clock still
-        ticks, the bus still cycles, and a device watching $FFFF still sees reads
-        arrive. Only RESET ends it.
-
-        That is why this sets a state of its own rather than reusing `stopped`. A
-        part told to STP genuinely halts and drives nothing, while a jammed part
-        drives $FFFF forever, and a host pacing against a real clock has to keep
-        spending cycles on it rather than being handed an exception.
-        """
         self.read8(JAM_HIGH)
         self.read8(JAM_LOW)
         self.read8(JAM_LOW)
@@ -998,20 +683,12 @@ class Cpu:
         self.stopped = True
 
     def jam_cycle(self) -> None:
-        """One cycle of a hung part, which is a read of $FFFF it does nothing with."""
         self.read8(JAM_HIGH)
 
     def held(self) -> bool:
-        """Whether the part can no longer begin an instruction on its own.
-
-        A question rather than an attribute because the parts answer it
-        differently. This one can only be hung, by an opcode nobody documented.
-        The CMOS parts added two instructions that hold deliberately.
-        """
         return self.jammed
 
     def held_cycle(self) -> None:
-        """One cycle of a part in that state, which for this one is a read of $FFFF."""
         self.jam_cycle()
 
     def op_slo(self, mode: str) -> None:
