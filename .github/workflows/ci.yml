@@ -246,3 +246,19 @@ jobs:
           SUITES
           exit "${status}"
         shell: bash
+
+  package:
+    name: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Build the wheel
+        run: python -m pip wheel --no-deps --wheel-dir dist .
+
+      - name: Every module ships and no test does
+        run: python -m conformance.package dist/mos65xx-*.whl

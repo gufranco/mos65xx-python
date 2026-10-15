@@ -35,9 +35,6 @@ packages = ["mos65xx"]
 [tool.setuptools.dynamic]
 version = { attr = "mos65xx.version.VERSION" }
 
-[tool.setuptools.exclude-package-data]
-mos65xx = ["*.test.py"]
-
 [tool.ruff]
 target-version = "py312"
 line-length = 100
