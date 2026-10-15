@@ -128,8 +128,8 @@ and zilog-z80. When one of them needs a pattern, the pattern is here:
 | Pinning and fetching a corpus nobody vendors | [`conformance/fetch.py`](conformance/fetch.py) and [`conformance/suites.json`](conformance/suites.json) |
 | Strict typing, every optional error class | the `[tool.mypy]` block in `pyproject.toml` |
 
-The one thing to copy first is the pair of JSON files. A number in a docstring is
-a claim nobody checks; a number in `hardware.json` with the sentence it came from
+The one thing to copy first is the pair of JSON files. A number written into the
+source is a claim nobody checks; a number in `hardware.json` with the sentence it came from
 is one anybody can check, and the test beside it holds the code to it.
 
 ## Where the hardware facts live
@@ -141,8 +141,8 @@ holds the two places where a document and the recorded cycles disagree, with the
 case that shows it and what would settle it. Both are held to the code by tests
 beside them, so neither can drift.
 
-Add to those files rather than to a docstring when the fact is a hardware fact. A
-number in a docstring is a claim nobody checks.
+Add to those files rather than to the source when the fact is a hardware fact. A
+number in the source is a claim nobody checks.
 
 The datasheet is not always right. Its native vector table prints the emulation
 addresses, and its caveat about which direct-page pointer reads stay inside the
@@ -173,7 +173,7 @@ python3 -m conformance.singlestep
 | Thing | Rule |
 |:------|:-----|
 | Language | Python only |
-| Comments | None in source. Docstrings carry the reasoning |
+| Comments | None in source, and a docstring counts as one |
 | Test layout | `<module>.test.py` beside the module it covers |
 | Coverage | 100% statements and branches, enforced |
 | Types | `mypy` at strict, plus every optional error class |
