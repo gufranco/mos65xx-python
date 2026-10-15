@@ -45,7 +45,7 @@ jobs:
         run: |
           set +e
           python -m conformance.links | tee /tmp/links.json
-          echo "broken=$?" >> "${GITHUB_OUTPUT}"
+          echo "broken=${PIPESTATUS[0]}" >> "${GITHUB_OUTPUT}"
         shell: bash
 
       - name: Say what went quiet without raising it
