@@ -1215,6 +1215,162 @@ def mute_names(where: Path) -> list[str]:
     return found
 
 
+TRANSLATIONS = ("README.ja.md", "README.zh-Hans.md", "README.zh-HK.md")
+
+READMES = ("README.md", *TRANSLATIONS)
+
+FENCE = re.compile(r"^```.*?^```$", re.M | re.S)
+
+LINK = re.compile(r"\]\(([^)\s]+)\)")
+
+
+def fenced(text: str) -> list[str]:
+    return FENCE.findall(text)
+
+
+def heading_levels(text: str) -> list[int]:
+    return [len(marks) for marks in re.findall(r"^(#{1,6}) ", FENCE.sub("", text), re.M)]
+
+
+def body_links(text: str) -> list[str]:
+    return sorted(LINK.findall(FENCE.sub("", text.split("\n", 1)[-1])))
+
+
+def switcher_gaps(name: str, text: str) -> list[str]:
+    first = text.split("\n", 1)[0]
+    linked = set(LINK.findall(first))
+    others = [one for one in READMES if one != name]
+    return [one for one in others if one not in linked] + [name] * (name in linked)
+
+
+class TranslatedTest(unittest.TestCase):
+    def english(self) -> str:
+        return (ROOT / "README.md").read_text()
+
+    def translated(self) -> dict[str, str]:
+        return {name: (ROOT / name).read_text() for name in TRANSLATIONS if (ROOT / name).is_file()}
+
+    def test_every_translation_is_there(self) -> None:
+        # Arrange
+        expected = list(TRANSLATIONS)
+
+        # Act
+        held = sorted(self.translated())
+
+        # Assert
+        self.assertEqual(held, sorted(expected))
+
+    def test_every_readme_opens_with_links_to_the_other_three(self) -> None:
+        # Arrange
+        held = {"README.md": self.english(), **self.translated()}
+
+        # Act
+        gaps = {name: switcher_gaps(name, text) for name, text in held.items()}
+
+        # Assert
+        self.assertEqual({name: gap for name, gap in gaps.items() if gap}, {})
+
+    def test_every_translation_keeps_the_english_headings_level_by_level(self) -> None:
+        # Arrange
+        expected = heading_levels(self.english())
+
+        # Act
+        held = {name: heading_levels(text) for name, text in self.translated().items()}
+
+        # Assert
+        self.assertEqual({name: levels for name, levels in held.items() if levels != expected}, {})
+
+    def test_every_translation_carries_the_english_code_byte_for_byte(self) -> None:
+        # Arrange
+        expected = fenced(self.english())
+
+        # Act
+        held = {name: fenced(text) for name, text in self.translated().items()}
+
+        # Assert
+        self.assertEqual([name for name, code in held.items() if code != expected], [])
+
+    def test_every_translation_links_where_the_english_links(self) -> None:
+        # Arrange
+        expected = body_links(self.english())
+
+        # Act
+        held = {name: body_links(text) for name, text in self.translated().items()}
+
+        # Assert
+        self.assertEqual([name for name, links in held.items() if links != expected], [])
+
+    def test_a_heading_inside_a_code_block_is_not_counted(self) -> None:
+        # Arrange
+        text = "# Title\n\n```bash\n# not a heading\n```\n\n## Part\n"
+
+        # Act
+        levels = heading_levels(text)
+
+        # Assert
+        self.assertEqual(levels, [1, 2])
+
+    def test_a_switcher_that_links_to_itself_is_reported(self) -> None:
+        # Arrange
+        first = "[English](README.md) | [日本語](README.ja.md) | 简体中文 | [HK](README.zh-HK.md)\n"
+
+        # Act
+        gaps = switcher_gaps("README.ja.md", first)
+
+        # Assert
+        self.assertEqual(gaps, ["README.zh-Hans.md", "README.ja.md"])
+
+    def test_the_switcher_line_is_not_compared_as_a_body_link(self) -> None:
+        # Arrange
+        text = "[日本語](README.ja.md)\n\nSee [LICENSE](LICENSE).\n"
+
+        # Act
+        links = body_links(text)
+
+        # Assert
+        self.assertEqual(links, ["LICENSE"])
+
+
+ANCHOR = re.compile(r'<a id="([^"]+)"></a>')
+
+
+def slug(title: str) -> str:
+    lowered = re.sub(r"[`*_\[\]()]", "", title).strip().lower()
+    return re.sub(r"[^\w\- ]", "", lowered).replace(" ", "-")
+
+
+def landings(text: str) -> set[str]:
+    unfenced = FENCE.sub("", text)
+    titled = {slug(title) for title in re.findall(r"^#{1,6} (.+)$", unfenced, re.M)}
+    return titled | set(ANCHOR.findall(unfenced))
+
+
+def in_page_links(text: str) -> set[str]:
+    return set(re.findall(r"\]\(#([^)\s]+)\)", FENCE.sub("", text)))
+
+
+class InPageLinkTest(unittest.TestCase):
+    def test_every_in_page_link_in_every_readme_lands(self) -> None:
+        # Arrange
+        held = {name: (ROOT / name).read_text() for name in READMES if (ROOT / name).is_file()}
+
+        # Act
+        stray = {name: sorted(in_page_links(text) - landings(text)) for name, text in held.items()}
+
+        # Assert
+        self.assertEqual({name: links for name, links in stray.items() if links}, {})
+
+    def test_a_translated_heading_lands_through_an_anchor(self) -> None:
+        # Arrange
+        text = '<a id="models"></a>\n\n## モデル\n\nSee [the models](#models).\n'
+
+        # Act
+        stray = in_page_links(text) - landings(text)
+
+        # Assert
+        self.assertEqual(stray, set())
+
+
 class WrittenTheSameWayTest(unittest.TestCase):
     def readme(self) -> str:
         return (ROOT / "README.md").read_text()

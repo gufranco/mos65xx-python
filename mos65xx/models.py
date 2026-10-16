@@ -101,7 +101,7 @@ _CATALOGUE = (
         name="6502",
         summary=(
             "MOS 6502. Eight bit registers, sixteen address lines, decimal arithmetic, "
-            "and a hundred and fifty one undocumented opcodes that programs came to "
+            "and a hundred and five undocumented opcodes that programs came to "
             "rely on. Its bugs are as well known as its instruction set."
         ),
         address_bits=16,

@@ -180,7 +180,7 @@ python3 -m conformance.singlestep
 | Commits | Conventional Commits, subject under 50 characters |
 | Suites | Fetched and pinned by commit, never vendored |
 | Documents | Read, quoted and pinned by digest. Never committed: none is redistributable |
-| Undefined state | Nothing starts cleared and nothing can be asked to. There is no fill parameter and there will not be one |
+| Undefined state | Nothing starts cleared. Registers, flags and memory come up scrambled from the seed. `Cpu(model, fill=N)` is the family's one way to ask for a store holding one byte everywhere, for a run that must get through a few dozen instructions; it never clears registers or flags |
 | Fidelity | Where the part and convenience disagree, the part wins. A behaviour that exists only to make a test easier is a defect |
 | Public API | The two cores in this family present the same surface. `Cpu(name)`, `step()`, `reset()`, `irq()`, `nmi()`, `decode(data)`, `disassemble(data)`. A difference needs a hardware reason |
 
