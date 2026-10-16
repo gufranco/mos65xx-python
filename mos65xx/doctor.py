@@ -18,15 +18,13 @@ def _version(where: Path | None = None) -> str:
 
 ROOT = Path(__file__).resolve().parent.parent
 
-from mos65xx import environment  # noqa: E402
-
 VERSION = _version()
 
 
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from mos65xx import models  # noqa: E402
+from mos65xx import environment, models  # noqa: E402
 from mos65xx.memory import SparseMemory  # noqa: E402
 
 if TYPE_CHECKING:  # pragma: no cover

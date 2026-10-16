@@ -1,5 +1,6 @@
 import importlib
 import re
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -328,6 +329,25 @@ class PathTest(unittest.TestCase):
         assert found is not None
 
         self.assertEqual(doctor.VERSION, found.group(1))
+
+    def test_run_as_the_readme_says_from_outside_the_repository_it_reports(self) -> None:
+        # Arrange
+        script = doctor.ROOT / "mos65xx" / "doctor.py"
+        elsewhere = tempfile.mkdtemp()
+
+        # Act
+        finished = subprocess.run(
+            [sys.executable, str(script)],
+            cwd=elsewhere,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=120,
+        )
+
+        # Assert
+        self.assertEqual(finished.stderr, "")
+        self.assertRegex(finished.stdout.splitlines()[-1], r"^  \d+ (checks|of \d+ checks)")
 
     def test_a_version_file_naming_nothing_reads_as_unknown(self) -> None:
         where = Path(tempfile.mkdtemp()) / "version.py"
