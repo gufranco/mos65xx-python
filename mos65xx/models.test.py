@@ -244,6 +244,22 @@ class NarrowingTest(unittest.TestCase):
 
         self.assertEqual(part.address_mask, (1 << part.address_bits) - 1)
 
+    def test_an_eight_bit_part_with_fewer_pins_reads_and_writes_through_them(self) -> None:
+        # Arrange
+        space = memory.SparseMemory()
+        space.write8(0x1234, 0x5A)
+        cpu = models.lookup("6507").build(space)
+        cpu.trace = []
+
+        # Act
+        cpu.write8(0xE010, cpu.read8(0xF234))
+
+        # Assert
+        self.assertEqual(
+            (cpu.trace, space.read8(0x0010)),
+            ([(0x1234, 0x5A, "read"), (0x0010, 0x5A, "write")], 0x5A),
+        )
+
 
 class PinTest(unittest.TestCase):
     def part(self, name: str) -> Any:

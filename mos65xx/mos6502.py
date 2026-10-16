@@ -151,18 +151,20 @@ class Cpu:
 
     def read8(self, address: int) -> int:
         self.await_ready()
-        found = self.memory.read8(address & 0xFFFF) & 0xFF
+        address &= self.address_mask
+        found = self.memory.read8(address) & 0xFF
         assert isinstance(found, int)
         if self.trace is not None:
-            self.trace.append((address & 0xFFFF, found, "read"))
+            self.trace.append((address, found, "read"))
         self.spend()
         return found
 
     def write8(self, address: int, value: int) -> None:
         self.await_ready(write=True)
-        self.memory.write8(address & 0xFFFF, value & 0xFF)
+        address &= self.address_mask
+        self.memory.write8(address, value & 0xFF)
         if self.trace is not None:
-            self.trace.append((address & 0xFFFF, value & 0xFF, "write"))
+            self.trace.append((address, value & 0xFF, "write"))
         self.spend()
 
     def dead(self, address: int) -> None:
