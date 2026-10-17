@@ -35,7 +35,7 @@ concurrency:
 jobs:
   survey:
     name: Ask every upstream where it is now
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     outputs:
       moved: ${{ steps.ask.outputs.moved }}
       any: ${{ steps.ask.outputs.any }}
@@ -64,7 +64,7 @@ jobs:
     name: ${{ matrix.group.repository }}
     needs: survey
     if: needs.survey.outputs.any == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     strategy:
       # One repository moving must not stop the other from being checked, and a
       # failure in one must not hide a pass in the other.
