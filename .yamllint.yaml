@@ -1,0 +1,10 @@
+---
+extends: default
+ignore: |
+  pnpm-lock.yaml
+  node_modules/
+rules:
+  truthy:
+    check-keys: false
+  line-length:
+    max: 100

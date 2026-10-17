@@ -1,5 +1,8 @@
+---
 name: Something is wrong
-description: An instruction does the wrong thing, spends the wrong number of cycles, or nothing works at all
+description: >-
+  An instruction does the wrong thing, spends the wrong number of cycles, or
+  nothing works at all
 labels: ["bug"]
 body:
   - type: markdown

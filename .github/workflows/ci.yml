@@ -1,3 +1,4 @@
+---
 name: CI
 
 on:
@@ -49,11 +50,7 @@ jobs:
       - name: Check that every JSON and YAML file is formatted
         run: pnpm run format:check
 
-      # The workflows are the one thing here nothing else checks, and a mistake
-      # in them is only visible once a run has already gone wrong. The archive
-      # is verified by digest before anything in it runs, for the same reason
-      # every document this project reads is.
-      - name: Check the workflows themselves
+      - name: Check the workflows, with actionlint verified by digest
         run: |
           curl -fsSL -o actionlint.tar.gz \
             "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
@@ -65,6 +62,11 @@ jobs:
         env:
           ACTIONLINT_VERSION: "1.7.12"
           ACTIONLINT_SHA256: "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8"
+
+      - name: Lint every YAML file
+        run: |
+          pipx install yamllint==1.38.0
+          yamllint --strict .
 
       - name: Lint the shell scripts
         run: |
@@ -85,10 +87,6 @@ jobs:
       - name: Install the type checker
         run: pipx install mypy==1.14.1
 
-      # Strict, with every optional error class the version offers. A processor
-      # core is masked integers, flag bits and addressing modes end to end, and a
-      # width crossing a boundary it should not is exactly what this catches. The
-      # settings live in pyproject.toml so a local run and this one agree.
       - name: Every annotation has to hold
         run: mypy
 
@@ -124,23 +122,12 @@ jobs:
       - name: Coverage must be total
         run: python -m coverage report
 
-      # No document is redistributable, so none is here and this checks nothing
-      # on a runner. It says so rather than reporting a pass: the value is that
-      # somebody running it with the documents on disk gets a real answer, and
-      # that a run without them cannot be mistaken for one.
-      - name: Every quoted sentence, against the document it came from
+      - name: Every quoted sentence, against the document it came from, where present
         run: python -m conformance.quotes
 
-      # Uninstrumented, and deliberately after the coverage run rather than
-      # inside it. A coverage tracer costs about ten times what the model does, so
-      # a throughput check under one measures the tracer.
-      - name: The model has not become several times slower
+      - name: The model has not become several times slower, outside coverage
         run: python -m conformance.speed
 
-      # Opt-in, and silent when nothing is there. A transistor level simulation
-      # of the die answers what no data sheet states and no recording carries,
-      # but it is somebody else's work under their own licence, so a copy belongs
-      # on the machine that runs it rather than in this repository or this job.
       - name: The model against a simulation of the die, when one is present
         run: python -m conformance.netlist
 
@@ -154,9 +141,6 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      # One key for every suite, taken from the file that pins them all, so the
-      # two jobs that need them share one entry rather than filling the cache
-      # with the same gigabytes twice.
       - name: Cache the suites
         id: cache
         uses: actions/cache@v6
@@ -168,10 +152,7 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: python -m conformance.fetch ~/.cache/conformance-suites
 
-      # A pull request runs a tenth of each suite for a quick answer. A push to
-      # main runs every case, because the number of them is what the claim of
-      # conformance rests on, and the claim covers every part rather than one.
-      - name: Run every suite
+      - name: Run every suite, a slice of each on a pull request
         run: |
           if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
             limit=1000
@@ -205,9 +186,6 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      # One key for every suite, taken from the file that pins them all, so the
-      # two jobs that need them share one entry rather than filling the cache
-      # with the same gigabytes twice.
       - name: Cache the suites
         id: cache
         uses: actions/cache@v6
@@ -219,11 +197,7 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: python -m conformance.fetch ~/.cache/conformance-suites
 
-      # Every cycle of an eight-bit part is a bus cycle, so this compares timing
-      # and side effects at once: address, value, and read against write, in
-      # order. On the 65816 it also compares eight output pins per cycle, and the
-      # cycles where the part drives no valid address at all.
-      - name: Compare the bus, cycle by cycle
+      - name: Compare the bus, cycle by cycle, a slice of each on a pull request
         run: |
           if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
             limit=1000
