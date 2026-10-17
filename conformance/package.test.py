@@ -5,13 +5,14 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 import contextlib  # noqa: E402
-import importlib  # noqa: E402
 import io  # noqa: E402
 import runpy  # noqa: E402
 import tempfile  # noqa: E402
 import unittest  # noqa: E402
 import zipfile  # noqa: E402
 from typing import Any  # noqa: E402
+
+from setuptools.dist import Distribution  # noqa: E402
 
 from conformance import package  # noqa: E402
 
@@ -40,9 +41,7 @@ def setup_script() -> dict[str, Any]:
 
 
 def build_command() -> Any:
-    distribution = importlib.import_module("setuptools.dist").Distribution(
-        {"name": "mos65xx", "packages": ["mos65xx"]}
-    )
+    distribution = Distribution({"name": "mos65xx", "packages": ["mos65xx"]})
     distribution.script_name = str(ROOT / "setup.py")
     command = setup_script()["WithoutTests"](distribution)
     command.initialize_options()

@@ -2682,6 +2682,31 @@ def reaches_inside(source: str, package: str, exported: set[str], tools: set[str
     return found
 
 
+def realiased_modules(init_source: str) -> set[str]:
+    return {
+        alias.name
+        for node in ast.walk(ast.parse(init_source))
+        if isinstance(node, ast.ImportFrom) and node.level == 1 and node.module is None
+        for alias in node.names
+        if alias.asname == alias.name
+    }
+
+
+def documented_modules(init_source: str, readme: str, package: str) -> set[str]:
+    return {
+        name
+        for name in realiased_modules(init_source)
+        if re.search(rf"\b{package}[./]{name}\b(?!\.test)", readme)
+        or re.search(rf"from {package} import [^\n]*\b{name}\b", readme)
+    }
+
+
+def public_names() -> set[str]:
+    init_source = (ROOT / PACKAGE.__name__ / "__init__.py").read_text()
+    readme = (ROOT / "README.md").read_text()
+    return set(PACKAGE.__all__) | documented_modules(init_source, readme, PACKAGE.__name__)
+
+
 def repository_test_files() -> list[Path]:
     listed = subprocess.run(
         ["git", "-c", "submodule.recurse=false", "ls-files", "*.test.py"],
@@ -2697,7 +2722,7 @@ def repository_test_files() -> list[Path]:
 class EveryTestUsesThePublicInterfaceTest(unittest.TestCase):
     def test_no_test_reaches_past_what_the_package_exports(self) -> None:
         # Arrange
-        exported = set(PACKAGE.__all__)
+        exported = public_names()
 
         # Act
         found = {
@@ -2830,6 +2855,56 @@ class EveryTestUsesThePublicInterfaceTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(found, [])
+
+    def test_a_module_reexported_and_documented_for_callers_is_public(self) -> None:
+        # Arrange
+        init_source = "from . import tiles as tiles\nfrom . import core as core\n"
+
+        # Act
+        found = documented_modules(init_source, "Call `from part import tiles` first.", "part")
+
+        # Assert
+        self.assertEqual(found, {"tiles"})
+
+    def test_a_module_documented_by_its_path_is_public_too(self) -> None:
+        # Arrange
+        init_source = "from . import tiles as tiles\n"
+
+        # Act
+        found = documented_modules(init_source, "| [`part/tiles.py`](part/tiles.py) |", "part")
+
+        # Assert
+        self.assertEqual(found, {"tiles"})
+
+    def test_a_command_running_a_modules_tests_is_not_documentation(self) -> None:
+        # Arrange
+        init_source = "from . import core as core\n"
+
+        # Act
+        found = documented_modules(init_source, "python3 part/core.test.py", "part")
+
+        # Assert
+        self.assertEqual(found, set())
+
+    def test_a_module_imported_without_the_alias_stays_private(self) -> None:
+        # Arrange
+        init_source = "from . import tiles\nfrom .core import Chip\n"
+
+        # Act
+        found = realiased_modules(init_source)
+
+        # Assert
+        self.assertEqual(found, set())
+
+    def test_this_package_publishes_its_names_and_its_documented_modules(self) -> None:
+        # Arrange
+        listed = set(PACKAGE.__all__)
+
+        # Act
+        found = public_names()
+
+        # Assert
+        self.assertGreaterEqual(found, listed)
 
     def test_an_import_of_another_library_is_left_alone(self) -> None:
         # Arrange

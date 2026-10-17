@@ -84,8 +84,10 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install the type checker
-        run: pipx install mypy==1.14.1
+      - name: Install the type checker and the build backend's stubs
+        run: |
+          pipx install mypy==1.14.1
+          pipx inject mypy types-setuptools==84.0.0.20260812
 
       - name: Every annotation has to hold
         run: mypy
