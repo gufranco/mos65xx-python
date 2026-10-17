@@ -497,7 +497,7 @@ class Cpu:
             self.unaligned()
             self.internal(self.here())
             pointer = self.direct(offset + self.x)
-            return (self.db << 16) | self.read_pointer(pointer, 2)
+            return (self.db << 16) | self.read_pointer(pointer, 2, wraps_in_page=True)
         if mode == "indirectIndexedY":
             offset = self.fetch8()
             self.unaligned()
@@ -1075,7 +1075,7 @@ class Cpu:
         if mode != "indirectX":
             raise UnsupportedError(f"jsr cannot use {mode}")
         low = self.fetch8()
-        self.push16(self.pc)
+        self.push16_flat(self.pc)
         high = self.fetch8()
         self.internal(self.here())
         pointer = ((low | (high << 8)) + self.x) & 0xFFFF
@@ -1126,8 +1126,13 @@ class Cpu:
         self.push8(pushed)
         self.irq_disable = True
         self.decimal = False
-        self.pb = 0x00
+        self.clear_banks_for_interrupt()
         self.pc = self.vector16(vector)
+
+    def clear_banks_for_interrupt(self) -> None:
+        self.pb = 0x00
+        if self._emulation:
+            self.db = 0x00
 
     def interrupt(self, kind: str) -> bool:
         if self.stopped:
@@ -1142,7 +1147,7 @@ class Cpu:
         self.push8(self.status() & ~BREAK_FLAG if self.emulation else self.status())
         self.irq_disable = True
         self.decimal = False
-        self.pb = 0x00
+        self.clear_banks_for_interrupt()
         self.pc = self.vector16(vector)
         return True
 

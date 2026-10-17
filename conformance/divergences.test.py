@@ -160,16 +160,41 @@ class DataBankOnInterruptTest(unittest.TestCase):
         cpu.step()
         return cpu
 
-    def test_the_data_bank_survives_a_break_in_emulation_mode(self) -> None:
-        self.assertEqual(self.broken(emulation=True).db, 0x7E)
+    def test_a_break_in_emulation_mode_clears_the_data_bank_as_the_document_says(self) -> None:
+        # Arrange
+        emulation = True
 
-    def test_and_in_native_mode(self) -> None:
-        self.assertEqual(self.broken(emulation=False).db, 0x7E)
+        # Act
+        cpu = self.broken(emulation)
+
+        # Assert
+        self.assertEqual(cpu.db, 0x00)
+
+    def test_and_one_in_native_mode_leaves_it_alone(self) -> None:
+        # Arrange
+        emulation = False
+
+        # Act
+        cpu = self.broken(emulation)
+
+        # Assert
+        self.assertEqual(cpu.db, 0x7E)
 
     def test_which_is_what_the_entry_says_this_project_does(self) -> None:
-        held = about("data bank register after a software interrupt")
+        # Arrange
+        subject = "data bank register after a software interrupt"
 
-        self.assertIn("leaves the data bank alone", held["whatThisProjectDoes"])
+        # Act
+        held = about(subject)
+
+        # Assert
+        self.assertEqual(
+            (
+                held["packageFollows"],
+                "the data bank in emulation mode only" in held["whatThisProjectDoes"],
+            ),
+            ("document", True),
+        )
 
     def test_the_program_bank_is_cleared_either_way(self) -> None:
         self.assertEqual((self.broken(emulation=True).pb, self.broken(emulation=False).pb), (0, 0))
@@ -189,15 +214,37 @@ class PointerWrapTest(unittest.TestCase):
         cpu.step()
         return [one for one in memory.seen if ALIGNED_PAGE <= one <= ALIGNED_PAGE + 0x101]
 
-    def test_the_four_measured_modes_behave_as_the_recorded_cases_show(self) -> None:
+    def test_the_three_modes_the_document_names_behave_as_the_recorded_cases_show(self) -> None:
+        # Arrange
         recorded = {
             one["mode"]: one for one in about("multi-byte pointer read")["suiteSays"]["cases"]
         }
-        opcodes = {"(d,x)": 0xA1, "[d]": 0xA7, "[d],y": 0xB7, "PEI": 0xD4}
+        opcodes = {"[d]": 0xA7, "[d],y": 0xB7, "PEI": 0xD4}
 
-        for mode, opcode in opcodes.items():
-            inside = all(address <= ALIGNED_PAGE + 0xFF for address in self.addresses(opcode)[1:])
-            self.assertEqual(inside, "wrapped inside" in recorded[mode]["verdict"], mode)
+        # Act
+        inside = {mode: self.stays_inside(opcode) for mode, opcode in opcodes.items()}
+
+        # Assert
+        self.assertEqual(
+            inside, {mode: "wrapped inside" in recorded[mode]["verdict"] for mode in opcodes}
+        )
+
+    def test_the_indexed_mode_follows_the_document_against_its_one_recorded_case(self) -> None:
+        # Arrange
+        recorded = {
+            one["mode"]: one for one in about("multi-byte pointer read")["suiteSays"]["cases"]
+        }
+
+        # Act
+        inside = self.stays_inside(0xA1)
+
+        # Assert
+        self.assertEqual(
+            (inside, recorded["(d,x)"]["verdict"].startswith("left the page")), (True, True)
+        )
+
+    def stays_inside(self, opcode: int) -> bool:
+        return all(address <= ALIGNED_PAGE + 0xFF for address in self.addresses(opcode)[1:])
 
     def test_the_two_unmeasured_modes_follow_the_document(self) -> None:
         for opcode in (0xB2, 0xB1):

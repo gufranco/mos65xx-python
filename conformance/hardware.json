@@ -342,7 +342,10 @@
         "whyItIsAnErratum": "Table 6-3 gives the native vectors at the same addresses as the emulation vectors in Table 6-2, which would leave the two modes indistinguishable. Three things contradict it inside the same document: the pin descriptions in 3.1, 3.6 and 3.9 name 00FFE8, 00FFEA and 00FFEE for native; section 4.1 says the vectors use the fixed addresses between 00FFE0 and 00FFFF, and nothing else lives below 00FFF0; and Table 6-7 22j gives BRK and COP one vector each per mode.",
         "measured": "The per-opcode suite settles the two it covers. Every one of the 10,000 native BRK tests reads 00FFE6 and 00FFE7, every one of the 10,000 emulation BRK tests reads 00FFFE and 00FFFF, and every one of the 10,000 emulation COP tests reads 00FFF4 and 00FFF5.",
         "whatThisProjectUses": "00FFE6 for native BRK and 00FFE4 for native COP, matching both the measurement and the FFE0 block, and the pin descriptions for the three hardware vectors.",
-        "notSettled": "No suite covers a hardware interrupt, so the native IRQ, NMI and ABORT addresses rest on the pin descriptions and on the second manufacturer-endorsed source, the vector table in the appendix of Programming the 65816, which agrees with them. That is two documents against one table in one of them."
+        "notSettled": "No suite covers a hardware interrupt, so the native IRQ, NMI and ABORT addresses rest on the pin descriptions and on the second manufacturer-endorsed source, the vector table in the appendix of Programming the 65816, which agrees with them. That is two documents against one table in one of them.",
+        "heldBy": [
+          "conformance/sixteen_bit_facts.test.py::ResetAndInterruptTest.test_no_native_vector_is_read_where_the_erratum_table_prints_it"
+        ]
       },
       "appliesTo": ["65802", "65816"],
       "appliesToCore": "wide"
@@ -366,9 +369,12 @@
       "document": "wdc816",
       "section": "8.11",
       "quote": "When in the Native mode, the Program Bank register (PBR) is cleared to 00 when a hardware interrupt, BRK or COP is executed. In the Native mode, previous PBR contents are automatically saved on Stack. In the Emulation mode, the PBR and DBR registers are cleared to 00 when a hardware interrupt, BRK or COP is executed. In this case, previous contents of the PBR are not automatically saved.",
-      "note": "The clause about the data bank is contradicted by measurement and is recorded in divergences.json.",
+      "note": "The model clears both banks in emulation mode, as printed. The per-opcode suite leaves the data bank alone, and that disagreement is recorded in divergences.json.",
       "appliesTo": ["65802", "65816"],
-      "appliesToCore": "wide"
+      "appliesToCore": "wide",
+      "heldBy": [
+        "conformance/emulation_facts.test.py::InterruptBankTest.test_each_interrupt_clears_the_banks_the_data_sheet_names_for_its_mode"
+      ]
     },
     "switchingToEmulation": {
       "document": "wdc816",
@@ -386,7 +392,10 @@
       "quote": "In the Emulation mode, the Stack address range is 000100 to 0001FF. The following OpCodes and addressing modes will increment or decrement beyond this range when accessing two or three bytes: JSL, JSR (a,x), PEA, PEI, PER, PHD, PLD, RTL",
       "note": "The list is exactly the set of instructions the 65816 added, which is why the model folds a push into page one for the operations the 6502 already had and does not fold for these.",
       "appliesTo": ["65802", "65816"],
-      "appliesToCore": "wide"
+      "appliesToCore": "wide",
+      "heldBy": [
+        "conformance/emulation_facts.test.py::StackRangeTest.test_every_operation_the_current_sheet_names_leaves_page_one"
+      ]
     },
     "directRangeInEmulation": {
       "document": "wdc816",
@@ -399,9 +408,12 @@
           "section": "8.2"
         }
       ],
-      "note": "The second sentence is why the model wraps inside the page only when the direct register is page aligned. The exception list in the first sentence is contradicted by measurement and is recorded in divergences.json.",
+      "note": "The second sentence is why the model wraps inside the page only when the direct register is page aligned. The model follows the exception list in the first sentence. The per-opcode suite has one case in which (d,x), which the list does not name, leaves the page, and that disagreement is recorded in divergences.json.",
       "appliesTo": ["65802", "65816"],
-      "appliesToCore": "wide"
+      "appliesToCore": "wide",
+      "heldBy": [
+        "conformance/emulation_facts.test.py::DirectPageTest.test_in_emulation_only_the_printed_exceptions_leave_the_direct_page"
+      ]
     },
     "directIsBankZero": {
       "document": "wdc816",
@@ -524,6 +536,7 @@
       "quote": "T3 ADL: BAL + X, ADH: BAH + C, Data (Discarded), R/W 1; T4 ADL: BAL + X, ADH: BAH + C, Data, R/W 1, Fetch Data; T5 ADH, ADL, Data, R/W 0; T6 ADH, ADL, Modified Data, R/W 0, Write modified Data back into memory",
       "assembled": true,
       "note": "Two write cycles to the same address, the first carrying the value just read. A device that latches on a write sees it twice, which is why this is worth modelling rather than collapsing.",
+      "whereTheModelDeparts": "The quote is what A.4.4 prints. Its T3 row adds the carry to the high byte, and the model does not: it drives BAH, as table A.3.6 prints the same discarded read (\"T4 ADL: BAL + Y / ADH: BAH. Data (Discarded).\"), as the footnote on the tables that add the carry requires, and as the transistor level simulation shows. The two writes at T5 and T6 are followed as printed. The disagreement is recorded in divergences.json under the discarded read of an indexed access.",
       "appliesTo": [
         "2a03",
         "6502",
@@ -537,7 +550,10 @@
         "6514",
         "6515"
       ],
-      "appliesToCore": "nmos"
+      "appliesToCore": "nmos",
+      "heldBy": [
+        "conformance/eight_bit_facts.test.py::NmosFactTest.test_an_indexed_modify_reads_twice_and_writes_twice_where_the_appendix_prints"
+      ]
     },
     "nmosRorArrivedLate": {
       "document": "mos6500",
@@ -686,10 +702,14 @@
       "section": "Table 7-1",
       "quote": "Interrupt after fetch of BRK instruction: NMOS 6502, interrupt vector is loaded, BRK vector is ignored; W65C02S, BRK is executed, and then interrupt is executed.",
       "assembled": true,
-      "notModelled": "Neither behaviour. A pin taken in the middle of an instruction needs a core that can stop part way through one, and this one runs an instruction to completion before it will take an interrupt. Recorded because it is a real difference between the parts and this project does not have it.",
+      "modelled": "Both behaviours. An NMOS part that sees a new NMI edge before it reads the BRK vector reads the NMI vector in its place and does not take the NMI again afterwards. A CMOS part finishes the BRK through its own vector and then takes the NMI. An IRQ needs no separate handling on an NMOS part, whose IRQ and BRK vectors are the same address.",
+      "notStated": "Which cycle of the BRK is the last one on which an arriving interrupt still replaces the vector. The model reads the line just before the vector fetch, the latest point it could be read. No document here names the cycle, and no published corpus asserts a pin during an instruction. A capture of a real NMOS part with NMI asserted on each cycle of a BRK in turn would settle it.",
       "correction": "This was recorded against the 65816 data sheet. The sentence is not in that document at all: Table 7-1 Microprocessor Operational Enhancements is the W65C02S sheet's table, and the 65816 sheet has a Table 7-1 of its own about something else. The quote checker scored every quote against whichever document placed it best rather than against the one named, so three facts about the CMOS part carried the wrong source and nothing said so.",
       "appliesTo": ["65c02", "r65c02", "w65c02"],
-      "appliesToCore": "cmos"
+      "appliesToCore": "cmos",
+      "heldBy": [
+        "conformance/eight_bit_facts.test.py::CmosFactTest.test_an_nmi_after_the_break_fetch_is_taken_as_each_part_is_printed_to"
+      ]
     },
     "nmosCycleTablesFromASecondPrinting": {
       "document": "synertek_hardware",
@@ -725,10 +745,13 @@
       "assembled": true,
       "quote": "Indexed addressing across page boundary: NMOS R6502, extra read of invalid address; CMOS R65C00 family, extra read of last instruction byte. Execution of invalid op codes: NMOS, some terminate only by reset, results are undefined; CMOS, all are NOPs (reserved for future use). Jump Indirect, operand = XXFF: NMOS, page address does not increment; CMOS, page address increments and adds one additional cycle. Read/modify/write instructions at effective address: NMOS, one read and two write cycles; CMOS, two read and one write cycle. Decimal flag: NMOS, indeterminate after reset; CMOS, initialized to binary mode (D = 0) after reset and interrupts. Flags after decimal operation: NMOS, invalid N, V and Z flags; CMOS, valid flag adds one additional cycle. Interrupt after fetch of BRK instruction: NMOS, interrupt vector is loaded, BRK vector is ignored; CMOS, BRK is executed, then interrupt is executed.",
       "whyItMatters": "Every CMOS difference this project models was taken from one manufacturer, and three of those facts had already been found filed under the wrong document. Rockwell prints the same seven rows for its own part, so they no longer rest on a single vendor.",
-      "whatWasCheckedAgainstIt": "All seven rows, against the models. Six agree: the indexed dummy read moves from the invalid address to the last instruction byte, the read-modify-write pattern goes from one read and two writes to two reads and one write, the jump indirect page bug is fixed and costs six, the decimal flag is cleared by both reset and interrupt entry, and a decimal add costs one more. The seventh is the interrupt during a break, which is recorded above as modelled for neither part and for a reason that has not changed.",
+      "whatWasCheckedAgainstIt": "All seven rows, against the models. Six agree: the indexed dummy read moves from the invalid address to the last instruction byte, the read-modify-write pattern goes from one read and two writes to two reads and one write, the jump indirect page bug is fixed and costs six, the decimal flag is cleared by both reset and interrupt entry, and a decimal add costs one more. The seventh is the interrupt during a break, which now agrees as well: an NMOS part reads the NMI vector in place of the BRK vector, and a CMOS part finishes the BRK and then takes the NMI.",
       "howItWasRead": "The document is a photograph with no text layer, so the page was rendered and read. Nothing here was taken from the recognised text alone: every row was read back off the rendered page, because a recogniser reading a two column table interleaves the columns and the NMOS and CMOS halves of a row are exactly what must not be swapped.",
       "appliesTo": ["65c02", "r65c02", "w65c02"],
-      "appliesToCore": "cmos"
+      "appliesToCore": "cmos",
+      "heldBy": [
+        "conformance/eight_bit_facts.test.py::CmosFactTest.test_a_second_manufacturer_prints_the_same_break_and_interrupt_row"
+      ]
     },
     "stackRangeInEmulationAsFirstPrinted": {
       "document": "wdc816_1994",
@@ -737,7 +760,10 @@
       "note": "Two entries longer than the same sentence in the 2004 and 2024 revisions, which stop after RTL. The two that were dropped are the stack relative addressing modes, and they belong there: with the stack pointer near the top of page one, a stack relative read lands above 0001FF rather than wrapping. The sentence promises the same thing in all three revisions and only the earliest one lists everything it applies to, so the earliest is the one this project follows.",
       "whyTheLaterListIsTheIncompleteOne": "The note on the shorter list reasons that it names exactly what the part added. That reasoning argues for the longer list: stack relative addressing is also something the part added, and it is only absent from the sentence, never from the part.",
       "appliesTo": ["65802", "65816"],
-      "appliesToCore": "wide"
+      "appliesToCore": "wide",
+      "heldBy": [
+        "conformance/emulation_facts.test.py::StackRangeTest.test_exactly_the_operations_the_first_printing_names_leave_page_one"
+      ]
     },
     "caveatsTableIsStableAcrossRevisions": {
       "document": "wdc816_2024",

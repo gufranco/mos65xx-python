@@ -125,6 +125,10 @@ class Cpu(Nmos):
         self.d = False
 
     @override
+    def nmi_takes_over_break(self) -> bool:
+        return False
+
+    @override
     def interrupt(self, vector: int) -> None:
         super().interrupt(vector)
         self.d = False

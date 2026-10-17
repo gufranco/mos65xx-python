@@ -245,12 +245,12 @@ class PlaceholderTest(unittest.TestCase):
         )
 
     def test_a_case_differing_only_at_that_cycle_is_not_a_disagreement(self) -> None:
-        agreed, differed, skipped, _ = cycles.run_tests([self.decimal_add(0x7F)], "w65c02")
+        agreed, differed, skipped, _, _ = cycles.run_tests([self.decimal_add(0x7F)], "w65c02")
 
         self.assertEqual((agreed, differed, skipped), (0, 0, 1))
 
     def test_the_same_case_with_the_address_the_model_reads_agrees_outright(self) -> None:
-        agreed, differed, skipped, _ = cycles.run_tests([self.decimal_add(0x8001)], "w65c02")
+        agreed, differed, skipped, _, _ = cycles.run_tests([self.decimal_add(0x8001)], "w65c02")
 
         self.assertEqual((agreed, differed, skipped), (1, 0, 0))
 
@@ -329,7 +329,7 @@ class SuiteTest(unittest.TestCase):
         )
         many = [moved] * (cycles.EXAMPLE_LIMIT + 2)
 
-        agreed, differed, skipped, examples = cycles.run_tests(many, "6502")
+        agreed, differed, skipped, _, examples = cycles.run_tests(many, "6502")
 
         self.assertEqual(
             (agreed, differed, skipped, len(examples)),
@@ -342,13 +342,13 @@ class SuiteTest(unittest.TestCase):
 
             held = cycles.run_file(Path(where) / "cb.json", model="6502")
 
-        self.assertEqual(held, (0, 0, 0, []))
+        self.assertEqual(held, (0, 0, 0, 0, []))
 
     def test_a_limit_stops_reading_a_file_early(self) -> None:
         with tempfile.TemporaryDirectory() as where:
             self.written(Path(where), "a5.json", [LOADING, LOADING, LOADING])
 
-            agreed, _, _, _ = cycles.run_file(Path(where) / "a5.json", limit=2, model="6502")
+            agreed, _, _, _, _ = cycles.run_file(Path(where) / "a5.json", limit=2, model="6502")
 
         self.assertEqual(agreed, 2)
 

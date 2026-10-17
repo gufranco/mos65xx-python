@@ -772,8 +772,15 @@ class DirectPagePointerWrapTest(unittest.TestCase):
     def test_a_direct_indirect_pointer_wraps_inside_the_page(self) -> None:
         self.assertEqual(self.addresses([0xB2]), [0x000CFF, 0x000C00])
 
-    def test_a_direct_indexed_indirect_pointer_leaves_the_page(self) -> None:
-        self.assertEqual(self.addresses([0xA1]), [0x000CFF, 0x000D00])
+    def test_a_direct_indexed_indirect_pointer_wraps_inside_the_page(self) -> None:
+        # Arrange
+        code = [0xA1]
+
+        # Act
+        found = self.addresses(code)
+
+        # Assert
+        self.assertEqual(found, [0x000CFF, 0x000C00])
 
     def test_a_direct_indirect_indexed_pointer_wraps_inside_the_page(self) -> None:
         self.assertEqual(self.addresses([0xB1]), [0x000CFF, 0x000C00])

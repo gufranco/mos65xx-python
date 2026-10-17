@@ -168,6 +168,22 @@ def build_upstream(root: Path) -> Any:
     return upstream, found.stdout.strip()
 
 
+def checked_out(directory: Path) -> str:
+    found = subprocess.run(
+        ["git", "-C", str(directory), "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return found.stdout.strip()
+
+
+def advance_upstream(upstream: Path) -> str:
+    (upstream / "65816" / "v1" / "00.n.json").write_text('[{"newer": 1}]')
+    subprocess.run(["git", "-C", str(upstream), "commit", "-q", "-am", "newer"], check=True)
+    return checked_out(upstream)
+
+
 class FetchTest(unittest.TestCase):
     @override
     def setUp(self) -> None:
@@ -201,6 +217,31 @@ class FetchTest(unittest.TestCase):
         where = fetch.fetch(self.suite, Path(self.root) / "down")
 
         self.assertTrue(where.is_dir())
+
+    def test_fetching_again_moves_a_stale_copy_to_the_pinned_commit(self) -> None:
+        # Arrange
+        down = Path(self.root) / "down"
+        fetch.fetch(self.suite, down)
+        newer = advance_upstream(self.upstream)
+
+        # Act
+        where = fetch.fetch({**self.suite, "commit": newer}, down)
+
+        # Assert
+        self.assertEqual(
+            (checked_out(down), (where / "00.n.json").read_text()), (newer, '[{"newer": 1}]')
+        )
+
+    def test_a_copy_that_does_not_land_on_the_pin_stops_the_run(self) -> None:
+        # Arrange
+        named = {**self.suite, "commit": "main"}
+
+        # Act
+        with self.assertRaises(SystemExit) as raised:
+            fetch.fetch(named, Path(self.root) / "down")
+
+        # Assert
+        self.assertIn(f"is at {self.head}, not at main", str(raised.exception))
 
     def test_a_commit_that_is_not_there_stops_the_run(self) -> None:
         missing = {**self.suite, "commit": "f" * 40}

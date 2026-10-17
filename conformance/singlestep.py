@@ -9,6 +9,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from conformance.divergent import recorded_divergence, unexplained  # noqa: E402
 from mos65xx import Cpu, SparseMemory, UnknownModelError, models  # noqa: E402
 
 EXAMPLE_LIMIT = 5
@@ -79,46 +80,37 @@ def check(test: Mapping[str, Any], model: str = DEFAULT_MODEL) -> list[tuple[str
     return wrong
 
 
-def recorded_divergence(test: Mapping[str, Any], model: str) -> str:
-    if model != "65816":
-        return ""
-    initial = test["initial"]
-    pulls_across_the_page_edge = (
-        int(initial.get("e", 0)) == 1 and (int(initial["s"]) & 0xFF) == 0xFF
-    )
-    if pulls_across_the_page_edge and str(test["name"]).startswith("ab "):
-        return "the stack address of a one byte pull at the top of emulation page one"
-    return ""
+Tally = tuple[int, int, int, int, list[tuple[str, list[tuple[str, Any, Any]]]]]
 
 
-def run_tests(
-    tests: Iterable[Mapping[str, Any]], model: str = DEFAULT_MODEL
-) -> tuple[int, int, int, list[tuple[str, list[tuple[str, Any, Any]]]]]:
-    passed = failed = skipped = 0
+def run_tests(tests: Iterable[Mapping[str, Any]], model: str = DEFAULT_MODEL) -> Tally:
+    passed = failed = skipped = excused = 0
     examples: list[tuple[str, list[tuple[str, Any, Any]]]] = []
     for test in tests:
         try:
             wrong = check(test, model)
         except Exception as error:  # noqa: BLE001
             wrong = [("raised", type(error).__name__, str(error)[:60])]
-        if wrong:
-            if recorded_divergence(test, model):
-                skipped += 1
-                continue
-            failed += 1
-            if len(examples) < EXAMPLE_LIMIT:
-                examples.append((test["name"], wrong))
-        else:
+        if not wrong:
             passed += 1
-    return passed, failed, skipped, examples
+            continue
+        if recorded_divergence(test, model):
+            skipped += 1
+            continue
+        left = unexplained(test, wrong, model)
+        if not left:
+            excused += 1
+            continue
+        failed += 1
+        if len(examples) < EXAMPLE_LIMIT:
+            examples.append((test["name"], left))
+    return passed, failed, skipped, excused, examples
 
 
-def run_file(
-    path: Path, limit: int | None = None, model: str = DEFAULT_MODEL
-) -> tuple[int, int, int, list[tuple[str, list[tuple[str, Any, Any]]]]]:
+def run_file(path: Path, limit: int | None = None, model: str = DEFAULT_MODEL) -> Tally:
     held = Path(path).read_text().strip()
     if not held:
-        return 0, 0, 0, []
+        return 0, 0, 0, 0, []
     tests = json.loads(held)
     if limit:
         tests = tests[:limit]
@@ -169,20 +161,28 @@ def main(argv: Sequence[str]) -> int:
         return 0
 
     print(f"  {len(files)} files from {directory}, as a {model}")
-    passed = failed = skipped = 0
+    passed = failed = skipped = excused = 0
     broken = []
     empty = []
     for path in files:
-        file_passed, file_failed, file_skipped, examples = run_file(path, limit, model)
+        file_passed, file_failed, file_skipped, file_excused, examples = run_file(
+            path, limit, model
+        )
         passed += file_passed
         failed += file_failed
         skipped += file_skipped
-        if not file_passed and not file_failed and not file_skipped:
+        excused += file_excused
+        if not (file_passed or file_failed or file_skipped or file_excused):
             empty.append(path.stem)
         if file_failed:
             broken.append((path.name, file_failed, examples))
 
     print(f"  {passed} agreed, {failed} did not")
+    if excused:
+        print(
+            f"  {excused} agreed in every field but those a recorded divergence names,"
+            f" explained in conformance/divergences.json"
+        )
     if skipped:
         print(
             f"  {skipped} left out as recorded divergences, explained in"

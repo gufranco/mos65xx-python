@@ -585,7 +585,12 @@ class Cpu:
         self.push16(self.pc)
         self.push8(self.status() | FLAG_B)
         self.i = True
-        self.pc = self.read16(BREAK_VECTOR)
+        hijacked = self.nmi_takes_over_break()
+        self.nmi_seen = self.nmi_seen or hijacked
+        self.pc = self.read16(NMI_VECTOR if hijacked else BREAK_VECTOR)
+
+    def nmi_takes_over_break(self) -> bool:
+        return "nmi" in self.package_pins and self.nmi_line and not self.nmi_seen
 
     def interrupt(self, vector: int) -> None:
         self.dead(self.pc)

@@ -9,11 +9,11 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from conformance.divergent import differs_only_where_excused, recorded_divergence  # noqa: E402
 from conformance.singlestep import (  # noqa: E402
     DEFAULT_MODEL,
     Usage,
     machine_for,
-    recorded_divergence,
     suite_files,
 )
 from mos65xx import UnknownModelError, models  # noqa: E402
@@ -82,10 +82,11 @@ def check(test: Mapping[str, Any], model: str = DEFAULT_MODEL) -> list[Cycle] | 
     return None if seen == recorded(test) else seen
 
 
-def run_tests(
-    tests: Iterable[Mapping[str, Any]], model: str = DEFAULT_MODEL
-) -> tuple[int, int, int, list[Example]]:
-    agreed = differed = skipped = 0
+Tally = tuple[int, int, int, int, list[Example]]
+
+
+def run_tests(tests: Iterable[Mapping[str, Any]], model: str = DEFAULT_MODEL) -> Tally:
+    agreed = differed = skipped = excused = 0
     examples: list[Example] = []
     for test in tests:
         seen = check(test, model)
@@ -95,18 +96,19 @@ def run_tests(
         if only_placeholder(test, seen) or recorded_divergence(test, model):
             skipped += 1
             continue
+        if differs_only_where_excused(test, model, recorded(test), seen):
+            excused += 1
+            continue
         differed += 1
         if len(examples) < EXAMPLE_LIMIT:
             examples.append((str(test["name"]), recorded(test), seen))
-    return agreed, differed, skipped, examples
+    return agreed, differed, skipped, excused, examples
 
 
-def run_file(
-    path: Path, limit: int | None = None, model: str = DEFAULT_MODEL
-) -> tuple[int, int, int, list[Example]]:
+def run_file(path: Path, limit: int | None = None, model: str = DEFAULT_MODEL) -> Tally:
     held = Path(path).read_text().strip()
     if not held:
-        return 0, 0, 0, []
+        return 0, 0, 0, 0, []
     tests = json.loads(held)
     if limit:
         tests = tests[:limit]
@@ -165,15 +167,18 @@ def main(argv: Sequence[str]) -> int:
         return 0
 
     print(f"  {len(files)} files from {directory}, as a {model}")
-    agreed = differed = skipped = 0
+    agreed = differed = skipped = excused = 0
     broken = []
     empty = []
     for path in files:
-        file_agreed, file_differed, file_skipped, examples = run_file(path, limit, model)
+        file_agreed, file_differed, file_skipped, file_excused, examples = run_file(
+            path, limit, model
+        )
         agreed += file_agreed
         differed += file_differed
         skipped += file_skipped
-        if not (file_agreed or file_differed or file_skipped):
+        excused += file_excused
+        if not (file_agreed or file_differed or file_skipped or file_excused):
             empty.append(path.stem)
         if file_differed:
             broken.append((path.name, file_differed, examples))
@@ -184,6 +189,11 @@ def main(argv: Sequence[str]) -> int:
         f"  {agreed} agreed cycle for cycle, {differed} did not,"
         f" {skipped} left out as placeholders or recorded divergences"
     )
+    if excused:
+        print(
+            f"  {excused} agreed on every cycle but the one address a recorded divergence"
+            f" names, explained in conformance/divergences.json"
+        )
     for name, count, examples in broken[:EXAMPLE_LIMIT]:
         print(f"    {name}: {count} differed")
         report(examples)

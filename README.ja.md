@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16**品種、**17,900,000**件の状態ケースと**17,870,080**件のサイクル精度ケースを比較、説明のつかない失敗は**0**件、テスト**1,402**件、ステートメントとブランチのカバレッジ**100%**、依存関係なし
+**16**品種、**17,900,000**件の状態ケースと**17,870,080**件のサイクル精度ケースを比較、説明のつかない失敗は**0**件、テスト**1,437**件、ステートメントとブランチのカバレッジ**100%**、依存関係なし
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -99,7 +99,7 @@ python3 mos65xx/doctor.py
 | `i`、`d`、`b`、`decimal` | 8ビット品種です。割り込み禁止、十進フラグ、ブレークフラグ、十進加算器が配線されているかどうかです |
 | `irq_disable`、`decimal`、`m8`、`x8`、`emulation` | 65816のみです。割り込み禁止、十進フラグ、8ビットアキュムレータ、8ビットインデックスレジスタ、エミュレーションモードです |
 | `irq_line` | レベルとしての要求ラインです。各命令の後にサンプリングされるため、それより前に取り下げられた要求は受け付けられません |
-| `nmi_line` | マスク不能ラインです。低から高への変化で1回割り込み、高のまま保っても再び割り込みません |
+| `nmi_line` | マスク不能ラインです。低から高への変化で1回割り込み、高のまま保っても再び割り込みません。NMOSの品種では、`BRK`の実行中、そのベクタを読む前に届いた変化は、WDCとRockwellが記載しているとおり`BRK`のベクタをNMIのベクタに置き換えます |
 | `ready_line` | falseの間、読み出しはtrueに戻るまでサイクルを消費するため、ホストは`on_cycle`からこれをクリアします。CMOS品種と65816は書き込みも同じように保持し、NMOS品種は保持しません |
 | `cycles` | 生成からのサイクル数です。リセットの分も加算されます |
 | `steps` | 最後のリセットからの命令数です |
@@ -216,7 +216,7 @@ gave up after 100 instructions at $31D0
 | コマンド | 引数 | 終了コード |
 |:--|:--|:--|
 | `python3 mos65xx/doctor.py` | なし | すべてのチェックに合格すれば0、それ以外は1 |
-| `python3 -m conformance.fetch` | `[directory] [--latest]`。デフォルトは`~/.cache/conformance-suites`。`--latest`は固定版の代わりに各上流の最新を取得します | 0、または上流に到達できない場合は1 |
+| `python3 -m conformance.fetch` | `[directory] [--latest]`。デフォルトは`~/.cache/conformance-suites`。`--latest`は固定版の代わりに各上流の最新を取得します。既存のコピーは固定版へ移し、固定版で終わらないコピーは実行を止めます | 0、または上流に到達できない場合は1 |
 | `python3 -m conformance.singlestep` | `<suite directory> [tests per file] [filter] [--model name]`。デフォルトのモデルは`65816` | すべてのケースが一致するかスイートがなければ0、不一致があれば1、引数が不正なら2 |
 | `python3 -m conformance.cycles` | `singlestep`と同じ | `singlestep`と同じ |
 | `python3 -m conformance.documents` | `[--check] [--only substring]` | すべてのダイジェストが一致すれば0、1つでも拒否されるか引数が不正なら1 |
@@ -417,11 +417,11 @@ python3 -m conformance.singlestep ~/.cache/conformance-suites/6502/6502/v1 --mod
 python3 -m conformance.cycles ~/.cache/conformance-suites/6502/6502/v1 --model 6502
 ```
 
-どちらの合計も[`conformance/suites.json`](conformance/suites.json)から導出され、テストがこのページをその値に保っています。wdc65c02スイートは`WAI`と`STP`のファイルを空で配布しています。サイクルの合計からは、追加のサイクルがどのレジスタも生成しない一定のアドレスで記録されている29,920件のCMOS十進ケースを除いています。どちらのランナーも条件によって65816の37ケースを除き、除いた件数を表示します。エミュレーションのスタックポインタがページ1の先頭にあるとき、1バイトのプルがどこに着地するかについてスイートとデータシートが食い違っており、このコアはデータシートに従っています。
+どちらの合計も[`conformance/suites.json`](conformance/suites.json)から導出され、テストがこのページをその値に保っています。wdc65c02スイートは`WAI`と`STP`のファイルを空で配布しています。サイクルの合計からは、追加のサイクルがどのレジスタも生成しない一定のアドレスで記録されている29,920件のCMOS十進ケースを除いています。このコアがスイートではなくデータシートに従う箇所について、どちらのランナーも別扱いにした65816のケースの件数を表示します。条件によって除くのは38ケースで、エミュレーションのスタックポインタがページ1の先頭にあるときの1バイトのプルが37ケース、整列したダイレクトページの末尾から始まる`(d,x)`のポインタが1ケースです。残りは2つの読み方が食い違う部分以外をすべて比較します。エミュレーションの`BRK`と`COP`の19,924ケースではデータバンクレジスタ、スタックポインタがページ1の末尾にある`JSR (a,x)`の43ケースではスタックへの書き込み1回のアドレスです。
 
-[`conformance/hardware.json`](conformance/hardware.json)はメーカーのページから取ったすべての事実を、出典の文とページとともに保持しており、テストがコードをそれらに合わせています。[`conformance/addressing-cycles.json`](conformance/addressing-cycles.json)と[`conformance/instruction-set.json`](conformance/instruction-set.json)は、ハードウェアマニュアルのAppendix AとプログラミングマニュアルのAppendix Bを印刷されたとおりに保持しています。[`conformance/divergences.json`](conformance/divergences.json)は2つの出典が食い違う19か所について、このパッケージがどちらに従うか、それぞれ何があれば決着するかを記録しています。`python3 -m conformance.quotes`は引用したすべての文をその文書内で見つけます。
+[`conformance/hardware.json`](conformance/hardware.json)はメーカーのページから取ったすべての事実を、出典の文とページとともに保持しており、テストがコードをそれらに合わせています。[`conformance/addressing-cycles.json`](conformance/addressing-cycles.json)と[`conformance/instruction-set.json`](conformance/instruction-set.json)は、ハードウェアマニュアルのAppendix AとプログラミングマニュアルのAppendix Bを印刷されたとおりに保持しています。[`conformance/divergences.json`](conformance/divergences.json)は2つの出典が食い違う20か所について、このパッケージがどちらに従うか、それぞれ何があれば決着するかを記録しています。`python3 -m conformance.quotes`は引用したすべての文をその文書内で見つけます。
 
-スイートはコミットで固定されています。週次のジョブが各上流の最新でスイートを実行し、新しいスイートが合格すればプルリクエストを、失敗すればissueを開きます。[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)には、文書とスイートでは決着しない16の問いを、それを解決する実機での測定とともに挙げています。
+スイートはコミットで固定されています。週次のジョブが各上流の最新でスイートを実行し、新しいスイートが合格すればプルリクエストを、失敗すればissueを開きます。[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)には、文書とスイートでは決着しない17の問いを、それを解決する実機での測定とともに挙げています。
 
 ## 開発に参加する
 

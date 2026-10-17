@@ -30,7 +30,7 @@ def checkout_command(
     where = str(directory)
     return [
         ["git", "init", "-q", where],
-        ["git", "-C", where, "remote", "add", "origin", suite["repository"]],
+        ["git", "-C", where, "config", "remote.origin.url", suite["repository"]],
         ["git", "-C", where, "sparse-checkout", "init", "--cone"],
         ["git", "-C", where, "sparse-checkout", "set", *suite["sparse"]],
         [
@@ -94,7 +94,22 @@ def fetch(
             ) from None
         if done.returncode:
             raise SystemExit(f"fetching {suite['name']} failed at {' '.join(step)}\n{done.stderr}")
+    landed = checked_out(directory)
+    wanted = commit or suite["commit"]
+    if landed != wanted:
+        raise SystemExit(f"fetching {suite['name']}: the copy is at {landed}, not at {wanted}")
     return directory / suite["path"]
+
+
+def checked_out(directory: Path) -> str:
+    found = subprocess.run(
+        ["git", "-C", str(directory), "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=_git_environment(),
+    )
+    return found.stdout.strip()
 
 
 def main(argv: Sequence[str], definition: Any = None) -> int:

@@ -166,7 +166,7 @@ jobs:
               "${HOME}/.cache/conformance-suites/${suite}" "${limit}" --model "${model}" || status=1
             echo "::endgroup::"
           done <<'SUITES'
-          65816/65816/v1 65816
+          65816/v1 65816
           6502/6502/v1 6502
           nes6502/nes6502/v1 2a03
           synertek65c02/synertek65c02/v1 65c02
@@ -211,7 +211,7 @@ jobs:
               "${HOME}/.cache/conformance-suites/${suite}" "${limit}" --model "${model}" || status=1
             echo "::endgroup::"
           done <<'SUITES'
-          65816/65816/v1 65816
+          65816/v1 65816
           6502/6502/v1 6502
           nes6502/nes6502/v1 2a03
           synertek65c02/synertek65c02/v1 65c02

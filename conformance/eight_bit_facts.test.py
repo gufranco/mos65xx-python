@@ -15,6 +15,8 @@ from mos65xx import Cpu, Memory, NoSuchPin  # noqa: E402
 
 FACTS = json.loads((Path(__file__).resolve().parent / "hardware.json").read_text())["facts"]
 
+DIVERGENCES = json.loads((Path(__file__).resolve().parent / "divergences.json").read_text())
+
 START = 0x0200
 
 NUMBERS = {"two": 2, "three": 3, "five": 5, "six": 6}
@@ -71,6 +73,12 @@ IMPLIED = frozenset(
 )
 
 SINGLE_CYCLE_NOP = (0x03, 0x0B)
+
+BREAK_FETCHED = 2
+
+BREAK = (0xFFFE, 0xFFFF)
+
+NMI = (0xFFFA, 0xFFFB)
 
 
 def fact(name: str) -> dict[str, Any]:
@@ -151,6 +159,37 @@ def implied_opcodes(model: str) -> list[int]:
     ]
 
 
+class RaiseNmi:
+    def __init__(self, cpu: Any) -> None:
+        self.cpu = cpu
+        self.cycles = 0
+
+    def __call__(self) -> None:
+        self.cycles += 1
+        self.cpu.nmi_line = self.cycles >= BREAK_FETCHED
+
+
+def break_meeting_an_nmi(model: str) -> tuple[int, ...]:
+    cpu = eight(model, (0x00, 0x00), i=False)
+    cpu.on_cycle = RaiseNmi(cpu)
+    cpu.step()
+    return tuple(address for address, _, _ in cpu.trace if address in (*BREAK, *NMI))
+
+
+def vectors_read_for(clause: str) -> tuple[int, ...]:
+    if clause.endswith("BRK vector is ignored"):
+        return NMI
+    assert clause.startswith("BRK is executed"), f"no reading of {clause}"
+    return (*BREAK, *NMI)
+
+
+def printed_break_with_an_interrupt(name: str) -> dict[str, tuple[int, ...]]:
+    found = re.search(r"fetch of BRK instruction: NMOS[^,]*, (.+?); [^,]+, (.+?)\.", quote(name))
+    assert found is not None, f"{name} prints no row for an interrupt during BRK"
+    nmos, cmos = (vectors_read_for(clause) for clause in found.groups())
+    return {"6502": nmos} | dict.fromkeys(fact(name)["appliesTo"], cmos)
+
+
 def reach(cpu: Any) -> int:
     cpu.memory.write8(0x0000, 0x5A)
     return next(1 << bit for bit in range(1, 17) if cpu.read8(1 << bit) == 0x5A)
@@ -165,6 +204,21 @@ def brought_out(cpu: Any) -> set[str]:
             continue
         found.add(pin)
     return found
+
+
+def printed_kinds(text: str) -> list[str]:
+    return ["read" if flag == "1" else "write" for flag in re.findall(r"R/W (\d)", text)]
+
+
+def discarded_read_high_byte() -> str:
+    held = next(
+        one
+        for one in DIVERGENCES["divergences"]
+        if "discarded read of an indexed access" in one["subject"]
+    )
+    found = re.search(r"ADH: (BAH(?: \+ C)?)\.", held["andAlsoSays"]["quote"])
+    assert found is not None, "the second printing names no high byte for the discarded read"
+    return found.group(1)
 
 
 class NmosFactTest(unittest.TestCase):
@@ -210,6 +264,32 @@ class NmosFactTest(unittest.TestCase):
             (len(cpu.trace), {kind for _, _, kind in cpu.trace}),
             (cpu.cycles - before, {"read", "write"}),
             quote("nmosSingleCycleAppendix"),
+        )
+
+    def test_an_indexed_modify_reads_twice_and_writes_twice_where_the_appendix_prints(
+        self,
+    ) -> None:
+        # Arrange
+        printed = quote("nmosReadModifyWriteWritesTwice")
+        carry = 0 if discarded_read_high_byte() == "BAH" else 1
+        cpu = eight("6502", (0xFE, 0xFF, 0x30), x=1)
+        cpu.memory.write8(0x3100, 0x41)
+        discarded = cpu.memory.read8(0x3000 + (carry << 8))
+
+        # Act
+        cpu.step()
+
+        # Assert
+        self.assertEqual(
+            cpu.trace[3:],
+            list(
+                zip(
+                    (0x3000 + (carry << 8), 0x3100, 0x3100, 0x3100),
+                    (discarded, 0x41, 0x41, 0x42),
+                    printed_kinds(printed),
+                    strict=True,
+                )
+            ),
         )
 
     def test_the_rotate_right_works_on_the_part_this_project_models(self) -> None:
@@ -315,6 +395,42 @@ class CmosFactTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(taken, {held["cycles"]})
+
+    def test_an_nmi_after_the_break_fetch_is_taken_as_each_part_is_printed_to(self) -> None:
+        # Arrange
+        expected = printed_break_with_an_interrupt("cmosInterruptDuringBreak")
+
+        # Act
+        observed = {name: break_meeting_an_nmi(name) for name in expected}
+
+        # Assert
+        self.assertEqual(observed, expected)
+
+    def test_a_part_without_the_nmi_pin_keeps_its_break_vector(self) -> None:
+        # Arrange
+        cpu = eight("6507", (0x00, 0x00), i=False)
+        cpu.on_cycle = RaiseNmi(cpu)
+        watched = {address & cpu.address_mask for address in (*BREAK, *NMI)}
+
+        # Act
+        with self.assertRaises(NoSuchPin):
+            cpu.step()
+
+        # Assert
+        self.assertEqual(
+            [address for address, _, _ in cpu.trace if address in watched],
+            [address & cpu.address_mask for address in BREAK],
+        )
+
+    def test_a_second_manufacturer_prints_the_same_break_and_interrupt_row(self) -> None:
+        # Arrange
+        expected = printed_break_with_an_interrupt("cmosEnhancementsFromASecondManufacturer")
+
+        # Act
+        observed = {name: break_meeting_an_nmi(name) for name in expected}
+
+        # Assert
+        self.assertEqual(observed, expected)
 
 
 if __name__ == "__main__":

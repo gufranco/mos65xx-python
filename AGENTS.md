@@ -77,7 +77,7 @@ Appendix B of the programming manual, Table 6-7 of the W65C816S data sheet and
 the reserved-opcode row of the W65C02S data sheet are each recorded and driven,
 so a claim about timing is checkable without any corpus on the machine.
 
-**Not settled: 16 things**, each named in [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)
+**Not settled: 17 things**, each named in [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)
 with the measurement that would close it. Do not close one by argument.
 
 ## The cycle claim, and what it rests on
@@ -146,9 +146,10 @@ number in the source is a claim nobody checks.
 
 The datasheet is not always right. Its native vector table prints the emulation
 addresses, and its caveat about which direct-page pointer reads stay inside the
-page is contradicted by three of the four cases the suite can settle. Read the
-cycle table and the pin descriptions before the prose: both times the document
-contradicted itself, those two were the ones that matched the silicon.
+page agrees with three of the four cases the suite can settle and is followed
+for the fourth, which the suite contradicts. Read the cycle table and the pin
+descriptions before the prose: both times the document contradicted itself,
+those two were the ones that matched the silicon.
 
 ## Every gate, in the order to run them
 

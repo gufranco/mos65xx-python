@@ -8,7 +8,7 @@ English | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md) | [繁�
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16** parts, **17,900,000** state cases and **17,870,080** cycle-exact cases compared, **0** unexplained failures, **1,402** tests, **100%** statement and branch coverage, no dependencies
+**16** parts, **17,900,000** state cases and **17,870,080** cycle-exact cases compared, **0** unexplained failures, **1,437** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -99,7 +99,7 @@ On a part whose package does not bring a line out, `irq()` and `nmi()` raise `No
 | `i`, `d`, `b`, `decimal` | 8-bit parts. Interrupt disable, the decimal flag, the break flag, and whether a decimal adder is wired |
 | `irq_disable`, `decimal`, `m8`, `x8`, `emulation` | 65816 only. Interrupt disable, the decimal flag, 8-bit accumulator, 8-bit index registers, emulation mode |
 | `irq_line` | The request line as a level. It is sampled after each instruction, so a request withdrawn before then is not taken |
-| `nmi_line` | The non-maskable line. A low-to-high change interrupts once, and holding it high does not interrupt again |
+| `nmi_line` | The non-maskable line. A low-to-high change interrupts once, and holding it high does not interrupt again. On an NMOS part a change that arrives during `BRK`, before its vector is read, replaces the `BRK` vector with the NMI vector, as WDC and Rockwell print |
 | `ready_line` | While false, a read spends cycles until it is true again, so a host clears it from `on_cycle`. The CMOS parts and the 65816 hold writes the same way, and the NMOS parts do not |
 | `cycles` | Cycles since construction. A reset adds to it |
 | `steps` | Instructions since the last reset |
@@ -216,7 +216,7 @@ gave up after 100 instructions at $31D0
 | Command | Arguments | Exit codes |
 |:--|:--|:--|
 | `python3 mos65xx/doctor.py` | None | 0 when every check passes, 1 otherwise |
-| `python3 -m conformance.fetch` | `[directory] [--latest]`. Default `~/.cache/conformance-suites`. `--latest` takes each upstream head instead of the pin | 0, or 1 when an upstream cannot be reached |
+| `python3 -m conformance.fetch` | `[directory] [--latest]`. Default `~/.cache/conformance-suites`. `--latest` takes each upstream head instead of the pin. A copy already there is moved to the pin, and a copy that does not end at the pin stops the run | 0, or 1 when an upstream cannot be reached |
 | `python3 -m conformance.singlestep` | `<suite directory> [tests per file] [filter] [--model name]`. Default model `65816` | 0 when every case agrees or no suite is there, 1 on a disagreement, 2 on bad arguments |
 | `python3 -m conformance.cycles` | The same as `singlestep` | The same as `singlestep` |
 | `python3 -m conformance.documents` | `[--check] [--only substring]` | 0 when every digest matches, 1 when one is refused or the arguments are wrong |
@@ -413,11 +413,11 @@ python3 -m conformance.singlestep ~/.cache/conformance-suites/6502/6502/v1 --mod
 python3 -m conformance.cycles ~/.cache/conformance-suites/6502/6502/v1 --model 6502
 ```
 
-Both totals are derived from [`conformance/suites.json`](conformance/suites.json), and a test holds this page to them. The wdc65c02 suite ships the files for `WAI` and `STP` empty. The cycle total leaves out 29,920 CMOS decimal cases whose extra cycle is recorded at a constant address no register produces. Both runners leave out thirty-seven 65816 cases by condition and print how many they left out: the suite and the data sheet disagree about where a one-byte pull lands when the emulation stack pointer is at the top of page one, and this core follows the data sheet.
+Both totals are derived from [`conformance/suites.json`](conformance/suites.json), and a test holds this page to them. The wdc65c02 suite ships the files for `WAI` and `STP` empty. The cycle total leaves out 29,920 CMOS decimal cases whose extra cycle is recorded at a constant address no register produces. Where this core follows the data sheet against the suite, both runners print how many 65816 cases they treated differently. Thirty-eight are left out by condition: thirty-seven where a one-byte pull meets the emulation stack pointer at the top of page one, and one where a `(d,x)` pointer starts at the end of an aligned direct page. The rest are compared in everything but what the two readings disagree on: the data bank register in 19,924 emulation `BRK` and `COP` cases, and the address of one stack write in forty-three `JSR (a,x)` cases with the stack pointer at the bottom of page one.
 
-[`conformance/hardware.json`](conformance/hardware.json) holds every fact taken from a manufacturer's page, with the sentence and the page it came from, and tests hold the code to them. [`conformance/addressing-cycles.json`](conformance/addressing-cycles.json) and [`conformance/instruction-set.json`](conformance/instruction-set.json) hold Appendix A of the hardware manual and Appendix B of the programming manual as printed. [`conformance/divergences.json`](conformance/divergences.json) records 19 places where two sources disagree, what this package follows, and what would settle each. `python3 -m conformance.quotes` finds every quoted sentence in its document.
+[`conformance/hardware.json`](conformance/hardware.json) holds every fact taken from a manufacturer's page, with the sentence and the page it came from, and tests hold the code to them. [`conformance/addressing-cycles.json`](conformance/addressing-cycles.json) and [`conformance/instruction-set.json`](conformance/instruction-set.json) hold Appendix A of the hardware manual and Appendix B of the programming manual as printed. [`conformance/divergences.json`](conformance/divergences.json) records 20 places where two sources disagree, what this package follows, and what would settle each. `python3 -m conformance.quotes` finds every quoted sentence in its document.
 
-The suites are pinned by commit. A weekly job runs them at each upstream head and opens a pull request when the newer suite passes or an issue when it fails. [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) lists 16 questions the documents and the suites do not settle, each with the measurement on a real part that would close it.
+The suites are pinned by commit. A weekly job runs them at each upstream head and opens a pull request when the newer suite passes or an issue when it fails. [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) lists 17 questions the documents and the suites do not settle, each with the measurement on a real part that would close it.
 
 ## Working on it
 

@@ -58,6 +58,10 @@ EMULATION_EVENTS = {
 
 NATIVE_EVENTS = ("irq", "nmi", "abort", "brk", "cop")
 
+TABLE_LABELS = {"IRQB": "irq", "NMIB": "nmi", "ABORTB": "abort", "BRK": "brk", "COP": "cop"}
+
+FFE0_BLOCK = range(0x00FFE0, 0x00FFF0)
+
 INDIRECT_JUMPS = {"JMP (a)": 0x6C, "JML (a)": 0xDC, "JMP (a,x)": 0x7C, "JSR (a,x)": 0xFC}
 
 WHOLE_TRANSFERS = {
@@ -209,6 +213,30 @@ class ResetAndInterruptTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(read, {event: printed[event] for event in NATIVE_EVENTS})
+
+    def test_no_native_vector_is_read_where_the_erratum_table_prints_it(self) -> None:
+        # Arrange
+        held = fact("vectors")
+        erratum = held["erratumInTable6_3"]["quote"]
+        table = {
+            TABLE_LABELS[label]: int(address, 16)
+            for address, label in re.findall(r"(00FF[0-9A-F]{2}),[0-9A-F] (\w+)", erratum)
+            if label in TABLE_LABELS
+        }
+        pins = {event: held["native"][event] for event in ("irq", "nmi", "abort")}
+
+        # Act
+        read = {event: vector_read(event, emulation=False) for event in NATIVE_EVENTS}
+
+        # Assert
+        self.assertEqual(
+            (
+                {event: read[event] == table[event] for event in table},
+                {event: FFE0_BLOCK.start <= read[event] < FFE0_BLOCK.stop for event in read},
+                {event: read[event] for event in pins},
+            ),
+            (dict.fromkeys(table, False), dict.fromkeys(read, True), pins),
+        )
 
     def test_an_interrupt_pulls_its_vector_and_sets_the_printed_flags_in_both_modes(
         self,

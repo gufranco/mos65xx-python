@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16** 款晶片，比對了 **17,900,000** 個狀態案例及 **17,870,080** 個週期精確案例，**0** 個未獲解釋的失敗，**1,402** 個測試，**100%** 語句及分支覆蓋率，無任何依賴
+**16** 款晶片，比對了 **17,900,000** 個狀態案例及 **17,870,080** 個週期精確案例，**0** 個未獲解釋的失敗，**1,437** 個測試，**100%** 語句及分支覆蓋率，無任何依賴
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -99,7 +99,7 @@ python3 mos65xx/doctor.py
 | `i`, `d`, `b`, `decimal` | 8 位元晶片。中斷禁止旗標、十進制旗標、break 旗標，以及是否接有十進制加法器 |
 | `irq_disable`, `decimal`, `m8`, `x8`, `emulation` | 僅限 65816。中斷禁止、十進制旗標、8 位元累加器、8 位元索引暫存器、模擬模式 |
 | `irq_line` | 以電平表示的請求線。它在每條指令之後取樣，因此在此之前撤回的請求不會被接受 |
-| `nmi_line` | 不可遮蔽中斷線。由低變高時中斷一次，維持高電平不會再次中斷 |
+| `nmi_line` | 不可遮蔽中斷線。由低變高時中斷一次，維持高電平不會再次中斷。在 NMOS 晶片上，於 `BRK` 執行期間、讀取其向量之前到達的變化，會如 WDC 及 Rockwell 所印，以 NMI 向量取代 `BRK` 向量 |
 | `ready_line` | 為假時，讀取會持續耗用週期直至它再次為真，因此主機要在 `on_cycle` 中清除它。CMOS 晶片及 65816 以同樣方式暫停寫入，NMOS 晶片則不會 |
 | `cycles` | 自建立以來的週期數。重設會累加到其中 |
 | `steps` | 自上次重設以來的指令數 |
@@ -216,7 +216,7 @@ gave up after 100 instructions at $31D0
 | 指令 | 參數 | 結束代碼 |
 |:--|:--|:--|
 | `python3 mos65xx/doctor.py` | 無 | 所有檢查通過時為 0，否則為 1 |
-| `python3 -m conformance.fetch` | `[directory] [--latest]`。預設為 `~/.cache/conformance-suites`。`--latest` 取用每個上游的最新提交，而非固定的版本 | 0，或在無法連接上游時為 1 |
+| `python3 -m conformance.fetch` | `[directory] [--latest]`。預設為 `~/.cache/conformance-suites`。`--latest` 取用每個上游的最新提交，而非固定的版本。已有的副本會移到固定版本，最終不在固定版本上的副本會終止執行 | 0，或在無法連接上游時為 1 |
 | `python3 -m conformance.singlestep` | `<suite directory> [tests per file] [filter] [--model name]`。預設型號為 `65816` | 所有案例一致或沒有測試套件時為 0，出現不一致時為 1，參數錯誤時為 2 |
 | `python3 -m conformance.cycles` | 與 `singlestep` 相同 | 與 `singlestep` 相同 |
 | `python3 -m conformance.documents` | `[--check] [--only substring]` | 所有摘要相符時為 0，有檔案被拒絕或參數錯誤時為 1 |
@@ -417,11 +417,11 @@ python3 -m conformance.singlestep ~/.cache/conformance-suites/6502/6502/v1 --mod
 python3 -m conformance.cycles ~/.cache/conformance-suites/6502/6502/v1 --model 6502
 ```
 
-兩個總數均由 [`conformance/suites.json`](conformance/suites.json) 推導得出，並有測試確保本頁與之一致。wdc65c02 測試套件中 `WAI` 及 `STP` 的檔案是空的。週期總數不包括 29,920 個 CMOS 十進制案例，這些案例的額外週期記錄在一個沒有任何暫存器會產生的固定位址上。兩個執行器均按條件排除三十七個 65816 案例，並列印排除的數目：當模擬模式的堆疊指標位於第一頁頂部時，測試套件與數據表對單位元組彈出落在何處意見不一，而本核心依從數據表。
+兩個總數均由 [`conformance/suites.json`](conformance/suites.json) 推導得出，並有測試確保本頁與之一致。wdc65c02 測試套件中 `WAI` 及 `STP` 的檔案是空的。週期總數不包括 29,920 個 CMOS 十進制案例，這些案例的額外週期記錄在一個沒有任何暫存器會產生的固定位址上。凡本核心依從數據表而非測試套件之處，兩個執行器均列印另行處理的 65816 案例數目。按條件排除的有三十八個：模擬模式的堆疊指標位於第一頁頂部時的單位元組彈出有三十七個，指標從已對齊直接頁末端開始的 `(d,x)` 有一個。其餘案例除兩種讀法相異之處外全部比對：19,924 個模擬模式 `BRK` 及 `COP` 案例中的數據記憶庫暫存器，以及堆疊指標位於第一頁底部的四十三個 `JSR (a,x)` 案例中一次堆疊寫入的位址。
 
-[`conformance/hardware.json`](conformance/hardware.json) 記錄取自製造商頁面的每項事實，連同其出處的句子及頁面，並有測試確保程式碼與之相符。[`conformance/addressing-cycles.json`](conformance/addressing-cycles.json) 及 [`conformance/instruction-set.json`](conformance/instruction-set.json) 按原樣收錄硬件手冊的 Appendix A 及程式設計手冊的 Appendix B。[`conformance/divergences.json`](conformance/divergences.json) 記錄兩個來源互相矛盾的 19 處、本套件依從哪一方，以及甚麼可以解決每一處分歧。`python3 -m conformance.quotes` 會在其文件中找出每一段引文。
+[`conformance/hardware.json`](conformance/hardware.json) 記錄取自製造商頁面的每項事實，連同其出處的句子及頁面，並有測試確保程式碼與之相符。[`conformance/addressing-cycles.json`](conformance/addressing-cycles.json) 及 [`conformance/instruction-set.json`](conformance/instruction-set.json) 按原樣收錄硬件手冊的 Appendix A 及程式設計手冊的 Appendix B。[`conformance/divergences.json`](conformance/divergences.json) 記錄兩個來源互相矛盾的 20 處、本套件依從哪一方，以及甚麼可以解決每一處分歧。`python3 -m conformance.quotes` 會在其文件中找出每一段引文。
 
-測試套件以提交固定版本。一個每週執行的工作會以每個上游的最新提交執行它們，新版測試套件通過時開啟一個 pull request，失敗時則開啟一個 issue。[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) 列出 16 個文件及測試套件都未能解決的問題，每個都附有可以解決它的真實晶片量度方法。
+測試套件以提交固定版本。一個每週執行的工作會以每個上游的最新提交執行它們，新版測試套件通過時開啟一個 pull request，失敗時則開啟一個 issue。[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) 列出 17 個文件及測試套件都未能解決的問題，每個都附有可以解決它的真實晶片量度方法。
 
 ## 參與開發
 
