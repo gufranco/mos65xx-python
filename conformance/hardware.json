@@ -247,7 +247,10 @@
       ],
       "note": "The starred entries are why nothing in this project starts clean. The accumulator, both index low bytes and the stack low byte are undefined, so the model scrambles them from a seed rather than zeroing them.",
       "appliesTo": ["65802", "65816"],
-      "appliesToCore": "wide"
+      "appliesToCore": "wide",
+      "heldBy": [
+        "conformance/sixteen_bit_facts.test.py::ResetAndInterruptTest.test_a_reset_sets_every_register_the_data_sheet_defines"
+      ]
     },
     "nothingStartsClean": {
       "document": "mos6500",
@@ -267,7 +270,10 @@
         "6514",
         "6515"
       ],
-      "appliesToCore": "nmos"
+      "appliesToCore": "nmos",
+      "heldBy": [
+        "conformance/eight_bit_facts.test.py::NmosFactTest.test_no_register_comes_up_the_same_from_two_seeds"
+      ]
     },
     "nmosReset": {
       "document": "mos6500",
@@ -294,7 +300,10 @@
         "6514",
         "6515"
       ],
-      "appliesToCore": "nmos"
+      "appliesToCore": "nmos",
+      "heldBy": [
+        "conformance/eight_bit_facts.test.py::NmosFactTest.test_a_reset_waits_the_printed_cycles_then_reads_the_printed_vector"
+      ]
     },
     "vectors": {
       "document": "wdc816",
@@ -306,7 +315,10 @@
         "cop": 65524,
         "quote": "Table 6-2 Emulation Mode Vector Locations (8-bit Mode): 00FFFE,F IRQB/BRK Hardware/Software; 00FFFC,D RESETB Hardware; 00FFFA,B NMIB Hardware; 00FFF8,9 ABORTB Hardware; 00FFF6,7 (Reserved) Hardware; 00FFF4,5 COP Software",
         "pdfPage": 34,
-        "readIn": "w65c816s.pdf"
+        "readIn": "w65c816s.pdf",
+        "heldBy": [
+          "conformance/sixteen_bit_facts.test.py::ResetAndInterruptTest.test_every_emulation_vector_is_read_where_the_table_prints_it"
+        ]
       },
       "native": {
         "irq": 65518,
@@ -318,7 +330,10 @@
         "assembled": true,
         "document": "wdc816",
         "note": "Taken from the three pin descriptions rather than from Table 6-3, for the reason recorded immediately below.",
-        "section": "sections 3.1, 3.6 and 3.9, the three pin descriptions"
+        "section": "sections 3.1, 3.6 and 3.9, the three pin descriptions",
+        "heldBy": [
+          "conformance/sixteen_bit_facts.test.py::ResetAndInterruptTest.test_every_native_vector_is_read_where_the_pin_descriptions_print_it"
+        ]
       },
       "erratumInTable6_3": {
         "quote": "Table 6-3 Native Mode Vector Locations (16-bit Mode): 00FFFE,F IRQB Hardware; 00FFFC,D (Reserved); 00FFFA,B NMIB Hardware; 00FFF8,9 ABORTB; 00FFF6,7 BRK Software; 00FFF4,5 COP Software",
@@ -342,7 +357,10 @@
       "note": "So a hardware interrupt in emulation mode pushes three bytes rather than four, and the status it pushes has bit 4 clear, which is the one thing that distinguishes it from a BRK. In native mode the program bank goes out first and the same bit carries the index width instead.",
       "appliesTo": ["65802", "65816"],
       "appliesToCore": "wide",
-      "pushedBytesQuote": "The IRQB signal going low causes 4 bytes of information to be pushed onto the stack before jumping to the interrupt handler. The first byte is PBR followed by PCH, PCL and P (Processor Status Register)."
+      "pushedBytesQuote": "The IRQB signal going low causes 4 bytes of information to be pushed onto the stack before jumping to the interrupt handler. The first byte is PBR followed by PCH, PCL and P (Processor Status Register).",
+      "heldBy": [
+        "conformance/sixteen_bit_facts.test.py::ResetAndInterruptTest.test_an_interrupt_pulls_its_vector_and_sets_the_printed_flags_in_both_modes"
+      ]
     },
     "programBankOnInterrupt": {
       "document": "wdc816",
@@ -357,7 +375,10 @@
       "section": "8.10",
       "quote": "When switching from the Native mode to the Emulation mode, the X and M bits of the Status Register are set high (logic 1), the high byte of the Stack is set to 01, and the high bytes of the X and Y Index Registers are set to 00. To save previous values, these bytes must always be stored before changing modes. Note that the low byte of the S, X and Y Registers and the low and high byte of the Accumulator (A and B) are not affected by a mode change.",
       "appliesTo": ["65802", "65816"],
-      "appliesToCore": "wide"
+      "appliesToCore": "wide",
+      "heldBy": [
+        "conformance/sixteen_bit_facts.test.py::ModeTest.test_switching_to_emulation_narrows_what_the_data_sheet_says_it_narrows"
+      ]
     },
     "stackRangeInEmulation": {
       "document": "wdc816",
@@ -389,7 +410,10 @@
       "cycleTable": "Table 6-7 addresses every direct access as 0,D+DO and its second half as 0,D+DO+1, with the bank written as a literal zero rather than as a register.",
       "note": "So a sixteen-bit direct access whose low half sits at 00FFFF finds its high half at 000000. Both halves of a read-modify-write did carry into bank one here until this was read.",
       "appliesTo": ["65802", "65816"],
-      "appliesToCore": "wide"
+      "appliesToCore": "wide",
+      "heldBy": [
+        "conformance/sixteen_bit_facts.test.py::ModeTest.test_a_wide_direct_read_at_the_top_of_bank_zero_wraps_inside_it"
+      ]
     },
     "indirectJumpBanks": {
       "document": "wdc816",
@@ -398,7 +422,10 @@
       "contradictedBy": "The addressing mode description in section 4 says the (a,x) pointer is a 16-bit pointer in Bank 0. Table 6-7 addresses that cycle as PBR,AA+X, and the suite agrees with the caveat and the table, so the section 4 prose is the loose one.",
       "note": "Recorded because it is the second place in this document where the prose and the cycle table disagree, and both times the cycle table is right.",
       "appliesTo": ["65802", "65816"],
-      "appliesToCore": "wide"
+      "appliesToCore": "wide",
+      "heldBy": [
+        "conformance/sixteen_bit_facts.test.py::ModeTest.test_each_indirect_jump_reads_its_pointer_from_the_bank_it_is_printed_to_use"
+      ]
     },
     "registerTransferWidths": {
       "document": "wdc816",
@@ -412,7 +439,12 @@
         }
       ],
       "appliesTo": ["65802", "65816"],
-      "appliesToCore": "wide"
+      "appliesToCore": "wide",
+      "heldBy": [
+        "conformance/sixteen_bit_facts.test.py::TransferTest.test_the_named_transfers_move_every_printed_bit_whatever_the_widths",
+        "conformance/sixteen_bit_facts.test.py::TransferTest.test_the_destination_width_decides_how_much_of_a_transfer_is_kept",
+        "conformance/sixteen_bit_facts.test.py::TransferTest.test_the_status_push_and_pull_move_the_printed_width_whatever_the_widths"
+      ]
     },
     "aluSupersedesNothing": {
       "document": "wdc816",
@@ -420,7 +452,10 @@
       "quote": "LSR 0 . . . . . Z C",
       "note": "The status column for LSR prints a literal zero under N rather than the letter N, because a right shift can only ever leave that bit clear. Recorded because it is the one row in the table that states a result rather than an effect, and a model that sets N from the result agrees with it either way.",
       "appliesTo": ["65802", "65816"],
-      "appliesToCore": "wide"
+      "appliesToCore": "wide",
+      "heldBy": [
+        "conformance/sixteen_bit_facts.test.py::TransferTest.test_a_right_shift_leaves_negative_clear_at_either_width"
+      ]
     },
     "memoryLock": {
       "document": "wdc816",
@@ -428,7 +463,10 @@
       "quote": "Memory Lock is low during the last three or five cycles of ASL, DEC, INC, LSR, ROL, ROR, TRB, and TSB memory referencing instructions, depending on the state of the M flag.",
       "note": "A pin, so it matters only to a cycle-level model. Nothing in this project drives it yet.",
       "appliesTo": ["65802", "65816"],
-      "appliesToCore": "wide"
+      "appliesToCore": "wide",
+      "heldBy": [
+        "conformance/sixteen_bit_facts.test.py::PinTest.test_memory_lock_covers_the_printed_last_cycles_of_each_named_instruction"
+      ]
     },
     "addressQualification": {
       "document": "wdc816",
@@ -443,7 +481,10 @@
       ],
       "note": "The reason a cycle-level model has to distinguish an internal cycle from a read: on this part an internal cycle drives an address that is deliberately allowed to be wrong.",
       "appliesTo": ["65802", "65816"],
-      "appliesToCore": "wide"
+      "appliesToCore": "wide",
+      "heldBy": [
+        "conformance/sixteen_bit_facts.test.py::PinTest.test_each_kind_of_cycle_carries_the_qualifiers_the_table_prints"
+      ]
     },
     "nmosSingleCycleAppendix": {
       "document": "mos6500",
@@ -472,7 +513,10 @@
         "6514",
         "6515"
       ],
-      "appliesToCore": "nmos"
+      "appliesToCore": "nmos",
+      "heldBy": [
+        "conformance/eight_bit_facts.test.py::NmosFactTest.test_every_cycle_of_an_instruction_puts_an_address_and_data_on_the_bus"
+      ]
     },
     "nmosReadModifyWriteWritesTwice": {
       "document": "mos6500",
@@ -513,7 +557,10 @@
         "6514",
         "6515"
       ],
-      "appliesToCore": "nmos"
+      "appliesToCore": "nmos",
+      "heldBy": [
+        "conformance/eight_bit_facts.test.py::NmosFactTest.test_the_rotate_right_works_on_the_part_this_project_models"
+      ]
     },
     "nmosCycleShapesNowImplemented": {
       "document": "mos6500",
@@ -548,7 +595,10 @@
         "6514",
         "6515"
       ],
-      "appliesToCore": "nmos"
+      "appliesToCore": "nmos",
+      "heldBy": [
+        "conformance/eight_bit_facts.test.py::NmosFactTest.test_every_instruction_begins_by_fetching_its_own_opcode"
+      ]
     },
     "cmosCycleShapes": {
       "document": "wdc02",
@@ -578,7 +628,10 @@
       ],
       "correction": "This was recorded against the 65816 data sheet. The sentence is not in that document at all: Table 7-1 Microprocessor Operational Enhancements is the W65C02S sheet's table, and the 65816 sheet has a Table 7-1 of its own about something else. The quote checker scored every quote against whichever document placed it best rather than against the one named, so three facts about the CMOS part carried the wrong source and nothing said so.",
       "appliesTo": ["65c02", "r65c02", "w65c02"],
-      "appliesToCore": "cmos"
+      "appliesToCore": "cmos",
+      "heldBy": [
+        "conformance/eight_bit_facts.test.py::CmosFactTest.test_an_indexed_spare_read_lands_where_each_part_is_printed_to_put_it"
+      ]
     },
     "sixteenBitCycleShapes": {
       "document": "wdc816",
@@ -608,7 +661,12 @@
         }
       ],
       "appliesTo": ["65802", "65816"],
-      "appliesToCore": "wide"
+      "appliesToCore": "wide",
+      "heldBy": [
+        "conformance/sixteen_bit_facts.test.py::CycleNoteTest.test_an_unaligned_direct_register_costs_the_printed_cycle",
+        "conformance/sixteen_bit_facts.test.py::CycleNoteTest.test_crossing_writing_or_a_wide_index_each_cost_the_printed_cycle",
+        "conformance/sixteen_bit_facts.test.py::CycleNoteTest.test_in_emulation_mode_the_modify_cycle_is_a_write"
+      ]
     },
     "cmosInterruptClearsDecimal": {
       "document": "wdc02",
@@ -618,7 +676,10 @@
       "note": "Two facts in one row. The NMOS part's decimal flag is undefined after a reset, which is why nothing here clears it, and the CMOS parts clear it on an interrupt as well as a reset, which is why their interrupt path does.",
       "correction": "This was recorded against the 65816 data sheet. The sentence is not in that document at all: Table 7-1 Microprocessor Operational Enhancements is the W65C02S sheet's table, and the 65816 sheet has a Table 7-1 of its own about something else. The quote checker scored every quote against whichever document placed it best rather than against the one named, so three facts about the CMOS part carried the wrong source and nothing said so.",
       "appliesTo": ["65c02", "r65c02", "w65c02"],
-      "appliesToCore": "cmos"
+      "appliesToCore": "cmos",
+      "heldBy": [
+        "conformance/eight_bit_facts.test.py::CmosFactTest.test_the_decimal_flag_is_cleared_where_each_part_is_printed_to_clear_it"
+      ]
     },
     "cmosInterruptDuringBreak": {
       "document": "wdc02",
@@ -651,7 +712,10 @@
         "6514",
         "6515"
       ],
-      "appliesToCore": "nmos"
+      "appliesToCore": "nmos",
+      "heldBy": [
+        "conformance/eight_bit_facts.test.py::NmosFactTest.test_every_heading_of_the_second_printing_gives_the_cycles_the_model_takes"
+      ]
     },
     "cmosEnhancementsFromASecondManufacturer": {
       "document": "rockwell",
@@ -681,7 +745,10 @@
       "quote": "A.ABS,X,ASL,LSR,ROL with no Page Crossing: 7 cycles, 6 cycles, 6 cycles, 7 cycles.",
       "note": "Every cell of the comparison table is the same in the 2004 and 2024 revisions, twenty years apart. Only the section number moved. A claim taken from that table therefore does not depend on which revision a reader happens to hold, which is worth knowing because three revisions of this data sheet are pinned here.",
       "appliesTo": ["65802", "65816"],
-      "appliesToCore": "wide"
+      "appliesToCore": "wide",
+      "heldBy": [
+        "conformance/sixteen_bit_facts.test.py::CycleNoteTest.test_an_indexed_shift_inside_a_page_takes_what_each_column_prints"
+      ]
     },
     "nmosFamilyPackages": {
       "document": "mos6500_datasheet",
@@ -719,7 +786,10 @@
         "6514",
         "6515"
       ],
-      "appliesToCore": "nmos"
+      "appliesToCore": "nmos",
+      "heldBy": [
+        "conformance/eight_bit_facts.test.py::NmosFactTest.test_a_narrow_package_reaches_and_brings_out_only_what_its_page_lists"
+      ]
     },
     "falseReadIsVisibleOnThePins": {
       "document": "wdc816_book",
@@ -727,7 +797,10 @@
       "quote": "since the 65816 sometimes generates a false read during instructions that cross page boundaries, these may be trapped via these two signals if this is desirable. Note, however, that addresses should not be qualified in emulation mode if hardware such as the Apple II disk controller is used, which requires false read to operate.",
       "note": "The manufacturer confirming that the discarded read of an indexed access is real, that a system can tell it apart on the qualifier pins, and that at least one shipped machine depends on it happening. A model that skipped that cycle would break that machine.",
       "appliesTo": ["65802", "65816"],
-      "appliesToCore": "wide"
+      "appliesToCore": "wide",
+      "heldBy": [
+        "conformance/sixteen_bit_facts.test.py::PinTest.test_the_false_read_of_a_page_crossing_carries_neither_qualifier"
+      ]
     },
     "impliedModeCycles": {
       "document": "wdc02",
@@ -744,7 +817,10 @@
       "cycles": 2,
       "note": "The only per-instruction timing this data sheet gives is by addressing mode. Table 5-1 lists the instructions, Table 5-2 places their opcodes and Table 6-4 gives opcodes against status bits; none of the three carries a time. The five notes under Table 4-1 add cycles for a page boundary, a taken branch, a read-modify-write and the stack, and except no instruction from its row. This is what settles STP and WAI at two cycles here: Table 5-2 puts both in implied mode, and this row is what implied mode costs. It is a figure for the mode rather than for those two instructions, which is why OPEN-QUESTIONS.md still carries the question.",
       "appliesTo": ["65c02", "r65c02", "w65c02"],
-      "appliesToCore": "cmos"
+      "appliesToCore": "cmos",
+      "heldBy": [
+        "conformance/eight_bit_facts.test.py::CmosFactTest.test_every_implied_instruction_takes_the_printed_cycles"
+      ]
     }
   },
   "documentContradictions": [
@@ -810,7 +886,8 @@
       ],
       "note": "Recorded because it names a way to close several questions here without a bench: the manufacturer wrote a model of this part and vouches for its timing. It is WDC's to license, so nothing of it is carried, fetched, vendored or reproduced in this repository, and it is named as a closing condition rather than used as one.",
       "settles": "How many cycles STP and WAI cost on a W65C02",
-      "carried": false
+      "carried": false,
+      "unreachable": "It describes WDC's licensed Verilog model of the part, which this repository does not carry, so no test of this model can reach it."
     }
   }
 }
