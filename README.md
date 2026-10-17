@@ -8,7 +8,7 @@ English &nbsp;|&nbsp; [日本語](README.ja.md) &nbsp;|&nbsp; [简体中文](REA
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16** parts, **17,900,000** state cases and **17,870,080** cycle-exact cases compared, **0** unexplained failures, **1,358** tests, **100%** statement and branch coverage, no dependencies
+**16** parts, **17,900,000** state cases and **17,870,080** cycle-exact cases compared, **0** unexplained failures, **1,360** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 from mos65xx import Cpu, SparseMemory
