@@ -2620,6 +2620,44 @@ def import_problems(node: ast.AST, package: str, exported: set[str], tools: set[
     return []
 
 
+LOADERS = frozenset(
+    {"import_module", "spec_from_file_location", "SourceFileLoader", "run_path", "run_module"}
+)
+
+
+def loaded_inner(text: str, package: str) -> str | None:
+    if text.startswith(f"{package}."):
+        return text.split(".")[1]
+    if f"{package}/" in text:
+        return text.split(f"{package}/", 1)[1].split("/", maxsplit=1)[0].removesuffix(".py")
+    return None
+
+
+def load_problems(node: ast.AST, package: str, tools: set[str]) -> list[str]:
+    if not isinstance(node, ast.Call):
+        return []
+    called = (
+        node.func.attr if isinstance(node.func, ast.Attribute) else getattr(node.func, "id", "")
+    )
+    if called not in LOADERS:
+        return []
+    pieces = sorted(
+        (one.lineno, one.col_offset, one.value)
+        for argument in node.args
+        for one in ast.walk(argument)
+        if isinstance(one, ast.Constant) and isinstance(one.value, str)
+    )
+    words = [value for _, _, value in pieces]
+    candidates = [*words, "/".join(words)]
+    return sorted(
+        {
+            f"loads {inner} from {package}"
+            for text in candidates
+            if (inner := loaded_inner(text, package)) and inner not in tools | {"__init__"}
+        }
+    )
+
+
 def reaches_inside(source: str, package: str, exported: set[str], tools: set[str]) -> list[str]:
     tree = ast.parse(source)
     roots = {
@@ -2633,6 +2671,7 @@ def reaches_inside(source: str, package: str, exported: set[str], tools: set[str
     found: list[str] = []
     for node in ast.walk(tree):
         found.extend(import_problems(node, package, exported, tools))
+        found.extend(load_problems(node, package, tools))
         if not (isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name)):
             continue
         owner, name = node.value.id, node.attr
@@ -2755,6 +2794,39 @@ class EveryTestUsesThePublicInterfaceTest(unittest.TestCase):
 
         # Act
         found = reaches_inside(source, "part", {"Chip"}, set())
+
+        # Assert
+        self.assertEqual(found, [])
+
+    def test_loading_an_inner_module_by_name_is_reported(self) -> None:
+        # Arrange
+        source = "import importlib\n\ntone = importlib.import_module('part.tone')\n"
+
+        # Act
+        found = reaches_inside(source, "part", {"Chip"}, set())
+
+        # Assert
+        self.assertEqual(found, ["loads tone from part"])
+
+    def test_loading_an_inner_module_by_path_is_reported(self) -> None:
+        # Arrange
+        source = "spec = spec_from_file_location('t', ROOT / 'part' / 'tone.py')\n"
+
+        # Act
+        found = reaches_inside(source, "part", {"Chip"}, set())
+
+        # Assert
+        self.assertEqual(found, ["loads tone from part"])
+
+    def test_loading_a_tool_or_something_outside_the_package_passes(self) -> None:
+        # Arrange
+        source = (
+            "import runpy\n\nrunpy.run_path(str(ROOT / 'setup.py'))\n"
+            "importlib.import_module('part.doctor')\nloader = make(ROOT / 'part.py')\n"
+        )
+
+        # Act
+        found = reaches_inside(source, "part", {"Chip"}, {"doctor"})
 
         # Assert
         self.assertEqual(found, [])

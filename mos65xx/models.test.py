@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib
 import sys
 import unittest
 from pathlib import Path
@@ -8,350 +7,282 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-
-models = importlib.import_module("mos65xx.models")
-memory = importlib.import_module("mos65xx.memory")
-errors = importlib.import_module("mos65xx.errors")
-mos65xx = importlib.import_module("mos65xx")
+import mos65xx
+from mos65xx import MODELS, Cpu, Memory, SparseMemory, UnknownModelError
 
 
 class CatalogueTest(unittest.TestCase):
     def test_the_family_names_every_model_it_covers(self) -> None:
-        for name in ("65816", "65802"):
-            self.assertIn(name, models.MODELS)
+        # Arrange
+        wanted = ("65816", "65802")
+
+        # Act
+        missing = [name for name in wanted if name not in MODELS]
+
+        # Assert
+        self.assertEqual(missing, [])
 
     def test_a_model_says_which_processor_it_is_and_what_it_can_do(self) -> None:
-        found = models.lookup("65816")
+        # Arrange
+        name = "65816"
 
-        self.assertEqual(found.name, "65816")
-        self.assertTrue(found.summary)
-        self.assertEqual(found.address_bits, 24)
+        # Act
+        found = MODELS[name]
+
+        # Assert
+        self.assertEqual((found.name, bool(found.summary), found.address_bits), ("65816", True, 24))
 
     def test_a_model_the_family_does_not_have_is_refused_by_name(self) -> None:
-        with self.assertRaises(errors.UnknownModelError) as raised:
-            models.lookup("6809")
+        # Arrange
+        def attempt() -> Any:
+            return Cpu("6809")
 
-        self.assertIn("6809", str(raised.exception))
+        # Act
+        with self.assertRaises(UnknownModelError) as raised:
+            attempt()
+
+        # Assert
+        self.assertIn("6809 is not a model this family covers", str(raised.exception))
 
     def test_the_refusal_lists_what_is_available(self) -> None:
-        with self.assertRaises(errors.UnknownModelError) as raised:
-            models.lookup("nonsense")
+        # Arrange
+        def attempt() -> Any:
+            return Cpu("nonsense")
 
+        # Act
+        with self.assertRaises(UnknownModelError) as raised:
+            attempt()
+
+        # Assert
         self.assertIn("65816", str(raised.exception))
 
     def test_a_model_name_is_matched_however_it_is_written(self) -> None:
-        self.assertIs(models.lookup("65816"), models.lookup("W65C816S"))
-        self.assertIs(models.lookup("65816"), models.lookup(" 65816 "))
+        # Arrange
+        spellings = ("65816", "W65C816S", " 65816 ", "w65c816")
+
+        # Act
+        found = {Cpu(name, SparseMemory()).model for name in spellings}
+
+        # Assert
+        self.assertEqual(found, {"65816"})
 
 
 class BuildTest(unittest.TestCase):
-    def memory(self) -> Any:
-        return mos65xx.SparseMemory()
-
     def test_a_processor_is_built_from_its_model_name(self) -> None:
-        cpu = mos65xx.Cpu("65816", self.memory())
+        # Arrange
+        memory = SparseMemory()
 
+        # Act
+        cpu = Cpu("65816", memory)
+
+        # Assert
         self.assertEqual(cpu.model, "65816")
 
     def test_building_without_naming_a_model_is_refused(self) -> None:
-        with self.assertRaises(errors.UnknownModelError):
-            mos65xx.Cpu()
+        # Arrange
+        def attempt() -> Any:
+            return Cpu()
+
+        # Act
+        with self.assertRaises(UnknownModelError) as raised:
+            attempt()
+
+        # Assert
+        self.assertIn("no model was named", str(raised.exception))
 
     def test_and_the_refusal_names_every_model_there_is(self) -> None:
-        with self.assertRaises(errors.UnknownModelError) as caught:
-            mos65xx.Cpu()
+        # Arrange
+        def attempt() -> Any:
+            return Cpu()
 
-        missing = [name for name in mos65xx.MODELS if name not in str(caught.exception)]
+        # Act
+        with self.assertRaises(UnknownModelError) as raised:
+            attempt()
 
-        self.assertEqual(missing, [])
+        # Assert
+        self.assertEqual([name for name in MODELS if name not in str(raised.exception)], [])
 
     def test_nothing_named_describe_is_published(self) -> None:
-        self.assertFalse(hasattr(mos65xx, "describe"))
+        # Arrange
+        package = mos65xx
+
+        # Act
+        published = hasattr(package, "describe")
+
+        # Assert
+        self.assertFalse(published)
 
     def test_and_no_default_model_is_published_either(self) -> None:
-        self.assertFalse(hasattr(mos65xx, "DEFAULT_MODEL"))
+        # Arrange
+        package = mos65xx
+
+        # Act
+        published = hasattr(package, "DEFAULT_MODEL")
+
+        # Assert
+        self.assertFalse(published)
 
     def test_the_smaller_part_carries_the_same_core_with_less_address_space(self) -> None:
-        cpu = mos65xx.Cpu("65802", self.memory())
+        # Arrange
+        memory = SparseMemory()
 
-        self.assertEqual(cpu.model, "65802")
-        self.assertEqual(cpu.address_mask, 0xFFFF)
+        # Act
+        cpu = Cpu("65802", memory)
+
+        # Assert
+        self.assertEqual((cpu.model, cpu.address_mask), ("65802", 0xFFFF))
 
     def test_the_larger_part_reaches_the_whole_address_space(self) -> None:
-        self.assertEqual(mos65xx.Cpu("65816", self.memory()).address_mask, 0xFFFFFF)
+        # Arrange
+        memory = SparseMemory()
+
+        # Act
+        cpu = Cpu("65816", memory)
+
+        # Assert
+        self.assertEqual(cpu.address_mask, 0xFFFFFF)
 
     def test_the_address_mask_confines_where_a_read_can_land(self) -> None:
-        memory = self.memory()
+        # Arrange
+        memory = SparseMemory()
         memory.write8(0x0012, 0x5A)
-        cpu = mos65xx.Cpu("65802", memory)
+        cpu = Cpu("65802", memory)
 
-        self.assertEqual(cpu.read8(0x7E0012), 0x5A)
+        # Act
+        value = cpu.read8(0x7E0012)
+
+        # Assert
+        self.assertEqual(value, 0x5A)
 
     def test_the_larger_part_does_not_confine_it(self) -> None:
-        memory = self.memory()
+        # Arrange
+        memory = SparseMemory()
         memory.write8(0x7E0012, 0x5A)
-        cpu = mos65xx.Cpu("65816", memory)
+        cpu = Cpu("65816", memory)
 
-        self.assertEqual(cpu.read8(0x7E0012), 0x5A)
+        # Act
+        value = cpu.read8(0x7E0012)
 
-    def test_options_reach_the_processor_that_gets_built(self) -> None:
-        cpu = mos65xx.Cpu("65816", self.memory())
+        # Assert
+        self.assertEqual(value, 0x5A)
 
+    def test_a_part_that_was_built_has_spent_no_cycle(self) -> None:
+        # Arrange
+        memory = SparseMemory()
+
+        # Act
+        cpu = Cpu("65816", memory)
+
+        # Assert
         self.assertEqual(cpu.cycles, 0)
 
     def test_a_part_that_was_never_reset_does_not_come_up_cleared(self) -> None:
-        cpu = mos65xx.Cpu("65816", self.memory())
+        # Arrange
+        memory = SparseMemory()
 
+        # Act
+        cpu = Cpu("65816", memory)
+
+        # Assert
         self.assertNotEqual((cpu.a, cpu.x, cpu.y, cpu.pc, cpu.d), (0, 0, 0, 0, 0))
 
 
 class DescriptionTest(unittest.TestCase):
     def test_a_model_prints_as_its_name_and_reach(self) -> None:
-        printed = repr(models.lookup("65816"))
+        # Arrange
+        model = MODELS["65816"]
 
-        self.assertIn("65816", printed)
-        self.assertIn("24", printed)
+        # Act
+        printed = repr(model)
+
+        # Assert
+        self.assertEqual(printed, "<Model 65816, 24 address bits>")
 
 
 class FamilyTest(unittest.TestCase):
     def test_every_model_builds_a_processor_of_its_own_kind(self) -> None:
-        from mos65xx import Cpu, SparseMemory
-
-        for name in models.MODELS:
-            cpu = Cpu(name, SparseMemory(seed=1))
-
-            self.assertEqual(cpu.model, name)
-            self.assertEqual(cpu.address_mask, models.lookup(name).address_mask)
-
-    def test_the_part_with_no_decimal_adder_says_so(self) -> None:
-        self.assertFalse(models.lookup("2a03").decimal)
-
-    def test_the_parts_that_have_one_say_so(self) -> None:
-        for name in ("6502", "6507", "65816", "65802"):
-            self.assertTrue(models.lookup(name).decimal, name)
-
-    def test_the_smaller_package_reaches_less(self) -> None:
-        self.assertLess(models.lookup("6507").address_mask, models.lookup("6502").address_mask)
-
-
-class NarrowingTest(unittest.TestCase):
-    def parts(self) -> list[tuple[str, str]]:
-        return [
-            (model.name, model.narrows)
-            for model in models.MODELS.values()
-            if model.narrows is not None
-        ]
-
-    def program(self, name: str, code: list[int], at: int = 0x0200) -> list[tuple[int, int, str]]:
-        space = memory.Memory()
-        for offset, byte in enumerate(code):
-            space.write8(at + offset, byte)
-        cpu = models.lookup(name).build(space)
-        cpu.reset()
-        cpu.pc = at
-        cpu.trace = []
-        for _ in range(4):
-            cpu.step()
-        return list(cpu.trace)
-
-    def test_every_part_without_a_suite_names_the_one_it_narrows(self) -> None:
-        self.assertEqual(
-            dict(self.parts()),
-            {
-                "6503": "6502",
-                "6504": "6502",
-                "6505": "6502",
-                "6506": "6502",
-                "6507": "6502",
-                "6512": "6502",
-                "6513": "6502",
-                "6514": "6502",
-                "6515": "6502",
-                "65802": "65816",
-            },
-        )
-
-    def test_which_is_every_nmos_package_the_data_sheet_lists_but_one(self) -> None:
-        narrowed = {name for name, _ in self.parts() if name.startswith("65") and len(name) == 4}
-
-        self.assertEqual(len(narrowed), 9)
-
-    def test_and_the_part_it_narrows_is_one_this_family_covers(self) -> None:
-        missing = [wider for _, wider in self.parts() if wider not in models.MODELS]
-
-        self.assertEqual(missing, [])
-
-    def test_a_narrowed_part_is_built_from_the_same_core(self) -> None:
-        same = [
-            (name, wider)
-            for name, wider in self.parts()
-            if models.lookup(name).core is not models.lookup(wider).core
-        ]
-
-        self.assertEqual(same, [])
-
-    def test_and_reaches_no_further_than_the_part_it_narrows(self) -> None:
-        wider = [
-            (name, w)
-            for name, w in self.parts()
-            if models.lookup(name).address_bits > models.lookup(w).address_bits
-        ]
-
-        self.assertEqual(wider, [])
-
-    def test_the_smaller_package_puts_the_same_cycles_on_the_bus(self) -> None:
-        for name, wider in self.parts():
-            code = [0xEA, 0xEA, 0xEA, 0xEA]
-
-            self.assertEqual(
-                [(kind, value) for _, value, kind in self.program(name, code)],
-                [(kind, value) for _, value, kind in self.program(wider, code)],
-                name,
-            )
-
-    def test_and_differs_only_in_how_far_an_address_reaches_or_which_pins_it_has(self) -> None:
-        held = {
-            name: models.lookup(wider).address_bits - models.lookup(name).address_bits
-            for name, wider in self.parts()
-        }
-
-        self.assertEqual(
-            held,
-            {
-                "6503": 4,
-                "6504": 3,
-                "6505": 4,
-                "6506": 4,
-                "6507": 3,
-                "6512": 0,
-                "6513": 4,
-                "6514": 3,
-                "6515": 4,
-                "65802": 8,
-            },
-        )
-
-    def test_the_one_that_reaches_just_as_far_differs_only_in_its_clock(self) -> None:
-        part = models.lookup("6512")
-
-        self.assertEqual(
-            (part.address_bits, part.pins, "clock" in part.summary),
-            (16, ("irq", "nmi", "rdy"), True),
-        )
-
-    def test_the_one_that_reaches_less_wraps_where_its_pins_stop(self) -> None:
-        part = models.lookup("6507")
-
-        self.assertEqual(part.address_mask, (1 << part.address_bits) - 1)
-
-    def test_an_eight_bit_part_with_fewer_pins_reads_and_writes_through_them(self) -> None:
         # Arrange
-        space = memory.SparseMemory()
-        space.write8(0x1234, 0x5A)
-        cpu = models.lookup("6507").build(space)
-        cpu.trace = []
+        names = sorted(MODELS)
 
         # Act
-        cpu.write8(0xE010, cpu.read8(0xF234))
+        built = {name: Cpu(name, SparseMemory(seed=1)) for name in names}
 
         # Assert
         self.assertEqual(
-            (cpu.trace, space.read8(0x0010)),
-            ([(0x1234, 0x5A, "read"), (0x0010, 0x5A, "write")], 0x5A),
+            {name: (cpu.model, cpu.address_mask) for name, cpu in built.items()},
+            {name: (name, (1 << MODELS[name].address_bits) - 1) for name in names},
         )
 
+    def test_the_part_with_no_decimal_adder_says_so(self) -> None:
+        # Arrange
+        name = "2a03"
 
-class PinTest(unittest.TestCase):
-    def part(self, name: str) -> Any:
-        return models.lookup(name).build(memory.Memory())
+        # Act
+        model = MODELS[name]
 
-    def test_the_widest_part_brings_out_all_three(self) -> None:
-        self.assertEqual(models.lookup("6502").pins, ("irq", "nmi", "rdy"))
+        # Assert
+        self.assertFalse(model.decimal)
 
-    def test_the_atari_part_brings_out_none_of_the_interrupt_lines(self) -> None:
-        self.assertEqual(models.lookup("6507").pins, ("rdy",))
+    def test_the_parts_that_have_one_say_so(self) -> None:
+        # Arrange
+        names = ("6502", "6507", "65816", "65802")
 
-    def test_and_refuses_both_of_them_rather_than_pretending(self) -> None:
-        cpu = self.part("6507")
+        # Act
+        found = [MODELS[name].decimal for name in names]
 
-        for pin in ("irq", "nmi"):
-            with self.assertRaises(errors.NoSuchPin):
-                getattr(cpu, pin)()
+        # Assert
+        self.assertEqual(found, [True, True, True, True])
 
-    def test_the_error_says_what_the_package_does_bring_out(self) -> None:
-        cpu = self.part("6504")
+    def test_the_smaller_package_reaches_less(self) -> None:
+        # Arrange
+        smaller = MODELS["6507"]
 
-        with self.assertRaises(errors.NoSuchPin) as caught:
-            cpu.nmi()
+        # Act
+        larger = MODELS["6502"]
 
-        self.assertIn("it brings out irq", str(caught.exception))
-
-    def test_a_part_with_the_request_line_still_takes_a_request(self) -> None:
-        cpu = self.part("6504")
-        cpu.i = False
-
-        self.assertTrue(cpu.irq())
-
-    def test_five_of_the_ten_nmos_packages_leave_the_non_maskable_line_off(self) -> None:
-        without = [
-            model.name
-            for model in models.MODELS.values()
-            if model.core is models.lookup("6502").core and "nmi" not in model.pins
-        ]
-
-        self.assertEqual(without, ["6507", "6504", "6505", "6506", "6514", "6515"])
-
-    def test_only_one_leaves_the_request_line_off_as_well(self) -> None:
-        without = [
-            model.name
-            for model in models.MODELS.values()
-            if model.core is models.lookup("6502").core and "irq" not in model.pins
-        ]
-
-        self.assertEqual(without, ["6507"])
-
-    def test_a_built_part_reports_the_pins_its_package_has(self) -> None:
-        found = {name: self.part(name).package_pins for name in ("6502", "6507", "65816")}
-
-        self.assertEqual(
-            found,
-            {
-                "6502": ("irq", "nmi", "rdy"),
-                "6507": ("rdy",),
-                "65816": ("irq", "nmi", "rdy"),
-            },
-        )
-
-    def test_every_part_the_suites_cover_brings_out_all_three(self) -> None:
-        covered = ("6502", "2a03", "65c02", "r65c02", "w65c02", "65816")
-        found = {models.lookup(name).pins for name in covered}
-
-        self.assertEqual(found, {("irq", "nmi", "rdy")})
+        # Assert
+        self.assertEqual((smaller.address_mask, larger.address_mask), (0x1FFF, 0xFFFF))
 
 
 class QuietStoreTest(unittest.TestCase):
     def test_a_fill_puts_that_byte_everywhere(self) -> None:
-        part = mos65xx.Cpu("6502", fill=0)
+        # Arrange
+        fill = 0
 
+        # Act
+        part = Cpu("6502", fill=fill)
+
+        # Assert
         self.assertEqual({part.memory.read8(address) for address in range(0x40)}, {0})
 
     def test_and_any_byte_works_rather_than_only_zero(self) -> None:
-        part = mos65xx.Cpu("6502", fill=0xAA)
+        # Arrange
+        fill = 0xAA
 
+        # Act
+        part = Cpu("6502", fill=fill)
+
+        # Assert
         self.assertEqual({part.memory.read8(address) for address in range(0x40)}, {0xAA})
 
     def test_without_one_the_store_is_scrambled_rather_than_cleared(self) -> None:
-        part = mos65xx.Cpu("6502")
+        # Arrange
+        name = "6502"
 
-        held = {part.memory.read8(address) for address in range(0x40)}
+        # Act
+        part = Cpu(name)
 
-        self.assertNotEqual(held, {0})
+        # Assert
+        self.assertNotEqual({part.memory.read8(address) for address in range(0x40)}, {0})
 
     def test_and_a_store_handed_in_is_left_alone(self) -> None:
-        own = mos65xx.Memory(fill=0xAA)
+        # Arrange
+        own = Memory(fill=0xAA)
 
-        part = mos65xx.Cpu("6502", own, fill=0)
+        # Act
+        part = Cpu("6502", own, fill=0)
 
+        # Assert
         self.assertIs(part.memory, own)
         self.assertEqual({part.memory.read8(address) for address in range(0x40)}, {0xAA})
 

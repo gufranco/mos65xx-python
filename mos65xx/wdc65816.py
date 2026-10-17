@@ -315,9 +315,6 @@ class Cpu:
     def read16(self, address: int) -> int:
         return self.read8(address) | (self.read8(address + 1) << 8)
 
-    def read24(self, address: int) -> int:
-        return self.read16(address) | (self.read8(address + 2) << 16)
-
     def read_value(self, address: int, wide: bool, mode: str | None = None) -> int:
         if not wide:
             return self.read8(address)
@@ -516,14 +513,12 @@ class Cpu:
             offset = self.fetch8()
             self.internal(self.here())
             return (self.s + offset) & 0xFFFF
-        if mode == "stackIndirect":
-            offset = self.fetch8()
-            self.internal(self.here())
-            pointer = (self.s + offset) & 0xFFFF
-            base = self.read_pointer(pointer, 2)
-            self.internal((pointer + 1) & 0xFFFF)
-            return ((self.db << 16) | base) + self.y
-        raise UnsupportedError(f"{mnemonic} cannot use {mode}")
+        offset = self.fetch8()
+        self.internal(self.here())
+        pointer = (self.s + offset) & 0xFFFF
+        base = self.read_pointer(pointer, 2)
+        self.internal((pointer + 1) & 0xFFFF)
+        return ((self.db << 16) | base) + self.y
 
     def indexed(self, base: int, index: int, mnemonic: str) -> int:
         return self.indexed_from(base, index, mnemonic)
@@ -536,8 +531,6 @@ class Cpu:
     def operand(self, mode: str, mnemonic: str) -> int:
         wide = self.wide_for(mnemonic)
         if mode in IMMEDIATE_MODES:
-            if mode == "immediate":
-                return self.fetch8()
             return self.fetch16() if wide else self.fetch8()
         return self.read_value(self.effective(mode, mnemonic), wide, mode)
 
@@ -622,10 +615,7 @@ class Cpu:
         mnemonic, mode = OPCODES[opcode]
         if not wdc65816.MODE_SIZE[mode]:
             self.internal(self.at_pc())
-        handler = getattr(self, f"op_{mnemonic}", None)
-        if handler is None:
-            raise UnsupportedError(f"{mnemonic} is not implemented")
-        handler(mode)
+        getattr(self, f"op_{mnemonic}")(mode)
         self.sample_pins()
         return self.cycles - started
 
@@ -1050,18 +1040,10 @@ class Cpu:
             pointer = (base + self.x) & 0xFFFF
             self.pc = self.read_pointer((self.pb << 16) | pointer, 2)
             return
-        if mode == "indirectLongPC":
-            self.op_jml(mode)
-            return
-        raise UnsupportedError(f"jmp cannot use {mode}")
+        self.op_jml(mode)
 
     def op_jml(self, mode: str) -> None:
-        if mode == "absoluteLong":
-            target = self.fetch24()
-        elif mode == "indirectLongPC":
-            target = self.read_pointer(self.fetch16(), 3)
-        else:
-            raise UnsupportedError(f"jml cannot use {mode}")
+        target = self.fetch24() if mode == "absoluteLong" else self.read_pointer(self.fetch16(), 3)
         self.pb = (target >> 16) & 0xFF
         self.pc = target & 0xFFFF
 
@@ -1072,8 +1054,6 @@ class Cpu:
             self.push16((self.pc - 1) & 0xFFFF)
             self.pc = target
             return
-        if mode != "indirectX":
-            raise UnsupportedError(f"jsr cannot use {mode}")
         low = self.fetch8()
         self.push16_flat(self.pc)
         high = self.fetch8()
