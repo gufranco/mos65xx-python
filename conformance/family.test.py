@@ -2302,9 +2302,15 @@ NOT_PRINTED = frozenset({"notStated", "documents"})
 Fact = tuple[tuple[str, ...], dict[str, Any]]
 
 
+def is_a_sentence(value: Any) -> bool:
+    return isinstance(value, str) or (
+        isinstance(value, list) and any(isinstance(one, str) for one in value)
+    )
+
+
 def quotes_a_sentence(entry: dict[str, Any]) -> bool:
     return any(
-        str(key).lower().endswith("quote") and isinstance(value, str)
+        str(key).lower().endswith(("quote", "quotes")) and is_a_sentence(value)
         for key, value in entry.items()
     )
 
@@ -2502,6 +2508,26 @@ class EveryPrintedFactIsHeldTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(problems, [])
+
+    def test_a_fact_quoting_several_sentences_is_a_printed_fact(self) -> None:
+        # Arrange
+        record = {"facts": {"tableBases": {"quotes": ["the first", "the second"]}}}
+
+        # Act
+        found = [path for path, _ in printed_facts(record)]
+
+        # Assert
+        self.assertEqual(found, [("facts", "tableBases")])
+
+    def test_a_list_holding_no_sentence_is_not_a_quote(self) -> None:
+        # Arrange
+        record = {"facts": {"x": {"quotes": [3]}, "y": {"quotes": []}}}
+
+        # Act
+        found = printed_facts(record)
+
+        # Assert
+        self.assertEqual(found, [])
 
     def test_a_quote_kept_outside_the_printed_facts_needs_no_test(self) -> None:
         # Arrange
