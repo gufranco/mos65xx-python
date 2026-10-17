@@ -14,11 +14,12 @@ uvx ruff@0.16.3 format --check .
 uvx ruff@0.16.3 check .
 pnpm install --frozen-lockfile && pnpm run format:check
 uvx yamllint==1.38.0 --strict .
-python3 -m coverage erase
+cov=(uvx --python 3.12 --from coverage==7.6.10 --with setuptools==84.0.0 coverage)
+"${cov[@]}" erase
 for f in $(find . -name '*.test.py' -not -path './packages/*' | sort); do
-  python3 -m coverage run -a "$f" || echo "FAILED $f"
+  "${cov[@]}" run -a "$f" || echo "FAILED $f"
 done
-python3 -m coverage report
+"${cov[@]}" report
 ```
 
 Coverage is a hard gate at 100% statement and branch. A branch with no test
@@ -27,8 +28,11 @@ fails the build rather than lowering the number.
 ## Tests
 
 A test file sits beside the module it covers and is named after it. Test bodies
-carry no comments: arrange, act and assert are separated by one blank line each,
-and the test name says what behaviour is being pinned.
+carry no comments but the bare `# Arrange`, `# Act` and `# Assert` markers that
+open their three blocks, separated by one blank line each, and the test name says
+what behaviour is being pinned. A test drives the package through what
+`mos65xx.__all__` exports and what the README documents, never an inner module
+or a private name, and the family test fails on one that does.
 
 Tests that need a file nobody can distribute are skipped rather than passed when
 that file is absent, and they live apart from the rest so the coverage gate stays

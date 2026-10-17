@@ -159,8 +159,12 @@ ruff check .
 mypy
 pnpm run format:check
 uvx yamllint==1.38.0 --strict .
-for f in $(find mos65xx conformance -name '*.test.py' | sort); do python3 "$f"; done
-python3 -m coverage report
+cov=(uvx --python 3.12 --from coverage==7.6.10 --with setuptools==84.0.0 coverage)
+"${cov[@]}" erase
+for f in $(find mos65xx conformance -name '*.test.py' | sort); do
+  "${cov[@]}" run -a "$f" || echo "FAILED $f"
+done
+"${cov[@]}" report
 ```
 
 The conformance run needs the suites, which are fetched rather than vendored:

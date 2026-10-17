@@ -5,10 +5,13 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 import contextlib  # noqa: E402
+import importlib  # noqa: E402
 import io  # noqa: E402
+import runpy  # noqa: E402
 import tempfile  # noqa: E402
 import unittest  # noqa: E402
 import zipfile  # noqa: E402
+from typing import Any  # noqa: E402
 
 from conformance import package  # noqa: E402
 
@@ -30,6 +33,21 @@ def run_main(argv: list[str]) -> tuple[int, str]:
     with contextlib.redirect_stdout(said):
         code = package.main(argv)
     return code, said.getvalue()
+
+
+def setup_script() -> dict[str, Any]:
+    return runpy.run_path(str(ROOT / "setup.py"), run_name="setup_script")
+
+
+def build_command() -> Any:
+    distribution = importlib.import_module("setuptools.dist").Distribution(
+        {"name": "mos65xx", "packages": ["mos65xx"]}
+    )
+    distribution.script_name = str(ROOT / "setup.py")
+    command = setup_script()["WithoutTests"](distribution)
+    command.initialize_options()
+    command.finalize_options()
+    return command
 
 
 class ModulesTest(unittest.TestCase):
@@ -154,6 +172,28 @@ class MainTest(unittest.TestCase):
         # Assert
         self.assertEqual(code, 1)
         self.assertIn("ships a test: mos65xx/environment.test.py", said)
+
+
+class SetupTest(unittest.TestCase):
+    def test_the_build_finds_every_module_and_no_test(self) -> None:
+        # Arrange
+        command = build_command()
+
+        # Act
+        found = command.find_package_modules("mos65xx", str(ROOT / "mos65xx"))
+
+        # Assert
+        self.assertEqual(sorted(f"{name}.py" for _, name, _ in found), sorted(package.modules()))
+
+    def test_loading_the_script_builds_nothing(self) -> None:
+        # Arrange
+        before = sorted(path.name for path in ROOT.iterdir())
+
+        # Act
+        setup_script()
+
+        # Assert
+        self.assertEqual(sorted(path.name for path in ROOT.iterdir()), before)
 
 
 if __name__ == "__main__":

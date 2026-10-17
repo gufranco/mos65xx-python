@@ -104,8 +104,10 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
-      - name: Install coverage
-        run: python -m pip install --disable-pip-version-check coverage==7.6.10
+      - name: Install coverage and the build backend its tests drive
+        run: |
+          python -m pip install --disable-pip-version-check \
+            coverage==7.6.10 setuptools==84.0.0
 
       - name: Run every test file, under coverage
         run: |

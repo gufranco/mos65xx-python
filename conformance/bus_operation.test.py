@@ -3,13 +3,13 @@ import sys
 import unittest
 from collections.abc import Callable, Mapping
 from pathlib import Path
-from typing import Any, override
+from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from mos65xx import Memory  # noqa: E402
-from mos65xx import wdc65816 as core  # noqa: E402
+import mos65xx  # noqa: E402
+from mos65xx import FLAG_M, FLAG_X, FLAG_Z, Memory  # noqa: E402
 
 HELD = json.loads((Path(__file__).resolve().parent / "bus-operation.json").read_text())
 
@@ -35,7 +35,7 @@ class Scene:
             memory.write8(START + offset, byte)
         for address, value in self.seed.items():
             memory.write8(address, value)
-        cpu = core.Cpu(memory)
+        cpu = mos65xx.Cpu("65816", memory)
         cpu.emulation = False
         cpu.m8 = cpu.x8 = True
         cpu.pb, cpu.pc = 0x00, START & 0xFFFF
@@ -43,7 +43,7 @@ class Scene:
         cpu.s = self.named.get("S", 0x01F0)
         cpu.x, cpu.y = self.named.get("X", 0x00), self.named.get("Y", 0x00)
         cpu.a = self.named.get("A", 0x5A)
-        cpu.set_status(self.named.get("P", 0x00) | (core.FLAG_M | core.FLAG_X))
+        cpu.set_status(self.named.get("P", 0x00) | (FLAG_M | FLAG_X))
         cpu.trace = []
         cpu.step()
         values = dict(self.named)
@@ -195,7 +195,7 @@ def scenes() -> list[Scene]:
         Scene("18", (0xA9, 0x42)),
         Scene("19a", (0xEA,)),
         Scene("19b", (0xEB,)),
-        Scene("20", (0xD0, 0x10), Offset=0x10, P=core.FLAG_Z),
+        Scene("20", (0xD0, 0x10), Offset=0x10, P=FLAG_Z),
         Scene("21", (0x82, 0x10, 0x00), Offset=0x10),
         Scene("22b", (0x68,), seed=stack),
         Scene("22c", (0x48,)),
@@ -223,118 +223,177 @@ def scenes() -> list[Scene]:
     ]
 
 
-class RecordTest(unittest.TestCase):
-    @override
-    def setUp(self) -> None:
-        self.groups = HELD["groups"]
+def bus_rows() -> list[tuple[str, str, str]]:
+    found = []
+    for scene in scenes():
+        trace, values = scene.run()
+        wanted = base(scene.group)
+        found.append((f"{scene.group} length", str(len(trace)), str(len(wanted))))
+        found.extend(
+            (
+                f"{scene.group} cycle {row['cycle']}",
+                f"{address:06X} {observed(pin)}",
+                f"{resolve(row['address'], values):06X} {pins(row)}",
+            )
+            for (address, _, pin), row in zip(trace, wanted, strict=False)
+        )
+    return found
 
+
+def differing(rows: list[tuple[str, str, str]]) -> dict[str, tuple[str, str]]:
+    return {name: (did, says) for name, did, says in rows if did != says}
+
+
+def shift(did: str, says: str) -> int:
+    return int(says.split(maxsplit=1)[0], 16) - int(did.split(maxsplit=1)[0], 16)
+
+
+WIDTH_ROWS = HELD["disagreements"]["widthDependentAddress"]["rows"]
+
+QUALIFIER_ROWS = HELD["disagreements"]["qualifierOnAnIndexedIndirectJump"]["rows"]
+
+
+class RecordTest(unittest.TestCase):
     def test_the_table_covers_forty_seven_addressing_mode_groups(self) -> None:
-        self.assertEqual(len(self.groups), 47)
+        # Arrange
+        groups = HELD["groups"]
+
+        # Act
+        count = len(groups)
+
+        # Assert
+        self.assertEqual(count, 47)
 
     def test_and_three_hundred_and_twenty_eight_cycles_between_them(self) -> None:
-        self.assertEqual(sum(len(group["bus"]) for group in self.groups), 328)
+        # Arrange
+        groups = HELD["groups"]
+
+        # Act
+        count = sum(len(group["bus"]) for group in groups)
+
+        # Assert
+        self.assertEqual(count, 328)
 
     def test_every_note_the_rows_cite_is_written_down(self) -> None:
-        cited = {
-            note for group in self.groups for row in group["bus"] for note in row.get("notes", ())
-        }
+        # Arrange
+        groups = HELD["groups"]
 
+        # Act
+        cited = {note for group in groups for row in group["bus"] for note in row.get("notes", ())}
+
+        # Assert
         self.assertLessEqual(cited, set(HELD["noteQuotes"]))
 
     def test_every_row_says_what_all_four_qualifying_lines_did(self) -> None:
+        # Arrange
+        groups = HELD["groups"]
+
+        # Act
         missing = [
             group["id"]
-            for group in self.groups
+            for group in groups
             for row in group["bus"]
             if not all(key in row for key in ("vpb", "mlb", "vda", "vpa"))
         ]
 
+        # Assert
         self.assertEqual(missing, [])
 
     def test_the_cells_the_page_spells_differently_are_kept_as_printed(self) -> None:
-        slips = [
-            row["asPrinted"] for group in self.groups for row in group["bus"] if "asPrinted" in row
-        ]
+        # Arrange
+        groups = HELD["groups"]
 
+        # Act
+        slips = [row["asPrinted"] for group in groups for row in group["bus"] if "asPrinted" in row]
+
+        # Assert
         self.assertEqual(len(slips), 18)
 
     def test_and_each_kind_of_slip_says_what_the_page_did(self) -> None:
-        self.assertEqual(len(HELD["printingSlips"]["kinds"]), 6)
+        # Arrange
+        slips = HELD["printingSlips"]
+
+        # Act
+        kinds = slips["kinds"]
+
+        # Assert
+        self.assertEqual(len(kinds), 6)
 
     def test_the_pages_were_read_rather_than_only_parsed(self) -> None:
-        self.assertIn("read as printed", HELD["readHow"])
+        # Arrange
+        record = HELD
+
+        # Act
+        how = record["readHow"]
+
+        # Assert
+        self.assertIn("read as printed", how)
 
 
 class BusTest(unittest.TestCase):
-    def rows(self) -> list[tuple[str, str, str]]:
-        found = []
-        for scene in scenes():
-            trace, values = scene.run()
-            wanted = base(scene.group)
-            found.append((f"{scene.group} length", str(len(trace)), str(len(wanted))))
-            found.extend(
-                (
-                    f"{scene.group} cycle {row['cycle']}",
-                    f"{address:06X} {observed(pin)}",
-                    f"{resolve(row['address'], values):06X} {pins(row)}",
-                )
-                for (address, _, pin), row in zip(trace, wanted, strict=False)
-            )
-        return found
-
     def test_the_model_puts_the_table_on_the_bus(self) -> None:
-        wrong = [name for name, did, says in self.rows() if did != says]
-        recorded = HELD["disagreements"]
+        # Arrange
+        recorded = WIDTH_ROWS + QUALIFIER_ROWS
 
-        self.assertEqual(
-            sorted(wrong),
-            sorted(
-                recorded["widthDependentAddress"]["rows"]
-                + recorded["qualifierOnAnIndexedIndirectJump"]["rows"]
-            ),
-        )
+        # Act
+        wrong = list(differing(bus_rows()))
+
+        # Assert
+        self.assertEqual(sorted(wrong), sorted(recorded))
 
     def test_which_is_nine_rows_of_two_hundred_and_sixty_six(self) -> None:
-        rows = self.rows()
+        # Arrange
+        driven = scenes()
 
-        self.assertEqual((len(rows), sum(1 for _, d, s in rows if d != s)), (266, 9))
+        # Act
+        rows = bus_rows()
+
+        # Assert
+        self.assertEqual((len(driven), len(rows), len(differing(rows))), (len(GROUPS) - 3, 266, 9))
 
     def test_the_five_that_differ_by_a_byte_are_the_ones_a_wide_register_lengthens(
         self,
     ) -> None:
-        rows = {name: (did, says) for name, did, says in self.rows() if did != says}
-        found = [
-            int(says.split()[0], 16) - int(did.split()[0], 16)
-            for name, (did, says) in rows.items()
-            if name in HELD["disagreements"]["widthDependentAddress"]["rows"]
-        ]
+        # Arrange
+        named = WIDTH_ROWS
 
-        self.assertEqual([abs(one) for one in found], [1] * 5)
+        # Act
+        rows = differing(bus_rows())
+
+        # Assert
+        self.assertEqual([abs(shift(*rows[name])) for name in named], [1] * 5)
 
     def test_four_of_them_are_a_byte_higher_and_the_push_a_byte_lower(self) -> None:
-        rows = {name: (did, says) for name, did, says in self.rows() if did != says}
-        found = {
-            name: int(says.split()[0], 16) - int(did.split()[0], 16)
-            for name, (did, says) in rows.items()
-            if name in HELD["disagreements"]["widthDependentAddress"]["rows"]
-        }
+        # Arrange
+        named = WIDTH_ROWS
 
+        # Act
+        rows = differing(bus_rows())
+
+        # Assert
+        found = {name: shift(*rows[name]) for name in named}
         self.assertEqual((sorted(found.values()), found["22c cycle 3"]), ([-1, 1, 1, 1, 1], -1))
 
     def test_and_the_four_that_differ_by_a_pin_agree_on_the_address(self) -> None:
-        rows = {name: (did, says) for name, did, says in self.rows() if did != says}
-        found = [
-            did.split()[0] == says.split()[0]
-            for name, (did, says) in rows.items()
-            if name in HELD["disagreements"]["qualifierOnAnIndexedIndirectJump"]["rows"]
-        ]
+        # Arrange
+        named = QUALIFIER_ROWS
 
-        self.assertEqual(found, [True] * 4)
+        # Act
+        rows = differing(bus_rows())
+
+        # Assert
+        self.assertEqual(
+            [rows[name][0].split()[0] == rows[name][1].split()[0] for name in named], [True] * 4
+        )
 
     def test_the_table_marks_the_same_operation_the_other_way_two_groups_later(self) -> None:
+        # Arrange
         indexed = [row for row in base("2a") if row["data"].startswith("New PC")]
+
+        # Act
         direct = [row for row in base("3b") if row["data"].startswith("New PC")]
 
+        # Assert
         self.assertEqual(
             (
                 [(row["vda"], row["vpa"]) for row in indexed],
@@ -344,55 +403,87 @@ class BusTest(unittest.TestCase):
         )
 
     def test_every_group_but_the_three_that_cannot_be_driven(self) -> None:
+        # Arrange
+        groups = set(GROUPS)
+
+        # Act
         driven = {scene.group for scene in scenes()}
 
-        self.assertEqual(set(GROUPS) - driven, set(HALTS) | set(BY_PIN))
+        # Assert
+        self.assertEqual(groups - driven, set(HALTS) | set(BY_PIN))
 
     def test_the_three_are_the_two_halts_and_the_pin_driven_one(self) -> None:
+        # Arrange
+        names = (*HALTS, *BY_PIN)
+
+        # Act
+        titles = [GROUPS[name]["title"] for name in names]
+
+        # Assert
         self.assertEqual(
-            [GROUPS[name]["title"] for name in (*HALTS, *BY_PIN)],
+            titles,
             ["Stop the Clock", "Wait for Interrupt                  (9)RDY=1", "Stack s"],
         )
 
 
 class QualifierTest(unittest.TestCase):
     def test_exactly_one_cycle_of_each_group_is_an_opcode_fetch(self) -> None:
+        # Arrange
+        groups = HELD["groups"]
+
+        # Act
         counts = {
             group["id"]: sum(1 for row in base(group["id"]) if (row["vda"], row["vpa"]) == (1, 1))
-            for group in HELD["groups"]
+            for group in groups
         }
 
+        # Assert
         self.assertEqual(set(counts.values()), {1})
 
     def test_an_internal_cycle_is_the_one_with_both_lines_low(self) -> None:
+        # Arrange
+        groups = HELD["groups"]
+
+        # Act
         internal = [
-            row
-            for group in HELD["groups"]
+            row["data"]
+            for group in groups
             for row in group["bus"]
             if (row["vda"], row["vpa"]) == (0, 0)
         ]
 
-        self.assertGreater([row["data"] for row in internal].count("IO"), 60)
+        # Assert
+        self.assertGreater(internal.count("IO"), 60)
 
     def test_the_model_reports_no_value_on_an_internal_cycle(self) -> None:
+        # Arrange
         scene = next(one for one in scenes() if one.group == "22h")
-        trace, _ = scene.run()
-        internal = [value for _, value, pin in trace if pin[0] == "-" and pin[1] == "-"]
 
+        # Act
+        trace, _ = scene.run()
+
+        # Assert
+        internal = [value for _, value, pin in trace if pin[0] == "-" and pin[1] == "-"]
         self.assertEqual(internal, [None, None, None])
 
     def test_the_vector_pull_line_falls_only_on_an_interrupt(self) -> None:
-        pulling = {
-            group["id"] for group in HELD["groups"] for row in group["bus"] if row["vpb"] == 0
-        }
+        # Arrange
+        groups = HELD["groups"]
 
+        # Act
+        pulling = {group["id"] for group in groups for row in group["bus"] if row["vpb"] == 0}
+
+        # Assert
         self.assertEqual(pulling, {"22a", "22j"})
 
     def test_and_memory_lock_only_on_a_read_modify_write(self) -> None:
-        locked = {
-            group["id"] for group in HELD["groups"] for row in group["bus"] if row["mlb"] == 0
-        }
+        # Arrange
+        groups = HELD["groups"]
 
+        # Act
+        locked = {group["id"] for group in groups for row in group["bus"] if row["mlb"] == 0}
+
+        # Assert
         self.assertEqual(locked, {"1d", "6b", "10b", "16b"})
 
 

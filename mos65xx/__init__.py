@@ -20,6 +20,11 @@ from .errors import (
 )
 from .memory import Memory, SparseMemory, scramble
 from .models import MODELS, Model
+from .opcodes65c02 import TABLES
+from .opcodes6502 import NMOS
+from .opcodes6502 import decode as decode8
+from .opcodes6502 import disassemble as disassemble8
+from .opcodes6502 import render as render8
 from .opcodes65816 import (
     FLAG_DEPENDENT,
     MODE_SIZE,
@@ -71,7 +76,9 @@ __all__ = [
     "FLAG_Z",
     "MODELS",
     "MODE_SIZE",
+    "NMOS",
     "OPCODES",
+    "TABLES",
     "UNSET_SEED",
     "Clock",
     "ClockClosed",
@@ -91,8 +98,11 @@ __all__ = [
     "apply_flags",
     "branch_target",
     "decode",
+    "decode8",
     "disassemble",
+    "disassemble8",
     "operand_size",
     "render",
+    "render8",
     "scramble",
 ]

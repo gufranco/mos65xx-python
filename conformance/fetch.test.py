@@ -267,7 +267,14 @@ class FetchTest(unittest.TestCase):
         self.assertIn("gave up", str(raised.exception))
 
     def test_git_is_told_never_to_stop_and_ask(self) -> None:
-        self.assertEqual(fetch._git_environment()["GIT_TERMINAL_PROMPT"], "0")
+        # Arrange
+        variable = "GIT_TERMINAL_PROMPT"
+
+        # Act
+        environment = fetch.git_environment()
+
+        # Assert
+        self.assertEqual(environment[variable], "0")
 
 
 class MainTest(unittest.TestCase):

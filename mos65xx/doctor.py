@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, override
 
 
-def _version(where: Path | None = None) -> str:
+def installed_version(where: Path | None = None) -> str:
     found = re.search(
         r"""VERSION\s*[:=][^"']*["']([^"']+)["']""",
         (where or Path(__file__).resolve().parent / "version.py").read_text(),
@@ -18,7 +18,7 @@ def _version(where: Path | None = None) -> str:
 
 ROOT = Path(__file__).resolve().parent.parent
 
-VERSION = _version()
+VERSION = installed_version()
 
 
 if str(ROOT) not in sys.path:
@@ -107,13 +107,13 @@ def _where() -> Finding:
     return Finding("looking in", True, str(CACHE))
 
 
-def _read_definition(path: Path | str = DEFINITION) -> dict[str, Any]:
+def read_definition(path: Path | str = DEFINITION) -> dict[str, Any]:
     with Path(path).open() as handle:
         held: dict[str, Any] = json.load(handle)
     return held
 
 
-def _declared(read: Callable[[], dict[str, Any]] = _read_definition) -> Finding:
+def check_declared(read: Callable[[], dict[str, Any]] = read_definition) -> Finding:
     try:
         held = read()["suites"]
     except OSError:
@@ -136,8 +136,8 @@ def _declared(read: Callable[[], dict[str, Any]] = _read_definition) -> Finding:
     )
 
 
-def _suites(
-    read: Callable[[], dict[str, Any]] = _read_definition,
+def check_suites(
+    read: Callable[[], dict[str, Any]] = read_definition,
     cache: Path = CACHE,
 ) -> list[Finding]:
     try:
@@ -153,10 +153,10 @@ def _suites(
                 "the definition could not be read; the line above is what it said",
             )
         ]
-    return [_suite(one, cache) for one in held]
+    return [check_suite(one, cache) for one in held]
 
 
-def _suite(declared: dict[str, Any], cache: Path) -> Finding:
+def check_suite(declared: dict[str, Any], cache: Path) -> Finding:
     name = str(declared["name"])
     where = cache / name / str(declared["path"])
     wanted = declared.get("files")
@@ -187,14 +187,14 @@ def _suite(declared: dict[str, Any], cache: Path) -> Finding:
 
 def examine(
     build: Callable[[str], Cpu] = _default_build,
-    read: Callable[[], dict[str, Any]] = _read_definition,
+    read: Callable[[], dict[str, Any]] = read_definition,
     cache: Path = CACHE,
 ) -> list[Finding]:
     found = [_python(), _package()]
     found.extend(_processor(name, build) for name in sorted(models.MODELS))
     found.append(_where())
-    found.append(_declared(read))
-    found.extend(_suites(read, cache))
+    found.append(check_declared(read))
+    found.extend(check_suites(read, cache))
     return found
 
 

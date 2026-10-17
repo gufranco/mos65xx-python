@@ -9,7 +9,8 @@ from typing import Any, override
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from mos65xx import Memory, mos6502, wdc65816  # noqa: E402
+import mos65xx  # noqa: E402
+from mos65xx import Memory  # noqa: E402
 
 DIVERGENCES = Path(__file__).resolve().parent / "divergences.json"
 
@@ -41,141 +42,268 @@ class Watched(Memory):
         return super().read8(address)
 
 
+def appendix_bus(program: bytes, **registers: int) -> Any:
+    memory = Memory(0x10000)
+    for offset, byte in enumerate(program):
+        memory.write8(0x0200 + offset, byte)
+    memory.write8(0x0010, 0xF0)
+    memory.write8(0x0011, 0x12)
+    cpu = mos65xx.Cpu("6502", memory)
+    cpu.pc, cpu.s = 0x0200, 0x80
+    cpu.set_status(0x24)
+    cpu.a = cpu.x = cpu.y = 0
+    for name, value in registers.items():
+        setattr(cpu, name, value)
+    cpu.trace = []
+    return cpu
+
+
+def cycles(cpu: Any) -> list[tuple[int, str]]:
+    return [(address & 0xFFFF, kind) for address, _, kind in cpu.trace]
+
+
+def about_to_break(emulation: bool) -> Any:
+    memory = Memory(0x1000000)
+    cpu = mos65xx.Cpu("65816", memory)
+    cpu.emulation = emulation
+    cpu.db = 0x7E
+    cpu.pb, cpu.pc = 0x00, 0x8000
+    memory.write8(0x008000, 0x00)
+    return cpu
+
+
+def watching(opcode: int, operand: int, direct: int) -> tuple[Any, Watched]:
+    memory = Watched()
+    cpu = mos65xx.Cpu("65816", memory)
+    cpu.emulation = True
+    cpu.d = direct
+    cpu.x = cpu.y = 0x00
+    cpu.pb, cpu.pc = 0x00, 0x8000
+    memory.write8(0x008000, opcode)
+    memory.write8(0x008001, operand)
+    del memory.seen[:]
+    return cpu, memory
+
+
+def pointer_reads(opcode: int) -> list[int]:
+    cpu, memory = watching(opcode, 0xFF, ALIGNED_PAGE)
+    cpu.step()
+    return [one for one in memory.seen if ALIGNED_PAGE <= one <= ALIGNED_PAGE + 0x101]
+
+
+def stays_inside(opcode: int) -> bool:
+    return all(address <= ALIGNED_PAGE + 0xFF for address in pointer_reads(opcode)[1:])
+
+
+def pointer_cases() -> dict[str, Any]:
+    return {one["mode"]: one for one in about("multi-byte pointer read")["suiteSays"]["cases"]}
+
+
 class ShapeTest(unittest.TestCase):
     def test_each_one_names_the_document_and_quotes_it(self) -> None:
-        for one in declared()["divergences"]:
-            self.assertIn("quote", one["documentSays"], one["subject"])
-            if one["documentSays"].get("saysNothing"):
-                continue
-            self.assertIn("document", one["documentSays"], one["subject"])
+        # Arrange
+        held = declared()["divergences"]
+
+        # Act
+        missing = [
+            one["subject"]
+            for one in held
+            if "quote" not in one["documentSays"]
+            or not (one["documentSays"].get("saysNothing") or "document" in one["documentSays"])
+        ]
+
+        # Assert
+        self.assertEqual(missing, [])
 
     def test_each_one_says_what_was_measured(self) -> None:
-        for one in declared()["divergences"]:
-            self.assertIn("corpus", one["suiteSays"], one["subject"])
+        # Arrange
+        held = declared()["divergences"]
+
+        # Act
+        missing = [one["subject"] for one in held if "corpus" not in one["suiteSays"]]
+
+        # Assert
+        self.assertEqual(missing, [])
 
     def test_each_one_says_what_this_project_does(self) -> None:
-        for one in declared()["divergences"]:
-            self.assertTrue(one["whatThisProjectDoes"], one["subject"])
+        # Arrange
+        held = declared()["divergences"]
+
+        # Act
+        missing = [one["subject"] for one in held if not one["whatThisProjectDoes"]]
+
+        # Assert
+        self.assertEqual(missing, [])
 
     def test_each_one_says_what_would_settle_it(self) -> None:
-        for one in declared()["divergences"]:
-            self.assertTrue(one["whatWouldSettleIt"], one["subject"])
+        # Arrange
+        held = declared()["divergences"]
+
+        # Act
+        missing = [one["subject"] for one in held if not one["whatWouldSettleIt"]]
+
+        # Assert
+        self.assertEqual(missing, [])
 
     def test_asking_about_something_unrecorded_fails_rather_than_saying_nothing(self) -> None:
-        with self.assertRaises(AssertionError):
-            about("a disagreement nobody has found")
+        # Arrange
+        def attempt() -> Any:
+            return about("a disagreement nobody has found")
+
+        # Act
+        with self.assertRaises(AssertionError) as raised:
+            attempt()
+
+        # Assert
+        self.assertEqual(
+            str(raised.exception), "nothing recorded about a disagreement nobody has found"
+        )
 
 
 class AppendixBusTest(unittest.TestCase):
-    def bus(self, program: bytes, **registers: int) -> list[tuple[int, str]]:
-        memory = Memory(0x10000)
-        for offset, byte in enumerate(program):
-            memory.write8(0x0200 + offset, byte)
-        memory.write8(0x0010, 0xF0)
-        memory.write8(0x0011, 0x12)
-        cpu = mos6502.Cpu(memory)
-        cpu.pc, cpu.s = 0x0200, 0x80
-        cpu.set_status(0x24)
-        cpu.a = cpu.x = cpu.y = 0
-        for name, value in registers.items():
-            setattr(cpu, name, value)
-        cpu.trace = []
-        cpu.step()
-        return [(address & 0xFFFF, kind) for address, _, kind in cpu.trace]
-
     def test_the_discarded_read_lands_on_the_page_below_the_one_written(self) -> None:
-        found = self.bus(bytes((0x9D, 0xF0, 0x12)), x=0x20)
+        # Arrange
+        cpu = appendix_bus(bytes((0x9D, 0xF0, 0x12)), x=0x20)
 
-        self.assertEqual(found[3:], [(0x1210, "read"), (0x1310, "write")])
+        # Act
+        cpu.step()
+
+        # Assert
+        self.assertEqual(cycles(cpu)[3:], [(0x1210, "read"), (0x1310, "write")])
 
     def test_two_publishers_printed_the_same_inconsistency(self) -> None:
-        recorded = about("discarded read of an indexed access")
+        # Arrange
+        subject = "discarded read of an indexed access"
 
+        # Act
+        recorded = about(subject)
+
+        # Assert
         self.assertIn(
             "Two publishers printed the same inconsistency",
             recorded["andAlsoSays"]["inASecondPrinting"],
         )
 
     def test_the_entry_about_it_names_the_table_that_gets_it_right(self) -> None:
-        recorded = about("discarded read of an indexed access")
+        # Arrange
+        subject = "discarded read of an indexed access"
 
+        # Act
+        recorded = about(subject)
+
+        # Assert
         self.assertIn("A.3.6", recorded["andAlsoSays"]["section"])
 
     def test_a_taken_branch_drives_the_counter_before_the_offset(self) -> None:
-        found = self.bus(bytes((0xD0, 0x17)))
+        # Arrange
+        cpu = appendix_bus(bytes((0xD0, 0x17)))
 
-        self.assertEqual(found[2], (0x0202, "read"))
+        # Act
+        cpu.step()
+
+        # Assert
+        self.assertEqual(cycles(cpu)[2], (0x0202, "read"))
 
     def test_the_entry_about_it_says_the_rows_sit_one_lower_than_they_run(self) -> None:
-        recorded = about("which cycle of a taken branch")
+        # Arrange
+        subject = "which cycle of a taken branch"
 
+        # Act
+        recorded = about(subject)
+
+        # Assert
         self.assertIn("one row higher", recorded["suiteSays"]["measured"])
 
     def test_a_pull_from_the_top_of_the_stack_wraps_inside_page_one(self) -> None:
-        found = self.bus(bytes((0x40,)), s=0xFE)
+        # Arrange
+        cpu = appendix_bus(bytes((0x40,)), s=0xFE)
 
-        self.assertEqual(found[2:], [(a, "read") for a in (0x01FE, 0x01FF, 0x0100, 0x0101)])
+        # Act
+        cpu.step()
+
+        # Assert
+        self.assertEqual(cycles(cpu)[2:], [(a, "read") for a in (0x01FE, 0x01FF, 0x0100, 0x0101)])
 
     def test_the_entry_about_it_needs_nothing_further_to_settle(self) -> None:
-        recorded = about("stack addresses of a pull")
+        # Arrange
+        subject = "stack addresses of a pull"
 
+        # Act
+        recorded = about(subject)
+
+        # Assert
         self.assertIn("Nothing outstanding", recorded["whatWouldSettleIt"])
 
     def test_the_two_rows_missing_a_page_crossing_mark_still_take_the_cycle(self) -> None:
-        found = [len(self.bus(bytes((opcode, 0x10)), y=0x20)) for opcode in (0x31, 0x11)]
+        # Arrange
+        parts = [appendix_bus(bytes((opcode, 0x10)), y=0x20) for opcode in (0x31, 0x11)]
 
-        self.assertEqual(found, [6, 6])
+        # Act
+        spent = [cpu.step() for cpu in parts]
+
+        # Assert
+        self.assertEqual((spent, [len(cpu.trace) for cpu in parts]), ([6, 6], [6, 6]))
 
     def test_and_the_entry_names_the_rows_on_the_same_page_that_carry_it(self) -> None:
-        recorded = about("indirect indexed rows of AND and ORA")
+        # Arrange
+        subject = "indirect indexed rows of AND and ORA"
 
+        # Act
+        recorded = about(subject)
+
+        # Assert
         self.assertIn("absolute indexed rows", recorded["andAlsoSays"]["why"])
 
     def test_the_disputed_reserved_opcode_says_a_count_is_not_a_bus_trace(self) -> None:
-        recorded = about("cycles the reserved opcode 5C")
+        # Arrange
+        subject = "cycles the reserved opcode 5C"
 
+        # Act
+        recorded = about(subject)
+
+        # Assert
         self.assertIn("a count alone is not a bus trace", recorded["whatWouldSettleIt"])
 
     def test_the_narrow_form_of_five_rows_follows_from_the_rows_above_them(self) -> None:
-        recorded = about("modify cycle and the push drive when the register is eight bits")
+        # Arrange
+        subject = "modify cycle and the push drive when the register is eight bits"
 
+        # Act
+        recorded = about(subject)
+
+        # Assert
         self.assertIn(
             "cannot sit on the byte after one that was never read", recorded["whatWouldSettleIt"]
         )
 
     def test_the_qualifier_question_is_answerable_only_on_a_pin(self) -> None:
-        recorded = about("new program counter of an indexed indirect jump")
+        # Arrange
+        subject = "new program counter of an indexed indirect jump"
 
+        # Act
+        recorded = about(subject)
+
+        # Assert
         self.assertIn("on hardware and on nothing less", recorded["whatWouldSettleIt"])
 
 
 class DataBankOnInterruptTest(unittest.TestCase):
-    def broken(self, emulation: bool) -> Any:
-        memory = Memory(0x1000000)
-        cpu = wdc65816.Cpu(memory)
-        cpu.emulation = emulation
-        cpu.db = 0x7E
-        cpu.pb, cpu.pc = 0x00, 0x8000
-        memory.write8(0x008000, 0x00)
-        cpu.step()
-        return cpu
-
     def test_a_break_in_emulation_mode_clears_the_data_bank_as_the_document_says(self) -> None:
         # Arrange
-        emulation = True
+        cpu = about_to_break(emulation=True)
 
         # Act
-        cpu = self.broken(emulation)
+        cpu.step()
 
         # Assert
         self.assertEqual(cpu.db, 0x00)
 
     def test_and_one_in_native_mode_leaves_it_alone(self) -> None:
         # Arrange
-        emulation = False
+        cpu = about_to_break(emulation=False)
 
         # Act
-        cpu = self.broken(emulation)
+        cpu.step()
 
         # Assert
         self.assertEqual(cpu.db, 0x7E)
@@ -197,32 +325,25 @@ class DataBankOnInterruptTest(unittest.TestCase):
         )
 
     def test_the_program_bank_is_cleared_either_way(self) -> None:
-        self.assertEqual((self.broken(emulation=True).pb, self.broken(emulation=False).pb), (0, 0))
+        # Arrange
+        parts = [about_to_break(emulation=True), about_to_break(emulation=False)]
+
+        # Act
+        for cpu in parts:
+            cpu.step()
+
+        # Assert
+        self.assertEqual([cpu.pb for cpu in parts], [0, 0])
 
 
 class PointerWrapTest(unittest.TestCase):
-    def addresses(self, opcode: int) -> list[int]:
-        memory = Watched()
-        cpu = wdc65816.Cpu(memory)
-        cpu.emulation = True
-        cpu.d = ALIGNED_PAGE
-        cpu.x = cpu.y = 0x00
-        cpu.pb, cpu.pc = 0x00, 0x8000
-        memory.write8(0x008000, opcode)
-        memory.write8(0x008001, 0xFF)
-        del memory.seen[:]
-        cpu.step()
-        return [one for one in memory.seen if ALIGNED_PAGE <= one <= ALIGNED_PAGE + 0x101]
-
     def test_the_three_modes_the_document_names_behave_as_the_recorded_cases_show(self) -> None:
         # Arrange
-        recorded = {
-            one["mode"]: one for one in about("multi-byte pointer read")["suiteSays"]["cases"]
-        }
+        recorded = pointer_cases()
         opcodes = {"[d]": 0xA7, "[d],y": 0xB7, "PEI": 0xD4}
 
         # Act
-        inside = {mode: self.stays_inside(opcode) for mode, opcode in opcodes.items()}
+        inside = {mode: stays_inside(opcode) for mode, opcode in opcodes.items()}
 
         # Assert
         self.assertEqual(
@@ -231,45 +352,50 @@ class PointerWrapTest(unittest.TestCase):
 
     def test_the_indexed_mode_follows_the_document_against_its_one_recorded_case(self) -> None:
         # Arrange
-        recorded = {
-            one["mode"]: one for one in about("multi-byte pointer read")["suiteSays"]["cases"]
-        }
+        recorded = pointer_cases()
 
         # Act
-        inside = self.stays_inside(0xA1)
+        inside = stays_inside(0xA1)
 
         # Assert
         self.assertEqual(
             (inside, recorded["(d,x)"]["verdict"].startswith("left the page")), (True, True)
         )
 
-    def stays_inside(self, opcode: int) -> bool:
-        return all(address <= ALIGNED_PAGE + 0xFF for address in self.addresses(opcode)[1:])
-
     def test_the_two_unmeasured_modes_follow_the_document(self) -> None:
-        for opcode in (0xB2, 0xB1):
-            self.assertTrue(
-                all(address <= ALIGNED_PAGE + 0xFF for address in self.addresses(opcode)[1:]),
-                hex(opcode),
-            )
+        # Arrange
+        opcodes = (0xB2, 0xB1)
+
+        # Act
+        inside = [stays_inside(opcode) for opcode in opcodes]
+
+        # Assert
+        self.assertEqual(inside, [True, True])
 
     def test_and_the_entry_says_that_is_where_they_come_from(self) -> None:
-        held = about("multi-byte pointer read")
+        # Arrange
+        subject = "multi-byte pointer read"
 
-        self.assertIn("(d) and (d),y", held["suiteSays"]["notCovered"])
-        self.assertIn("document reading rather than a measurement", held["whatWouldSettleIt"])
+        # Act
+        held = about(subject)
+
+        # Assert
+        self.assertEqual(
+            (
+                "(d) and (d),y" in held["suiteSays"]["notCovered"],
+                "document reading rather than a measurement" in held["whatWouldSettleIt"],
+            ),
+            (True, True),
+        )
 
     def test_nothing_wraps_when_the_direct_register_is_not_page_aligned(self) -> None:
-        memory = Watched()
-        cpu = wdc65816.Cpu(memory)
-        cpu.emulation = True
-        cpu.d = ALIGNED_PAGE | 0x01
-        cpu.pb, cpu.pc = 0x00, 0x8000
-        memory.write8(0x008000, 0xB2)
-        memory.write8(0x008001, 0xFE)
-        del memory.seen[:]
+        # Arrange
+        cpu, memory = watching(0xB2, 0xFE, ALIGNED_PAGE | 0x01)
+
+        # Act
         cpu.step()
 
+        # Assert
         self.assertIn(ALIGNED_PAGE + 0x100, memory.seen)
 
 

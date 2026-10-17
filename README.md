@@ -8,7 +8,7 @@ English | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md) | [繁�
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16** parts, **17,900,000** state cases and **17,870,080** cycle-exact cases compared, **0** unexplained failures, **1,439** tests, **100%** statement and branch coverage, no dependencies
+**16** parts, **17,900,000** state cases and **17,870,080** cycle-exact cases compared, **0** unexplained failures, **1,452** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -170,9 +170,13 @@ print(cpu.step(), hex(cpu.pc))
 | `disassemble(data, offset=0, address=0, count=None, m=True, x=True, stop_at_return=False)` | A list of 65816 instructions, tracking `REP` and `SEP`. It stops at the last whole instruction |
 | `operand_size(mode, m, x)`, `branch_target(address, size, operand, width)`, `render(mode, operand, address, size, width)`, `apply_flags(instruction, m, x)` | The steps `decode` and `disassemble` are built from |
 | `FLAG_C`, `FLAG_Z`, `FLAG_I`, `FLAG_D`, `FLAG_X`, `FLAG_M`, `FLAG_V`, `FLAG_N` | The 65816 status bits, `0x01` to `0x80` |
+| `NMOS`, `TABLES` | The 8-bit opcode tables as `(mnemonic, mode)` pairs: `NMOS` for the eleven NMOS models, and `TABLES` keyed `65c02`, `rockwell` and `wdc` for the three CMOS ones |
+| `decode8(data, offset, address, table=NMOS)` | One 8-bit instruction: `address`, `opcode`, `mnemonic`, `mode`, `operand`, `size`, and the `undocumented` and `unstable` properties. Raises `Truncated` when the bytes run out |
+| `disassemble8(data, offset, address, count=None, table=NMOS, stop_at_return=False)` | 8-bit instructions in order. It stops at the last whole instruction |
+| `render8(mode, operand, address, size)` | An 8-bit operand as assembler text, and a branch as the address it reaches |
 | `__version__` | The installed version |
 
-The 8-bit opcode tables live in two modules. `mos65xx.opcodes6502` has `NMOS`, `decode(data, offset, address, table=NMOS)` and `disassemble(data, offset, address, count=None, table=NMOS, stop_at_return=False)`, which yields instructions with `undocumented` and `unstable` properties. `mos65xx.opcodes65c02.TABLES` holds the `65c02`, `rockwell` and `wdc` tables.
+The three 8-bit functions end in `8` so they never shadow the 65816 ones.
 
 ```python
 import mos65xx
@@ -354,10 +358,7 @@ All 256 opcodes run on every 8-bit part. MOS documented a hundred and fifty one 
 `disassemble()` reads bytes with no part to run them in.
 
 ```python
-from mos65xx import disassemble
-from mos65xx.opcodes6502 import NMOS, render
-from mos65xx.opcodes6502 import disassemble as disassemble8
-from mos65xx.opcodes65c02 import TABLES
+from mos65xx import NMOS, TABLES, disassemble, disassemble8, render8
 
 for instruction in disassemble(bytes.fromhex("c230a9341260"), address=0x018000):
     print(f"{instruction.address:06X}  {instruction.size}  {instruction.text}")
@@ -365,7 +366,7 @@ for instruction in disassemble(bytes.fromhex("c230a9341260"), address=0x018000):
 code = bytes.fromhex("a9ff8f3412")
 for table in (NMOS, TABLES["wdc"]):
     for found in disassemble8(code, 0, 0xC000, table=table):
-        operand = render(found.mode, found.operand, found.address, found.size)
+        operand = render8(found.mode, found.operand, found.address, found.size)
         print(f"{found.address:04X}  {found.mnemonic} {operand}  {found.undocumented}")
 ```
 

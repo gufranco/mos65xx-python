@@ -30,6 +30,8 @@ CLOCKED = KIND == "Clocked part"
 
 PACKAGE: Any = mos65xx
 
+TOOL_MODULES = {"doctor", "environment"}
+
 A_MODEL = sorted(PACKAGE.MODELS)[0] if hasattr(PACKAGE, "MODELS") else ""
 
 
@@ -2576,6 +2578,196 @@ class EveryPrintedFactIsHeldTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(problems, [])
+
+
+def is_private(name: str) -> bool:
+    return name.startswith("_") and not name.startswith("__")
+
+
+def project_modules(tree: ast.Module, package: str) -> set[str]:
+    roots = {package, "conformance"}
+    bound: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and (node.module or "").split(".")[0] in roots:
+            bound.update(alias.asname or alias.name for alias in node.names)
+        if isinstance(node, ast.Import):
+            bound.update(
+                alias.asname or alias.name.split(".")[0]
+                for alias in node.names
+                if alias.name.split(".")[0] in roots
+            )
+    return bound
+
+
+def import_problems(node: ast.AST, package: str, exported: set[str], tools: set[str]) -> list[str]:
+    if isinstance(node, ast.Import):
+        return [
+            f"imports {alias.name}"
+            for alias in node.names
+            if alias.name.startswith(f"{package}.") and alias.name.split(".")[1] not in tools
+        ]
+    if not isinstance(node, ast.ImportFrom) or node.module is None:
+        return []
+    if node.module.startswith(f"{package}."):
+        return [] if node.module.split(".")[1] in tools else [f"imports from {node.module}"]
+    if node.module == package:
+        allowed = exported | tools
+        return [
+            f"imports {alias.name} from {package}"
+            for alias in node.names
+            if alias.name not in allowed
+        ]
+    return []
+
+
+def reaches_inside(source: str, package: str, exported: set[str], tools: set[str]) -> list[str]:
+    tree = ast.parse(source)
+    roots = {
+        alias.asname or alias.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Import)
+        for alias in node.names
+        if alias.name == package
+    }
+    modules = project_modules(tree, package)
+    found: list[str] = []
+    for node in ast.walk(tree):
+        found.extend(import_problems(node, package, exported, tools))
+        if not (isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name)):
+            continue
+        owner, name = node.value.id, node.attr
+        if owner in roots and name not in exported | tools and not name.startswith("__"):
+            found.append(f"reaches {package}.{name}")
+        elif owner in modules and is_private(name):
+            found.append(f"reaches {owner}.{name}")
+    return found
+
+
+def repository_test_files() -> list[Path]:
+    listed = subprocess.run(
+        ["git", "-c", "submodule.recurse=false", "ls-files", "*.test.py"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    ).stdout.split()
+    homes = {PACKAGE.__name__, "conformance"}
+    return [ROOT / one for one in listed if Path(one).parts[0] in homes]
+
+
+class EveryTestUsesThePublicInterfaceTest(unittest.TestCase):
+    def test_no_test_reaches_past_what_the_package_exports(self) -> None:
+        # Arrange
+        exported = set(PACKAGE.__all__)
+
+        # Act
+        found = {
+            str(path.relative_to(ROOT)): problems
+            for path in repository_test_files()
+            if (
+                problems := reaches_inside(
+                    path.read_text(), PACKAGE.__name__, exported, TOOL_MODULES
+                )
+            )
+        }
+
+        # Assert
+        self.assertEqual(found, {})
+
+    def test_there_are_package_tests_to_look_at(self) -> None:
+        # Arrange
+        package = PACKAGE.__name__
+
+        # Act
+        found = [path for path in repository_test_files() if path.parts[-2] == package]
+
+        # Assert
+        self.assertGreater(len(found), 0)
+
+    def test_an_exported_name_passes(self) -> None:
+        # Arrange
+        source = "import part\n\nchip = part.Chip('a')\nnames = part.__all__\n"
+
+        # Act
+        found = reaches_inside(source, "part", {"Chip"}, set())
+
+        # Assert
+        self.assertEqual(found, [])
+
+    def test_a_name_the_package_does_not_export_is_reported(self) -> None:
+        # Arrange
+        source = "import part as p\n\nwidth = p.tone\n"
+
+        # Act
+        found = reaches_inside(source, "part", {"Chip"}, set())
+
+        # Assert
+        self.assertEqual(found, ["reaches part.tone"])
+
+    def test_importing_an_inner_module_is_reported(self) -> None:
+        # Arrange
+        source = "import part.tone\nfrom part.noise import shifted\nfrom part import tone, Chip\n"
+
+        # Act
+        found = reaches_inside(source, "part", {"Chip"}, set())
+
+        # Assert
+        self.assertEqual(
+            found, ["imports part.tone", "imports from part.noise", "imports tone from part"]
+        )
+
+    def test_a_tool_module_may_be_imported_and_driven(self) -> None:
+        # Arrange
+        source = "import part.doctor\nfrom part.doctor import main\nfrom part import doctor\n"
+
+        # Act
+        found = reaches_inside(source, "part", {"Chip"}, {"doctor"})
+
+        # Assert
+        self.assertEqual(found, [])
+
+    def test_a_private_name_of_any_project_module_is_reported(self) -> None:
+        # Arrange
+        source = (
+            "from conformance import census\nfrom part import doctor\n\n"
+            "census._tally\ndoctor._load\n"
+        )
+
+        # Act
+        found = reaches_inside(source, "part", {"Chip"}, {"doctor"})
+
+        # Assert
+        self.assertEqual(found, ["reaches census._tally", "reaches doctor._load"])
+
+    def test_a_private_name_of_something_else_is_left_alone(self) -> None:
+        # Arrange
+        source = "import json\n\nhandle = json._default_decoder\n"
+
+        # Act
+        found = reaches_inside(source, "part", {"Chip"}, set())
+
+        # Assert
+        self.assertEqual(found, [])
+
+    def test_a_relative_import_is_left_to_the_other_checks(self) -> None:
+        # Arrange
+        source = "from . import helper\n"
+
+        # Act
+        found = reaches_inside(source, "part", {"Chip"}, set())
+
+        # Assert
+        self.assertEqual(found, [])
+
+    def test_an_import_of_another_library_is_left_alone(self) -> None:
+        # Arrange
+        source = "from json import loads\nimport conformance.census as census\n"
+
+        # Act
+        found = reaches_inside(source, "part", {"Chip"}, set())
+
+        # Assert
+        self.assertEqual(found, [])
 
 
 if __name__ == "__main__":

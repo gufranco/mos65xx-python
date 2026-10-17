@@ -10,4 +10,5 @@ class WithoutTests(build_py):
         return [one for one in found if not one[1].endswith(TEST_MODULE_SUFFIX)]
 
 
-setup(cmdclass={"build_py": WithoutTests})
+if __name__ == "__main__":
+    setup(cmdclass={"build_py": WithoutTests})

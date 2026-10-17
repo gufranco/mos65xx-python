@@ -871,9 +871,8 @@
     }
   ],
   "cores": {
-    "note": "The three behavioural units this package implements. Sixteen part names build one of three cores, and a fact is about a core rather than about a part name: what separates two names inside one core is address width and which interrupt pins the package brings out, which part-differences.json carries. Every fact names the models it governs, expanded from one of these. Taken from the builder each model resolves to, so the list cannot drift from the code without conformance/family.test.py saying so.",
+    "note": "The three behavioural units this package implements. Sixteen part names build one of three cores, and a fact is about a core rather than about a part name: what separates two names inside one core is address width and which interrupt pins the package brings out, which part-differences.json carries. Every fact names the models it governs, expanded from one of these. Held by grouping the models by the core class each one builds, so the list cannot drift from the code without conformance/hardware_scope.test.py saying so.",
     "nmos": {
-      "builder": "_build_6502",
       "models": [
         "2a03",
         "6502",
@@ -889,11 +888,9 @@
       ]
     },
     "cmos": {
-      "builder": "_build_65c02",
       "models": ["65c02", "r65c02", "w65c02"]
     },
     "wide": {
-      "builder": "_build_65816",
       "models": ["65802", "65816"]
     }
   },

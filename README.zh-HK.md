@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16** 款晶片，比對了 **17,900,000** 個狀態案例及 **17,870,080** 個週期精確案例，**0** 個未獲解釋的失敗，**1,439** 個測試，**100%** 語句及分支覆蓋率，無任何依賴
+**16** 款晶片，比對了 **17,900,000** 個狀態案例及 **17,870,080** 個週期精確案例，**0** 個未獲解釋的失敗，**1,452** 個測試，**100%** 語句及分支覆蓋率，無任何依賴
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -170,9 +170,13 @@ print(cpu.step(), hex(cpu.pc))
 | `disassemble(data, offset=0, address=0, count=None, m=True, x=True, stop_at_return=False)` | 65816 指令列表，會追蹤 `REP` 及 `SEP`。它在最後一條完整指令處停止 |
 | `operand_size(mode, m, x)`, `branch_target(address, size, operand, width)`, `render(mode, operand, address, size, width)`, `apply_flags(instruction, m, x)` | 組成 `decode` 及 `disassemble` 的各個步驟 |
 | `FLAG_C`, `FLAG_Z`, `FLAG_I`, `FLAG_D`, `FLAG_X`, `FLAG_M`, `FLAG_V`, `FLAG_N` | 65816 狀態位元，由 `0x01` 至 `0x80` |
+| `NMOS`, `TABLES` | 以 `(mnemonic, mode)` 配對表示的 8 位元操作碼表：`NMOS` 用於十一款 NMOS 晶片，`TABLES` 以 `65c02`、`rockwell` 及 `wdc` 為鍵，用於三款 CMOS 晶片 |
+| `decode8(data, offset, address, table=NMOS)` | 一條 8 位元指令：`address`、`opcode`、`mnemonic`、`mode`、`operand`、`size`，以及 `undocumented` 及 `unstable` 屬性。位元組不足時拋出 `Truncated` |
+| `disassemble8(data, offset, address, count=None, table=NMOS, stop_at_return=False)` | 按次序產生 8 位元指令。它在最後一條完整指令處停止 |
+| `render8(mode, operand, address, size)` | 以組合語言文字表示的 8 位元運算元，分支則表示為其到達的位址 |
 | `__version__` | 已安裝的版本 |
 
-8 位元操作碼表分佈於兩個模組。`mos65xx.opcodes6502` 提供 `NMOS`、`decode(data, offset, address, table=NMOS)` 及 `disassemble(data, offset, address, count=None, table=NMOS, stop_at_return=False)`，後者產生帶有 `undocumented` 及 `unstable` 屬性的指令。`mos65xx.opcodes65c02.TABLES` 包含 `65c02`、`rockwell` 及 `wdc` 三個表。
+三個 8 位元函式的名稱以 `8` 結尾，因此不會遮蔽 65816 的同名函式。
 
 ```python
 import mos65xx
@@ -358,10 +362,7 @@ for name in ("6502", "2a03"):
 `disassemble()` 無需晶片執行即可讀取位元組。
 
 ```python
-from mos65xx import disassemble
-from mos65xx.opcodes6502 import NMOS, render
-from mos65xx.opcodes6502 import disassemble as disassemble8
-from mos65xx.opcodes65c02 import TABLES
+from mos65xx import NMOS, TABLES, disassemble, disassemble8, render8
 
 for instruction in disassemble(bytes.fromhex("c230a9341260"), address=0x018000):
     print(f"{instruction.address:06X}  {instruction.size}  {instruction.text}")
@@ -369,7 +370,7 @@ for instruction in disassemble(bytes.fromhex("c230a9341260"), address=0x018000):
 code = bytes.fromhex("a9ff8f3412")
 for table in (NMOS, TABLES["wdc"]):
     for found in disassemble8(code, 0, 0xC000, table=table):
-        operand = render(found.mode, found.operand, found.address, found.size)
+        operand = render8(found.mode, found.operand, found.address, found.size)
         print(f"{found.address:04X}  {found.mnemonic} {operand}  {found.undocumented}")
 ```
 

@@ -99,7 +99,7 @@ enable_error_code = [
 files = ["mos65xx", "conformance"]
 
 [tool.coverage.run]
-source = ["mos65xx", "conformance"]
+source = ["."]
 branch = true
 
 [tool.coverage.report]

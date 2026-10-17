@@ -8,16 +8,14 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from mos65xx import SparseMemory, errors, mos6502, opcodes6502
+from mos65xx import Cpu, SparseMemory
 
 
-def machine(
-    program: Sequence[int], at: int = 0x8000, decimal: bool = True, **registers: Any
-) -> Any:
+def machine(program: Sequence[int], at: int = 0x8000, model: str = "6502", **registers: Any) -> Any:
     memory = SparseMemory(seed=1)
     for offset, value in enumerate(program):
         memory.write8(at + offset, value)
-    cpu = mos6502.Cpu(memory, decimal=decimal)
+    cpu = Cpu(model, memory)
     cpu.set_status(0x24)
     cpu.a = cpu.x = cpu.y = 0x00
     cpu.s = 0xFD
@@ -29,671 +27,369 @@ def machine(
 
 class ResetTest(unittest.TestCase):
     def test_a_reset_takes_the_program_counter_from_the_vector(self) -> None:
+        # Arrange
         memory = SparseMemory(seed=2)
         memory.write8(0xFFFC, 0x34)
         memory.write8(0xFFFD, 0x12)
+        cpu = Cpu("6502", memory)
 
-        cpu = mos6502.Cpu(memory)
+        # Act
         cpu.reset()
 
+        # Assert
         self.assertEqual(cpu.pc, 0x1234)
 
     def test_a_reset_leaves_the_registers_holding_what_they_held(self) -> None:
+        # Arrange
         memory = SparseMemory(seed=3)
+        first = Cpu("6502", memory, seed=7)
+        second = Cpu("6502", memory, seed=8)
 
-        first = mos6502.Cpu(memory, seed=7)
-        first.reset()
-        second = mos6502.Cpu(memory, seed=8)
-        second.reset()
+        # Act
+        for cpu in (first, second):
+            cpu.reset()
 
+        # Assert
         self.assertNotEqual((first.a, first.x, first.y), (second.a, second.x, second.y))
 
     def test_the_same_seed_gives_the_same_unclean_machine(self) -> None:
+        # Arrange
         memory = SparseMemory(seed=3)
+        first = Cpu("6502", memory, seed=9)
+        second = Cpu("6502", memory, seed=9)
 
-        first = mos6502.Cpu(memory, seed=9)
-        first.reset()
-        second = mos6502.Cpu(memory, seed=9)
-        second.reset()
+        # Act
+        for cpu in (first, second):
+            cpu.reset()
 
+        # Assert
         self.assertEqual((first.a, first.x, first.y), (second.a, second.x, second.y))
 
 
 class StatusTest(unittest.TestCase):
     def test_the_unused_bit_is_always_set(self) -> None:
+        # Arrange
         cpu, _ = machine([0xEA])
 
-        self.assertTrue(cpu.status() & 0x20)
+        # Act
+        status = cpu.status()
+
+        # Assert
+        self.assertEqual(status & 0x20, 0x20)
 
     def test_the_break_bit_is_kept_when_nothing_touches_it(self) -> None:
+        # Arrange
         cpu, _ = machine([0xEA])
         cpu.set_status(0xFF)
 
+        # Act
         cpu.step()
 
-        self.assertTrue(cpu.status() & 0x10)
+        # Assert
+        self.assertEqual(cpu.status() & 0x10, 0x10)
 
     def test_pulling_the_status_always_clears_the_break_bit(self) -> None:
+        # Arrange
         cpu, memory = machine([0x28], s=0xFC)
         memory.write8(0x01FD, 0xFF)
 
+        # Act
         cpu.step()
 
-        self.assertFalse(cpu.status() & 0x10)
+        # Assert
+        self.assertEqual(cpu.status() & 0x10, 0x00)
 
     def test_pushing_the_status_sets_the_break_bit(self) -> None:
+        # Arrange
         cpu, memory = machine([0x08])
+
+        # Act
         cpu.step()
 
+        # Assert
         self.assertEqual(memory.read8(0x01FD), cpu.status() | 0x10)
 
     def test_pulling_the_status_takes_every_other_bit_as_given(self) -> None:
+        # Arrange
         cpu, memory = machine([0x28], s=0xFC)
         memory.write8(0x01FD, 0xCF)
 
+        # Act
         cpu.step()
 
+        # Assert
         self.assertEqual(cpu.status(), 0xEF)
 
 
 class AddressingTest(unittest.TestCase):
     def test_a_zero_page_index_wraps_inside_the_first_page(self) -> None:
+        # Arrange
         cpu, memory = machine([0xB5, 0xFF], x=0x02)
         memory.write8(0x0001, 0x42)
 
+        # Act
         cpu.step()
 
+        # Assert
         self.assertEqual(cpu.a, 0x42)
 
     def test_an_absolute_index_does_not_wrap_inside_a_page(self) -> None:
+        # Arrange
         cpu, memory = machine([0xBD, 0xFF, 0x20], x=0x02)
         memory.write8(0x2101, 0x42)
 
+        # Act
         cpu.step()
 
+        # Assert
         self.assertEqual(cpu.a, 0x42)
 
     def test_an_indexed_indirect_pointer_wraps_inside_the_first_page(self) -> None:
+        # Arrange
         cpu, memory = machine([0xA1, 0xFF], x=0x00)
         memory.write8(0x00FF, 0x34)
         memory.write8(0x0000, 0x12)
         memory.write8(0x1234, 0x42)
 
+        # Act
         cpu.step()
 
+        # Assert
         self.assertEqual(cpu.a, 0x42)
 
     def test_an_indirect_indexed_pointer_wraps_the_same_way(self) -> None:
+        # Arrange
         cpu, memory = machine([0xB1, 0xFF], y=0x01)
         memory.write8(0x00FF, 0x34)
         memory.write8(0x0000, 0x12)
         memory.write8(0x1235, 0x42)
 
+        # Act
         cpu.step()
 
+        # Assert
         self.assertEqual(cpu.a, 0x42)
 
     def test_a_jump_through_a_pointer_at_a_page_end_reads_the_wrong_high_byte(self) -> None:
+        # Arrange
         cpu, memory = machine([0x6C, 0xFF, 0x30])
         memory.write8(0x30FF, 0x34)
         memory.write8(0x3100, 0xAB)
         memory.write8(0x3000, 0x12)
 
+        # Act
         cpu.step()
 
+        # Assert
         self.assertEqual(cpu.pc, 0x1234)
 
 
 class SubroutineTest(unittest.TestCase):
     def test_a_call_pushes_the_address_of_its_own_last_byte(self) -> None:
+        # Arrange
         cpu, memory = machine([0x20, 0x55, 0x13], s=0xFD)
 
+        # Act
         cpu.step()
 
-        self.assertEqual(cpu.pc, 0x1355)
-        self.assertEqual(memory.read8(0x01FD), 0x80)
-        self.assertEqual(memory.read8(0x01FC), 0x02)
+        # Assert
+        self.assertEqual((cpu.pc, memory.read8(0x01FD), memory.read8(0x01FC)), (0x1355, 0x80, 0x02))
 
     def test_a_call_whose_push_lands_on_its_own_operand_jumps_where_the_push_left_it(self) -> None:
+        # Arrange
         cpu, memory = machine([0x20, 0x55, 0x13], at=0x017B, s=0x7D)
 
+        # Act
         cpu.step()
 
-        self.assertEqual(memory.read8(0x017D), 0x01)
-        self.assertEqual(memory.read8(0x017C), 0x7D)
-        self.assertEqual(cpu.pc, 0x0155)
+        # Assert
+        self.assertEqual((memory.read8(0x017D), memory.read8(0x017C), cpu.pc), (0x01, 0x7D, 0x0155))
 
     def test_a_return_goes_to_the_byte_after_the_call(self) -> None:
+        # Arrange
         cpu, memory = machine([0x60], s=0xFB)
         memory.write8(0x01FC, 0x02)
         memory.write8(0x01FD, 0x80)
 
+        # Act
         cpu.step()
 
+        # Assert
         self.assertEqual(cpu.pc, 0x8003)
 
 
 class StackTest(unittest.TestCase):
     def test_the_stack_pointer_wraps_inside_its_page(self) -> None:
-        cpu, memory = machine([0x48], s=0x00)
+        # Arrange
+        cpu, memory = machine([0x48], s=0x00, a=0x5C)
 
+        # Act
         cpu.step()
 
-        self.assertEqual(cpu.s, 0xFF)
-        self.assertEqual(memory.read8(0x0100), cpu.a)
+        # Assert
+        self.assertEqual((cpu.s, memory.read8(0x0100)), (0xFF, 0x5C))
 
     def test_a_pull_wraps_the_same_way(self) -> None:
+        # Arrange
         cpu, memory = machine([0x68], s=0xFF)
         memory.write8(0x0100, 0x42)
 
+        # Act
         cpu.step()
 
-        self.assertEqual(cpu.s, 0x00)
-        self.assertEqual(cpu.a, 0x42)
+        # Assert
+        self.assertEqual((cpu.s, cpu.a), (0x00, 0x42))
 
 
 class ArithmeticTest(unittest.TestCase):
     def test_an_add_sets_carry_when_it_leaves_the_byte(self) -> None:
+        # Arrange
         cpu, _ = machine([0x69, 0x01], a=0xFF)
 
+        # Act
         cpu.step()
 
-        self.assertEqual(cpu.a, 0x00)
-        self.assertTrue(cpu.c)
-        self.assertTrue(cpu.z)
+        # Assert
+        self.assertEqual((cpu.a, cpu.c, cpu.z), (0x00, True, True))
 
     def test_an_add_sets_overflow_when_two_positives_make_a_negative(self) -> None:
+        # Arrange
         cpu, _ = machine([0x69, 0x50], a=0x50)
 
+        # Act
         cpu.step()
 
-        self.assertEqual(cpu.a, 0xA0)
-        self.assertTrue(cpu.v)
+        # Assert
+        self.assertEqual((cpu.a, cpu.v), (0xA0, True))
 
     def test_a_decimal_add_carries_at_ten_rather_than_sixteen(self) -> None:
-        cpu, _ = machine([0x69, 0x01], a=0x09)
-        cpu.d = True
+        # Arrange
+        cpu, _ = machine([0x69, 0x01], a=0x09, d=True)
 
+        # Act
         cpu.step()
 
+        # Assert
         self.assertEqual(cpu.a, 0x10)
 
     def test_a_part_with_no_decimal_mode_adds_in_binary_regardless(self) -> None:
-        cpu, _ = machine([0x69, 0x01], a=0x09, decimal=False)
-        cpu.d = True
+        # Arrange
+        cpu, _ = machine([0x69, 0x01], model="2a03", a=0x09, d=True)
 
+        # Act
         cpu.step()
 
+        # Assert
         self.assertEqual(cpu.a, 0x0A)
 
     def test_a_decimal_subtract_borrows_at_ten(self) -> None:
-        cpu, _ = machine([0xE9, 0x01], a=0x10)
-        cpu.d = True
-        cpu.c = True
+        # Arrange
+        cpu, _ = machine([0xE9, 0x01], a=0x10, d=True, c=True)
 
+        # Act
         cpu.step()
 
+        # Assert
         self.assertEqual(cpu.a, 0x09)
 
+    def test_a_decimal_add_whose_low_nibble_stays_below_ten_does_not_adjust_it(self) -> None:
+        # Arrange
+        cpu, _ = machine([0x69, 0x03], a=0x04, d=True)
 
-class UndocumentedTest(unittest.TestCase):
-    def test_the_shift_and_or_does_both(self) -> None:
-        cpu, memory = machine([0x07, 0x10], a=0x01)
-        memory.write8(0x0010, 0x40)
-
+        # Act
         cpu.step()
 
-        self.assertEqual(memory.read8(0x0010), 0x80)
-        self.assertEqual(cpu.a, 0x81)
-
-    def test_the_store_of_both_registers_stores_their_conjunction(self) -> None:
-        cpu, memory = machine([0x87, 0x10], a=0xF0, x=0x3C)
-
-        cpu.step()
-
-        self.assertEqual(memory.read8(0x0010), 0x30)
-
-    def test_the_load_of_both_registers_loads_both(self) -> None:
-        cpu, memory = machine([0xA7, 0x10])
-        memory.write8(0x0010, 0x42)
-
-        cpu.step()
-
-        self.assertEqual((cpu.a, cpu.x), (0x42, 0x42))
-
-    def test_the_unstable_transfer_uses_the_magic_the_suite_measured(self) -> None:
-        cpu, _ = machine([0x8B, 0x23], a=0xE4, x=0xE2)
-
-        cpu.step()
-
-        self.assertEqual(cpu.a, 0x22)
-
-    def test_a_jam_stops_the_processor_where_it_stands(self) -> None:
-        cpu, _ = machine([0x02])
-
-        cpu.step()
-
-        self.assertEqual(cpu.pc, 0x8001)
-        self.assertTrue(cpu.stopped)
-
-    def test_a_stopped_processor_refuses_to_step_again(self) -> None:
-        cpu, _ = machine([0x02])
-        cpu.step()
-
-        with self.assertRaises(errors.Stopped):
-            cpu.step()
-
-    def test_a_jam_reads_the_interrupt_vector_on_its_way_to_hanging(self) -> None:
-        cpu, _ = machine([0x02, 0xA1])
-        cpu.trace = []
-
-        cpu.step()
-
-        self.assertEqual(
-            [address for address, _, _ in cpu.trace],
-            [0x8000, 0x8001, 0xFFFF, 0xFFFE, 0xFFFE],
-        )
-
-    def test_a_hung_part_goes_on_driving_the_top_of_that_vector(self) -> None:
-        cpu, _ = machine([0x02, 0xA1])
-        cpu.step()
-        cpu.trace = []
-
-        cpu.run_for(6)
-
-        self.assertEqual([address for address, _, _ in cpu.trace], [0xFFFF] * 6)
-
-    def test_a_hung_part_still_spends_its_hosts_cycles(self) -> None:
-        cpu, _ = machine([0x02, 0xA1])
-        cpu.step()
-
-        spent = cpu.run_for(1000)
-
-        self.assertEqual(spent, 1000)
-
-    def test_a_reset_is_the_only_thing_that_ends_a_jam(self) -> None:
-        cpu, _ = machine([0x02, 0xA1])
-        cpu.step()
-
-        cpu.reset()
-
-        self.assertFalse(cpu.jammed)
+        # Assert
+        self.assertEqual(cpu.a, 0x07)
 
 
 class BranchTest(unittest.TestCase):
     def test_a_branch_not_taken_only_costs_its_operand(self) -> None:
-        cpu, _ = machine([0xD0, 0x10])
-        cpu.z = True
+        # Arrange
+        cpu, _ = machine([0xD0, 0x10], z=True)
 
+        # Act
         cpu.step()
 
+        # Assert
         self.assertEqual(cpu.pc, 0x8002)
 
     def test_a_branch_taken_goes_where_it_says(self) -> None:
-        cpu, _ = machine([0xD0, 0x10])
-        cpu.z = False
+        # Arrange
+        cpu, _ = machine([0xD0, 0x10], z=False)
 
+        # Act
         cpu.step()
 
+        # Assert
         self.assertEqual(cpu.pc, 0x8012)
 
     def test_a_backward_branch_is_signed(self) -> None:
-        cpu, _ = machine([0xD0, 0xFC])
-        cpu.z = False
+        # Arrange
+        cpu, _ = machine([0xD0, 0xFC], z=False)
 
+        # Act
         cpu.step()
 
+        # Assert
         self.assertEqual(cpu.pc, 0x7FFE)
-
-
-class InterruptTest(unittest.TestCase):
-    def test_a_break_goes_through_the_vector_and_pushes_the_break_bit(self) -> None:
-        cpu, memory = machine([0x00, 0x00])
-        memory.write8(0xFFFE, 0x34)
-        memory.write8(0xFFFF, 0x12)
-        before = cpu.status()
-
-        cpu.step()
-
-        self.assertEqual(cpu.pc, 0x1234)
-        self.assertEqual(memory.read8(0x01FB), before | 0x10)
-        self.assertTrue(cpu.i)
-
-    def test_a_break_pushes_the_address_after_its_padding_byte(self) -> None:
-        cpu, memory = machine([0x00, 0x00])
-        memory.write8(0xFFFE, 0x00)
-        memory.write8(0xFFFF, 0x90)
-
-        cpu.step()
-
-        self.assertEqual(memory.read8(0x01FD), 0x80)
-        self.assertEqual(memory.read8(0x01FC), 0x02)
 
 
 class ClockTest(unittest.TestCase):
     def test_a_step_reports_the_cycles_that_instruction_took(self) -> None:
+        # Arrange
         cpu, _ = machine([0xEA])
 
+        # Act
         cycles = cpu.step()
 
+        # Assert
         self.assertEqual(cycles, 2)
 
     def test_the_tally_adds_up_across_instructions(self) -> None:
+        # Arrange
         cpu, _ = machine([0xEA, 0xEA, 0xEA])
         started = cpu.cycles
 
-        cpu.step()
-        cpu.step()
-        cpu.step()
+        # Act
+        for _ in range(3):
+            cpu.step()
 
+        # Assert
         self.assertEqual(cpu.cycles - started, 6)
 
     def test_a_budget_runs_whole_instructions_and_reports_what_was_spent(self) -> None:
+        # Arrange
         cpu, _ = machine([0xEA] * 8)
 
+        # Act
         spent = cpu.run_for(5)
 
+        # Assert
         self.assertEqual(spent, 6)
 
     def test_the_tally_survives_a_reset_because_a_clock_does_not_rewind(self) -> None:
+        # Arrange
         cpu, _ = machine([0xEA])
         cpu.step()
         before = cpu.cycles
 
+        # Act
         cpu.reset()
 
-        self.assertGreaterEqual(cpu.cycles, before)
+        # Assert
+        self.assertGreater(cpu.cycles, before)
 
     def test_a_reset_costs_the_six_cycles_the_manual_names_plus_the_vector(self) -> None:
+        # Arrange
         cpu, _ = machine([0xEA])
         before = cpu.cycles
 
+        # Act
         cpu.reset()
 
-        self.assertEqual(cpu.cycles - before, mos6502.RESET_CYCLES)
-
-    def test_a_bounded_run_gives_up_rather_than_hanging(self) -> None:
-        cpu, _ = machine([0x4C, 0x00, 0x80])
-
-        with self.assertRaises(errors.RunLimit):
-            cpu.run_until(lambda _: False, limit=100)
-
-    def test_a_bounded_run_that_reaches_its_condition_does_not_raise(self) -> None:
-        cpu, _ = machine([0xEA, 0xEA])
-        target = cpu.pc + 2
-
-        cpu.run_until(lambda part: part.pc == target, limit=50)
-
-        self.assertEqual(cpu.pc, target)
-
-
-class EveryOpcodeTest(unittest.TestCase):
-    STATES = (
-        ("binary, carry clear", {"d": False, "c": False, "decimal": True}),
-        ("binary, carry set", {"d": False, "c": True, "decimal": True}),
-        ("decimal, carry clear", {"d": True, "c": False, "decimal": True}),
-        ("decimal, carry set", {"d": True, "c": True, "decimal": True}),
-        ("decimal flag on a part without one", {"d": True, "c": True, "decimal": False}),
-    )
-
-    def machine(self, opcode: int, state: Any) -> Any:
-        memory = SparseMemory(seed=opcode)
-        cpu = mos6502.Cpu(memory, decimal=state["decimal"])
-        cpu.set_status(0x24)
-        cpu.d, cpu.c = state["d"], state["c"]
-        cpu.a, cpu.x, cpu.y = 0x9C, 0x5A, 0xA5
-        cpu.s = 0xFD
-        cpu.pc = 0x8000
-        memory.write8(0x8000, opcode)
-        return cpu
-
-    def test_every_opcode_runs_in_every_state(self) -> None:
-        for opcode in range(256):
-            for name, state in self.STATES:
-                cpu = self.machine(opcode, state)
-                with self.subTest(opcode=f"${opcode:02X}", state=name):
-                    cpu.step()
-                    self.assertEqual(cpu.steps, 1)
-
-    def test_every_opcode_has_an_implementation_behind_it(self) -> None:
-        missing = [
-            f"${opcode:02X} {mnemonic}"
-            for opcode, (mnemonic, _) in enumerate(opcodes6502.NMOS)
-            if not hasattr(mos6502.Cpu, f"op_{mnemonic}")
-        ]
-
-        self.assertEqual(missing, [])
-
-    def test_a_mode_no_instruction_uses_is_refused_rather_than_guessed(self) -> None:
-        cpu, _ = machine([0xEA])
-
-        with self.assertRaises(errors.UnsupportedError):
-            cpu.effective("nonsense")
-
-    def test_an_opcode_with_no_handler_is_refused_rather_than_skipped(self) -> None:
-        cpu, _ = machine([0x00])
-        cpu.table = tuple([("nonsense", "implied")] * 256)
-
-        with self.assertRaises(errors.UnsupportedError):
-            cpu.step()
-
-
-class ReachTest(unittest.TestCase):
-    def test_a_routine_runs_until_it_returns(self) -> None:
-        cpu, _ = machine([0xE8, 0xE8, 0x60])
-
-        cpu.call(0x8000)
-
-        self.assertEqual(cpu.x, 0x02)
-
-    def test_a_nested_call_returns_to_the_outer_one(self) -> None:
-        cpu, memory = machine([0x20, 0x10, 0x80, 0xE8, 0x60])
-        for offset, value in enumerate([0xC8, 0x60]):
-            memory.write8(0x8010 + offset, value)
-
-        cpu.call(0x8000)
-
-        self.assertEqual((cpu.x, cpu.y), (0x01, 0x01))
-
-    def test_a_routine_that_never_returns_gives_up_at_the_bound(self) -> None:
-        cpu, _ = machine([0x4C, 0x00, 0x80])
-
-        with self.assertRaises(errors.RunLimit):
-            cpu.call(0x8000, limit=64)
-
-    def test_and_says_where_it_gave_up(self) -> None:
-        cpu, _ = machine([0x4C, 0x00, 0x80])
-
-        with self.assertRaises(errors.RunLimit) as raised:
-            cpu.call(0x8000, limit=64)
-
-        self.assertIn("64 instructions", str(raised.exception))
-
-    def test_a_routine_that_returns_inside_the_bound_is_untouched_by_it(self) -> None:
-        cpu, _ = machine([0xE8, 0xE8, 0x60])
-
-        cpu.call(0x8000, limit=64)
-
-        self.assertEqual(cpu.x, 0x02)
-
-    def test_a_bound_of_none_is_the_unbounded_run_it_always_was(self) -> None:
-        cpu, _ = machine([0xE8, 0xE8, 0x60])
-
-        cpu.call(0x8000, limit=None)
-
-        self.assertEqual(cpu.x, 0x02)
-
-    def test_running_until_a_condition_stops_when_it_holds(self) -> None:
-        cpu, _ = machine([0xE8, 0xE8, 0xE8, 0xE8])
-
-        cpu.run_until(lambda found: found.x >= 0x03)
-
-        self.assertEqual(cpu.x, 0x03)
-
-    def test_an_accumulator_operand_is_the_accumulator(self) -> None:
-        cpu, _ = machine([0xEA], a=0x42)
-
-        self.assertEqual(cpu.operand("accumulator"), 0x42)
-
-    def test_a_decimal_add_whose_low_nibble_stays_below_ten_does_not_adjust_it(self) -> None:
-        cpu, _ = machine([0x69, 0x03], a=0x04)
-        cpu.d = True
-
-        cpu.step()
-
-        self.assertEqual(cpu.a, 0x07)
-
-    def test_a_decimal_rotate_adjusts_both_halves_when_both_run_over(self) -> None:
-        cpu, _ = machine([0x6B, 0xFF], a=0xFF)
-        cpu.d = True
-        cpu.c = True
-
-        cpu.step()
-
-        self.assertTrue(cpu.c)
-
-    def test_a_decimal_rotate_leaves_the_carry_clear_when_the_high_half_does_not(self) -> None:
-        cpu, _ = machine([0x6B, 0x00], a=0x00)
-        cpu.d = True
-        cpu.c = False
-
-        cpu.step()
-
-        self.assertFalse(cpu.c)
-
-    def test_a_zero_page_indirect_reads_a_pointer_without_indexing(self) -> None:
-        cpu, memory = machine([0xEA])
-        memory.write8(0x0020, 0x34)
-        memory.write8(0x0021, 0x12)
-        memory.write8(0x8001, 0x20)
-        cpu.pc = 0x8001
-
-        self.assertEqual(cpu.effective("zeroPageIndirect"), 0x1234)
-
-
-class HardwareInterruptTest(unittest.TestCase):
-    def waiting_at(self, vector: int, target: int = 0x9000) -> Any:
-        cpu, memory = machine([0xEA], s=0xFD)
-        memory.write8(vector, target & 0xFF)
-        memory.write8(vector + 1, target >> 8)
-        return cpu, memory
-
-    def test_a_request_is_refused_while_the_disable_flag_is_set(self) -> None:
-        cpu, _ = self.waiting_at(mos6502.IRQ_VECTOR)
-        cpu.i = True
-
-        self.assertFalse(cpu.irq())
-
-    def test_and_the_program_counter_has_not_moved(self) -> None:
-        cpu, _ = self.waiting_at(mos6502.IRQ_VECTOR)
-        cpu.i = True
-
-        cpu.irq()
-
-        self.assertEqual(cpu.pc, 0x8000)
-
-    def test_a_request_is_taken_once_the_flag_is_clear(self) -> None:
-        cpu, _ = self.waiting_at(mos6502.IRQ_VECTOR)
-        cpu.i = False
-
-        self.assertTrue(cpu.irq())
-
-    def test_and_arrives_at_the_handler_the_vector_names(self) -> None:
-        cpu, _ = self.waiting_at(mos6502.IRQ_VECTOR)
-        cpu.i = False
-
-        cpu.irq()
-
-        self.assertEqual(cpu.pc, 0x9000)
-
-    def test_the_return_address_is_the_instruction_that_would_have_run(self) -> None:
-        cpu, memory = self.waiting_at(mos6502.IRQ_VECTOR)
-        cpu.i = False
-
-        cpu.irq()
-
-        self.assertEqual(memory.read8(0x01FD) << 8 | memory.read8(0x01FC), 0x8000)
-
-    def test_the_pushed_status_has_the_break_bit_clear(self) -> None:
-        cpu, memory = self.waiting_at(mos6502.IRQ_VECTOR)
-        cpu.i = False
-        cpu.b = True
-
-        cpu.irq()
-
-        self.assertEqual(memory.read8(0x01FB) & 0x10, 0x00)
-
-    def test_and_the_unused_bit_set_the_way_every_push_sets_it(self) -> None:
-        cpu, memory = self.waiting_at(mos6502.IRQ_VECTOR)
-        cpu.i = False
-
-        cpu.irq()
-
-        self.assertEqual(memory.read8(0x01FB) & 0x20, 0x20)
-
-    def test_the_break_bit_in_the_register_itself_is_left_alone(self) -> None:
-        cpu, _ = self.waiting_at(mos6502.IRQ_VECTOR)
-        cpu.i = False
-        cpu.b = True
-
-        cpu.irq()
-
-        self.assertTrue(cpu.b)
-
-    def test_the_handler_runs_with_further_requests_disabled(self) -> None:
-        cpu, _ = self.waiting_at(mos6502.IRQ_VECTOR)
-        cpu.i = False
-
-        cpu.irq()
-
-        self.assertTrue(cpu.i)
-
-    def test_decimal_mode_survives_the_interrupt_on_this_part(self) -> None:
-        cpu, _ = self.waiting_at(mos6502.IRQ_VECTOR)
-        cpu.i = False
-        cpu.d = True
-
-        cpu.irq()
-
-        self.assertTrue(cpu.d)
-
-    def test_a_break_reports_itself_as_one_and_an_interrupt_does_not(self) -> None:
-        cpu, memory = machine([0x00], s=0xFD)
-        memory.write8(mos6502.BREAK_VECTOR, 0x00)
-        memory.write8(mos6502.BREAK_VECTOR + 1, 0x90)
-
-        cpu.step()
-
-        self.assertEqual(memory.read8(0x01FB) & 0x10, 0x10)
-
-    def test_the_non_maskable_pin_ignores_the_disable_flag(self) -> None:
-        cpu, _ = self.waiting_at(mos6502.NMI_VECTOR, target=0x9100)
-        cpu.i = True
-
-        cpu.nmi()
-
-        self.assertEqual(cpu.pc, 0x9100)
-
-    def test_a_return_from_interrupt_goes_back_where_it_came_from(self) -> None:
-        cpu, memory = self.waiting_at(mos6502.IRQ_VECTOR)
-        cpu.i = False
-        cpu.irq()
-        memory.write8(0x9000, 0x40)
-
-        cpu.step()
-
-        self.assertEqual(cpu.pc, 0x8000)
-
-    def test_and_restores_the_flags_it_was_holding(self) -> None:
-        cpu, memory = self.waiting_at(mos6502.IRQ_VECTOR)
-        cpu.i = False
-        cpu.c = True
-        cpu.irq()
-        memory.write8(0x9000, 0x40)
-
-        cpu.step()
-
-        self.assertEqual((cpu.c, cpu.i), (True, False))
+        # Assert
+        self.assertEqual(cpu.cycles - before, 6 + 2)
 
 
 if __name__ == "__main__":
