@@ -59,6 +59,7 @@ def probe(address: str, opener: Any = None) -> Answer:
                 with fetch(request, timeout=TIMEOUT) as answer:
                     return Answer(address, "ok", str(answer.status))
             except urllib.error.HTTPError as refusal:
+                refusal.close()
                 if refusal.code in GONE:
                     return Answer(address, "gone", str(refusal.code))
                 last = f"{method} {refusal.code}"

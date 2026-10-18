@@ -18,6 +18,17 @@ class Refusal(urllib.error.HTTPError):
         super().__init__("https://example.invalid", code, "no", {}, None)  # type: ignore[arg-type]
 
 
+class Closing(Refusal):
+    def __init__(self, code: int) -> None:
+        super().__init__(code)
+        self.shut = False
+
+    @override
+    def close(self) -> None:
+        self.shut = True
+        super().close()
+
+
 class Answered:
     def __init__(self, status: int) -> None:
         self.status = status
@@ -39,6 +50,15 @@ def answering(status: int = 200) -> Any:
 def refusing(code: int) -> Any:
     def opener(request: Any, timeout: int = 0) -> Answered:
         raise Refusal(code)
+
+    return opener
+
+
+def refusing_each(refusals: tuple[Closing, ...]) -> Any:
+    queue = iter(refusals)
+
+    def opener(request: Any, timeout: int = 0) -> Answered:
+        raise next(queue)
 
     return opener
 
@@ -134,6 +154,16 @@ class JudgementTest(unittest.TestCase):
         found = links.probe("https://example.com/a", head_refuses_get_answers())
 
         self.assertEqual((found.verdict, found.detail), ("ok", "206"))
+
+    def test_every_refusal_it_is_handed_is_closed(self) -> None:
+        # Arrange
+        refusals = tuple(Closing(503) for _ in range(links.ATTEMPTS * 2))
+
+        # Act
+        links.probe("https://example.com/a", refusing_each(refusals))
+
+        # Assert
+        self.assertEqual([one.shut for one in refusals], [True] * len(refusals))
 
     def test_the_detail_says_what_the_last_refusal_was(self) -> None:
         found = links.probe("https://example.com/a", refusing(503))
