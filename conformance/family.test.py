@@ -1208,6 +1208,21 @@ def prose_comments(where: Path) -> list[str]:
     return found
 
 
+CONFIGURATION = ("pyproject.toml", "setup.cfg", ".gitignore")
+
+
+def configuration_comments(where: Path) -> list[str]:
+    found = []
+    for name in CONFIGURATION:
+        path = where / name
+        if not path.is_file():
+            continue
+        for number, line in enumerate(path.read_text().splitlines(), 1):
+            if line.lstrip().startswith("#"):
+                found.append(f"{name}:{number}")
+    return found
+
+
 def mute_names(where: Path) -> list[str]:
     found = []
     for path in sorted(where.glob("**/*.test.py")):
@@ -1474,6 +1489,27 @@ class WrittenTheSameWayTest(unittest.TestCase):
 
     def test_nor_does_any_conformance_file(self) -> None:
         self.assertEqual(prose_comments(ROOT / "conformance"), [])
+
+    def test_no_configuration_file_carries_a_comment(self) -> None:
+        # Arrange
+        where = ROOT
+
+        # Act
+        found = configuration_comments(where)
+
+        # Assert
+        self.assertEqual(found, [])
+
+    def test_the_reader_of_configuration_finds_a_comment_line(self) -> None:
+        # Arrange
+        where = Path(tempfile.mkdtemp())
+        (where / "pyproject.toml").write_text('[tool.x]\n# why\nname = "a#b"\n')
+
+        # Act
+        found = configuration_comments(where)
+
+        # Assert
+        self.assertEqual(found, ["pyproject.toml:2"])
 
     def test_the_reader_of_that_tells_a_directive_from_prose(self) -> None:
         with tempfile.TemporaryDirectory() as where:

@@ -303,7 +303,8 @@ checks the ones a test can reach.
       costs to install. A count of what was compared with no result beside it is
       half a claim.
 - [ ] No comment in any source file that no tool reads, and a docstring counts
-      as one. A comment is the one part of a file nothing checks, so it is the
+      as one. Configuration files carry none either, and the reason for a
+      linter ignore lives in the agents file. A comment is the one part of a file nothing checks, so it is the
       one part free to drift, and once it has drifted it misleads every later
       reader rather than merely failing to help. Names, small functions,
       named constants and types carry what a comment would have said. When
