@@ -229,6 +229,11 @@ The coverage exclusions carry none either:
   gate mean something different on each runtime.
 - `^\s*\.\.\.$` and `: \.\.\.$`: a protocol method's ellipsis is a contract the
   type checker reads and the runtime never runs.
+- `@unittest\.skipUnless\(A_PART,`,
+  `@unittest\.skipUnless\(A_PART and BUILDABLE,` and
+  `^def accounts_for_a_reset\(` in the coverage exclusions: this member is not a
+  part, so the family tests that build a `Chip` and account for its reset are
+  skipped here and their bodies never run.
 
 ## Layout
 

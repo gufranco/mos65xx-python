@@ -79,8 +79,8 @@ it.
 
 Each line below was a defect found in one of the existing members and fixed in
 all of them. A repository joining now starts with them rather than earning them
-one session at a time. Every one is checkable, and `conformance/family.test.py`
-checks the ones a test can reach.
+one session at a time. Every one is checkable, and the family tests,
+`conformance/family_*.test.py`, check the ones a test can reach.
 
 **The interface**
 
@@ -203,7 +203,7 @@ checks the ones a test can reach.
       version module and the citation say the same version. Five members
       stamped a citation and never committed it, and one named a path inside a
       submodule instead of its own package, so fifteen of its releases
-      reported version `0.0.0`. `conformance/family.test.py` holds both.
+      reported version `0.0.0`. `conformance/family_tools.test.py` holds both.
 - [ ] The pipeline builds the wheel and audits it: every module present, no
       test file shipped. `exclude-package-data` filters data files and a
       `.test.py` file is collected as a module, so every installable member
@@ -442,9 +442,10 @@ the rung below that holds its code instead.
 
 Each printed fact in `conformance/hardware.json` names the tests that hold it
 under `heldBy`, as `path::Class.test_name`, or says under `unreachable` why no
-test can reach it. A supporting quote under `alsoSays` belongs to its fact. The
-family test fails on an entry that does neither, on a name that resolves to no
-test, and on a test that never names the entry it is said to hold.
+test can reach it. A supporting quote under `alsoSays` belongs to its fact.
+`conformance/family_printed_facts.test.py` fails on an entry that does neither,
+on a name that resolves to no test, and on a test that never names the entry it
+is said to hold.
 
 **Tested end to end, through the public interface, over every file.** Every
 test drives the package the way a host does: through the names the package
@@ -455,9 +456,9 @@ doctor or a conformance script, is driven through its public functions, and
 anything it keeps private is reached through one of them. Coverage is 100% of
 statements and branches over every Python file the repository tracks, with
 `setup.py` included, and it is reached through that interface. A line no caller
-can reach is a line to delete. The family test fails on a test that imports an
-inner module or touches a private name, and each member names its tool modules
-in `TOOL_MODULES` at the top of that test.
+can reach is a line to delete. `conformance/family_end_to_end.test.py` fails on
+a test that imports an inner module or touches a private name, and each member
+names its tool modules in `TOOL_MODULES` in `conformance/family_member.py`.
 
 ## The authority ladder
 
@@ -625,12 +626,12 @@ named for one part.
 
 Interrupt lines are the clearest case, and they are declared rather than assumed.
 A part publishes one method per line it has, and the lines it has are named per
-member in `conformance/family.test.py` as `INTERRUPT_LINES`. Three shapes exist
-and each is what the silicon has: a Z80 and a 6502 have a maskable line and a
-line above it, the uPD7725 has a single pin and nothing above it, and the SPC700
-as Sony shipped it brings none out at all. Requiring all three to publish `nmi()`
-would require two of them to publish a stub, and a stub pretends to a pin the
-package does not bring out.
+member in `conformance/family_member.py` as `INTERRUPT_LINES`. Three shapes
+exist and each is what the silicon has: a Z80 and a 6502 have a maskable line
+and a line above it, the uPD7725 has a single pin and nothing above it, and the
+SPC700 as Sony shipped it brings none out at all. Requiring all three to publish
+`nmi()` would require two of them to publish a stub, and a stub pretends to a
+pin the package does not bring out.
 
 Declaring the list away is not free. A member that names no line has to account
 for that in its record, where every other fact about the part already is, so
@@ -764,9 +765,10 @@ because `except` takes a name and one that cannot be imported can only be handle
 by catching everything. A leading underscore is how a genuinely internal one says
 so.
 
-`conformance/family.test.py` holds both halves. It imports every module file in
-the package directory rather than the ones the package re-exports, because a
-module left out of that list is exactly where a second definition hides.
+`conformance/family_package.test.py` holds both halves. It imports every module
+file in the package directory rather than the ones the package re-exports,
+because a module left out of that list is exactly where a second definition
+hides.
 
 The same applies to an attribute. Where two parts genuinely need one name for
 different things, as `.d` is the decimal flag on a 6502 and the direct page
@@ -846,6 +848,20 @@ on trust.
 | `OPEN-QUESTIONS.md` | Every place fidelity is still a claim, and the measurement that would close it |
 | `conformance/speed.py` | A throughput floor, so the model cannot get several times slower without a failure |
 | `conformance/readme.test.py` | Every worked example in the README, run, with its output compared to what the README claims |
+| `conformance/family_member.py` | What this member answers to the family tests: its kind, its package, its interface, its interrupt lines, its tool modules and the machines it must not name |
+| `conformance/family_shared.py` | What more than one family test reads: the record's path and a scratch folder holding one file |
+| `conformance/family_interface.test.py` | The constructor, the calls and the counters a caller drives, and the store it hands back |
+| `conformance/family_published.test.py` | The names the package publishes, the catalogue of models, and each model built in the readme |
+| `conformance/family_package.test.py` | One errors module, one definition per name, names rather than modules published, and slots |
+| `conformance/family_imports.test.py` | Every module reached, and nothing imported from outside the standard library |
+| `conformance/family_record.test.py` | The record's documents, its authority ladder and its divergences |
+| `conformance/family_printed_facts.test.py` | Every quote checkable, and every printed fact held by a named test or marked unreachable |
+| `conformance/family_end_to_end.test.py` | Every test driving the package through what it exports |
+| `conformance/family_tools.test.py` | The advertised test count, tools run as modules, the throughput floor, and the release stamps |
+| `conformance/family_documents.test.py` | Links that resolve, the files this table names, and the agents file |
+| `conformance/family_carried.test.py` | Nothing carried that is somebody else's, and no machine named that this part outlived |
+| `conformance/family_writing.test.py` | The readme's sections, no comment or docstring, tests named as sentences, and strict checkers |
+| `conformance/family_translations.test.py` | The four readmes, kept in step with the English |
 | `CITATION.cff` | How to cite the work, stamped with the released version by the same script that stamps the package |
 | `SECURITY.md` | Where to report a security problem, and what counts as one here |
 | `.github/ISSUE_TEMPLATE/bug_report.yml` | What a report has to carry to be actionable, with the doctor's output first |
