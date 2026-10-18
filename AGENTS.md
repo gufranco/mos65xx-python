@@ -24,7 +24,9 @@ Three ways to run it, sharing one place where a cycle is spent:
   because a halted part still costs its host every cycle.
 - `Clock(cpu).tick()` advances exactly one cycle and stops, on a thread, because
   Python cannot suspend a call stack. Fifty times slower and the only way to
-  change what a read answers mid-instruction.
+  change what a read answers mid-instruction. Only the clock's own thread stops:
+  `irq()` or `nmi()` called while it is paused acts at once, as between two
+  steps, and its cycles count in `cycles` without being ticks.
 
 Three inputs are lines rather than events, each read where the data sheets say
 the part reads them: `irq_line` as a level tested at instruction completion,

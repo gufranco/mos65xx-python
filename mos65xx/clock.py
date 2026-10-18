@@ -47,6 +47,8 @@ class Clock:
         self._arrived.release()
 
     def _reached_a_cycle(self) -> None:
+        if threading.current_thread() is not self._worker:
+            return
         self._arrived.release()
         self._resume.acquire()
         if self.closed:

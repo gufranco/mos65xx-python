@@ -41,7 +41,10 @@ def within(call: Callable[[], Any]) -> tuple[str, Any]:
     outcome: list[tuple[str, Any]] = []
 
     def attempt() -> None:
-        outcome.append(("returned", call()))
+        try:
+            outcome.append(("returned", call()))
+        except Exception as raised:  # noqa: BLE001
+            outcome.append(("raised", raised))
 
     worker = threading.Thread(target=attempt, daemon=True)
     worker.start()
@@ -144,6 +147,37 @@ def watched_run(model: str) -> list[tuple[int, int]]:
     for _ in range(INSTRUCTIONS):
         cpu.step()
     return memory.seen
+
+
+def interrupted_between_steps() -> tuple[int, tuple[Any, ...]]:
+    cpu = a_program("6502")
+    cpu.step()
+    taken = cpu.irq()
+    spent = cpu.step()
+    return spent, (taken, observed(cpu))
+
+
+def interrupted_between_ticks(afterwards: int) -> tuple[Any, ...]:
+    budget, _ = after_steps("6502", 1)
+    cpu = a_program("6502")
+    clock = mos65xx.Clock(cpu)
+    try:
+        clock.run_for(budget)
+        taken = cpu.irq()
+        clock.run_for(afterwards)
+        return taken, observed(cpu)
+    finally:
+        clock.close()
+
+
+def refused_between_ticks() -> Any:
+    cpu = a_program("6507")
+    clock = mos65xx.Clock(cpu)
+    try:
+        clock.run_for(after_steps("6507", 1)[0])
+        return cpu.nmi()
+    finally:
+        clock.close()
 
 
 class ClockTest(unittest.TestCase):
@@ -299,6 +333,30 @@ class EveryAccessStaysOnItsOwnCycleTest(unittest.TestCase):
         self.assertEqual(
             {model: [paused for paused, _ in pairs] for model, pairs in seen.items()},
             {model: [due for _, due in pairs] for model, pairs in seen.items()},
+        )
+
+
+class AnInterruptOfferedToAPausedClockTest(unittest.TestCase):
+    def test_is_taken_at_once_as_it_is_between_steps(self) -> None:
+        # Arrange
+        afterwards, expected = interrupted_between_steps()
+
+        # Act
+        found = within(lambda: interrupted_between_ticks(afterwards))
+
+        # Assert
+        self.assertEqual(found, ("returned", expected))
+
+    def test_and_a_line_the_package_lacks_is_refused_at_once(self) -> None:
+        # Arrange
+        expected = "the 6507 has no nmi pin; it brings out rdy"
+
+        # Act
+        kind, raised = within(refused_between_ticks)
+
+        # Assert
+        self.assertEqual(
+            (kind, type(raised).__name__, str(raised)), ("raised", "NoSuchPin", expected)
         )
 
 
