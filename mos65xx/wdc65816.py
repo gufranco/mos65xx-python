@@ -1142,6 +1142,15 @@ class Cpu:
         self.waiting = False
         if kind == "irq" and self.irq_disable:
             return False
+        self._inside = True
+        try:
+            self.enter(kind)
+        finally:
+            self._inside = False
+        self.close_cycle()
+        return True
+
+    def enter(self, kind: str) -> None:
         vector = (EMULATION_VECTORS if self.emulation else NATIVE_VECTORS)[kind]
         if not self.emulation:
             self.push8(self.pb)
@@ -1151,8 +1160,6 @@ class Cpu:
         self.decimal = False
         self.clear_banks_for_interrupt()
         self.pc = self.vector16(vector)
-        self.close_cycle()
-        return True
 
     def await_ready(self, write: bool = False) -> None:
         while not self.ready_line:

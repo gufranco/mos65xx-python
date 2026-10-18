@@ -206,6 +206,33 @@ def inside_an_instruction(line: str) -> dict[str, tuple[str, Any]]:
     return {model: within(functools.partial(offered, model)) for model in INTERRUPTING}
 
 
+LAST_TWO_CYCLES = 2
+
+
+def entered_through_the_line(model: str) -> tuple[int, tuple[Any, ...]]:
+    cpu = a_program(model)
+    cpu.irq_line = True
+    spent = cpu.step()
+    return spent, observed(cpu)
+
+
+def inside_an_entry_the_line_began() -> dict[str, tuple[str, Any]]:
+    def offered(model: str) -> Any:
+        spent, _ = entered_through_the_line(model)
+        cpu = a_program(model)
+        cpu.irq_line = True
+        clock = mos65xx.Clock(cpu)
+        try:
+            clock.run_for(spent - LAST_TWO_CYCLES)
+            outcome = attempted(cpu.irq)
+            clock.run_for(LAST_TWO_CYCLES)
+            return outcome, observed(cpu)
+        finally:
+            clock.close()
+
+    return {model: within(functools.partial(offered, model)) for model in INTERRUPTING}
+
+
 def refused_between_ticks() -> Any:
     cpu = a_program("6507")
     clock = mos65xx.Clock(cpu)
@@ -419,6 +446,19 @@ class AnInterruptOfferedToAPausedClockTest(unittest.TestCase):
 
         # Act
         found = inside_an_instruction("nmi")
+
+        # Assert
+        self.assertEqual(found, expected)
+
+    def test_an_irq_inside_an_entry_the_line_began_is_refused_and_leaves_no_trace(self) -> None:
+        # Arrange
+        expected = {
+            model: ("returned", (("refused", refusal("irq")), entered_through_the_line(model)[1]))
+            for model in INTERRUPTING
+        }
+
+        # Act
+        found = inside_an_entry_the_line_began()
 
         # Assert
         self.assertEqual(found, expected)

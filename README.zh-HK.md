@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16** 款晶片，比對了 **17,900,000** 個狀態案例及 **17,870,080** 個週期精確案例，**0** 個未獲解釋的失敗，**1,463** 個測試，**100%** 語句及分支覆蓋率，無任何依賴
+**16** 款晶片，比對了 **17,900,000** 個狀態案例及 **17,870,080** 個週期精確案例，**0** 個未獲解釋的失敗，**1,464** 個測試，**100%** 語句及分支覆蓋率，無任何依賴
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -146,7 +146,7 @@ print(cpu.step(), hex(cpu.pc))
 |:--|:--|
 | `UnknownModelError` | `Cpu()` 沒有取得名稱，或取得的名稱不屬於任何型號或別名 |
 | `NoSuchPin` | 對封裝沒有引出該線的 8 位元晶片呼叫 `irq()` 或 `nmi()` |
-| `InsideInstruction` | 在 `Clock` 暫停於一條指令中途時從外部呼叫 `irq()` 或 `nmi()`。應 tick 到指令邊界，或設定 `irq_line` 或 `nmi_line` |
+| `InsideInstruction` | 在 `Clock` 暫停於一條指令或中斷進入過程的中途時從外部呼叫 `irq()` 或 `nmi()`。應 tick 到指令邊界，或設定 `irq_line` 或 `nmi_line` |
 | `RunLimit` | `run_until()` 或 `call()` 達到其 `limit` |
 | `Stopped` | 對已執行 `STP` 或已卡死的晶片呼叫 `step()` |
 | `Waiting` | 對已執行 `WAI` 的晶片呼叫 `step()`。它是 `Stopped` 的子類別。`irq()` 及 `nmi()` 會將其釋放 |
@@ -303,7 +303,7 @@ print([(hex(address), hex(value)) for address, value, _ in cpu.trace])
 | `close()` | 停止工作執行緒，並還原晶片的 `on_cycle` |
 | `cycles`, `closed`, `cpu` | 至今的 tick 次數、是否已關閉、所驅動的晶片 |
 
-`Clock` 是一個上下文管理器，也是一個每次產生一個 tick 的迭代器。停機的晶片會經由 `held_cycle()` 繼續 tick。Python 無法暫停呼叫堆疊，因此時鐘在工作執行緒上執行晶片，並在每個週期經由兩個號誌交接控制權。追求吞吐量時用 `step()`，要知道某件事發生在哪個週期時用 `Clock`。停在一條指令最後一個週期上的時鐘，無論之後是否關閉，都令晶片處於與 `step()` 相同的狀態。在時鐘暫停於指令邊界時呼叫的 `irq()` 或 `nmi()` 會像在兩次 `step()` 之間一樣立即生效，其週期計入 `cpu.cycles`，但不計為 tick。暫停於指令中途時不存在這樣的位置，因此呼叫會拋出 `InsideInstruction` 且不改變任何狀態：應 tick 到邊界，或設定晶片在指令完成時取樣的 `irq_line` 或 `nmi_line`。
+`Clock` 是一個上下文管理器，也是一個每次產生一個 tick 的迭代器。停機的晶片會經由 `held_cycle()` 繼續 tick。Python 無法暫停呼叫堆疊，因此時鐘在工作執行緒上執行晶片，並在每個週期經由兩個號誌交接控制權。追求吞吐量時用 `step()`，要知道某件事發生在哪個週期時用 `Clock`。停在一條指令最後一個週期上的時鐘，無論之後是否關閉，都令晶片處於與 `step()` 相同的狀態。在時鐘暫停於指令邊界時呼叫的 `irq()` 或 `nmi()` 會像在兩次 `step()` 之間一樣立即生效，其週期計入 `cpu.cycles`，但不計為 tick。暫停於指令或中斷進入過程的中途時不存在這樣的位置，因此呼叫會拋出 `InsideInstruction` 且不改變任何狀態：應 tick 到邊界，或設定晶片在指令完成時取樣的 `irq_line` 或 `nmi_line`。
 
 <a id="models"></a>
 

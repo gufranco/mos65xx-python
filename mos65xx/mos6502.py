@@ -655,14 +655,20 @@ class Cpu:
         self.refuse_inside("irq")
         if self.i:
             return False
-        self.interrupt(IRQ_VECTOR)
-        self.close_cycle()
+        self.enter(IRQ_VECTOR)
         return True
 
     def nmi(self) -> None:
         self.require("nmi")
         self.refuse_inside("nmi")
-        self.interrupt(NMI_VECTOR)
+        self.enter(NMI_VECTOR)
+
+    def enter(self, vector: int) -> None:
+        self._inside = True
+        try:
+            self.interrupt(vector)
+        finally:
+            self._inside = False
         self.close_cycle()
 
     def op_bpl(self, mode: str) -> None:
