@@ -149,25 +149,61 @@ def watched_run(model: str) -> list[tuple[int, int]]:
     return memory.seen
 
 
-def interrupted_between_steps() -> tuple[int, tuple[Any, ...]]:
-    cpu = a_program("6502")
+INTERRUPTING = ("6502", "65c02", "65816")
+
+LINES = ("irq", "nmi")
+
+
+def refusal(line: str) -> str:
+    return (
+        f"{line}() was called inside an instruction; tick the clock to the instruction "
+        f"boundary, or set {line}_line, which the part samples when the instruction completes"
+    )
+
+
+def attempted(call: Callable[[], Any]) -> tuple[str, str]:
+    try:
+        call()
+    except mos65xx.InsideInstruction as refused:
+        return "refused", str(refused)
+    return "taken", ""
+
+
+def offered_between_steps(model: str, line: str) -> tuple[int, tuple[Any, ...]]:
+    cpu = a_program(model)
     cpu.step()
-    taken = cpu.irq()
+    outcome = attempted(getattr(cpu, line))
     spent = cpu.step()
-    return spent, (taken, observed(cpu))
+    return spent, (outcome, observed(cpu))
 
 
-def interrupted_between_ticks(afterwards: int) -> tuple[Any, ...]:
-    budget, _ = after_steps("6502", 1)
-    cpu = a_program("6502")
+def offered_to_a_paused_clock(model: str, line: str, ticks: int, afterwards: int) -> Any:
+    cpu = a_program(model)
     clock = mos65xx.Clock(cpu)
     try:
-        clock.run_for(budget)
-        taken = cpu.irq()
+        clock.run_for(ticks)
+        outcome = attempted(getattr(cpu, line))
         clock.run_for(afterwards)
-        return taken, observed(cpu)
+        return outcome, observed(cpu)
     finally:
         clock.close()
+
+
+def at_a_boundary(line: str) -> dict[str, tuple[str, Any]]:
+    def offered(model: str) -> Any:
+        afterwards, _ = offered_between_steps(model, line)
+        return offered_to_a_paused_clock(model, line, after_steps(model, 1)[0], afterwards)
+
+    return {model: within(functools.partial(offered, model)) for model in INTERRUPTING}
+
+
+def inside_an_instruction(line: str) -> dict[str, tuple[str, Any]]:
+    def offered(model: str) -> Any:
+        first = after_steps(model, 1)[0]
+        rest = after_steps(model, 2)[0] - first - 1
+        return offered_to_a_paused_clock(model, line, first + 1, rest)
+
+    return {model: within(functools.partial(offered, model)) for model in INTERRUPTING}
 
 
 def refused_between_ticks() -> Any:
@@ -337,15 +373,55 @@ class EveryAccessStaysOnItsOwnCycleTest(unittest.TestCase):
 
 
 class AnInterruptOfferedToAPausedClockTest(unittest.TestCase):
-    def test_is_taken_at_once_as_it_is_between_steps(self) -> None:
+    def test_an_irq_at_an_instruction_boundary_is_taken_as_between_steps(self) -> None:
         # Arrange
-        afterwards, expected = interrupted_between_steps()
+        expected = {
+            model: ("returned", offered_between_steps(model, "irq")[1]) for model in INTERRUPTING
+        }
 
         # Act
-        found = within(lambda: interrupted_between_ticks(afterwards))
+        found = at_a_boundary("irq")
 
         # Assert
-        self.assertEqual(found, ("returned", expected))
+        self.assertEqual(found, expected)
+
+    def test_an_irq_inside_an_instruction_is_refused_and_leaves_no_trace(self) -> None:
+        # Arrange
+        expected = {
+            model: ("returned", (("refused", refusal("irq")), after_steps(model, 2)[1]))
+            for model in INTERRUPTING
+        }
+
+        # Act
+        found = inside_an_instruction("irq")
+
+        # Assert
+        self.assertEqual(found, expected)
+
+    def test_an_nmi_at_an_instruction_boundary_is_taken_as_between_steps(self) -> None:
+        # Arrange
+        expected = {
+            model: ("returned", offered_between_steps(model, "nmi")[1]) for model in INTERRUPTING
+        }
+
+        # Act
+        found = at_a_boundary("nmi")
+
+        # Assert
+        self.assertEqual(found, expected)
+
+    def test_an_nmi_inside_an_instruction_is_refused_and_leaves_no_trace(self) -> None:
+        # Arrange
+        expected = {
+            model: ("returned", (("refused", refusal("nmi")), after_steps(model, 2)[1]))
+            for model in INTERRUPTING
+        }
+
+        # Act
+        found = inside_an_instruction("nmi")
+
+        # Assert
+        self.assertEqual(found, expected)
 
     def test_and_a_line_the_package_lacks_is_refused_at_once(self) -> None:
         # Arrange

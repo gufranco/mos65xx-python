@@ -4,7 +4,7 @@ from collections.abc import Callable
 from typing import Any
 
 from . import opcodes65816 as wdc65816
-from .errors import RunLimit, Stopped, UnsupportedError, Waiting
+from .errors import InsideInstruction, RunLimit, Stopped, UnsupportedError, Waiting
 from .memory import ADDRESS_MASK, UNSET_SEED, Memory, SparseMemory, scramble
 
 OPCODES = wdc65816.OPCODES
@@ -73,6 +73,7 @@ VECTOR_CYCLES = 2
 class Cpu:
     __slots__ = (
         "_emulation",
+        "_inside",
         "_open",
         "_s",
         "a",
@@ -132,6 +133,7 @@ class Cpu:
 
         self.on_cycle: Callable[[], None] | None = None
         self._open = False
+        self._inside = False
 
         self.trace: list[tuple[int | None, int | None, str]] | None = None
         self.locked = False
@@ -624,11 +626,15 @@ class Cpu:
         if self.waiting:
             raise Waiting("the processor is waiting for an interrupt")
         self.steps += 1
-        opcode = self.opcode8()
-        mnemonic, mode = OPCODES[opcode]
-        if not wdc65816.MODE_SIZE[mode]:
-            self.internal(self.at_pc())
-        getattr(self, f"op_{mnemonic}")(mode)
+        self._inside = True
+        try:
+            opcode = self.opcode8()
+            mnemonic, mode = OPCODES[opcode]
+            if not wdc65816.MODE_SIZE[mode]:
+                self.internal(self.at_pc())
+            getattr(self, f"op_{mnemonic}")(mode)
+        finally:
+            self._inside = False
         self.close_cycle()
         self.sample_pins()
         self.close_cycle()
@@ -1164,9 +1170,13 @@ class Cpu:
         return False
 
     def irq(self) -> bool:
+        if self._inside:
+            raise InsideInstruction("irq")
         return self.interrupt("irq")
 
     def nmi(self) -> bool:
+        if self._inside:
+            raise InsideInstruction("nmi")
         return self.interrupt("nmi")
 
     def abort(self) -> bool:

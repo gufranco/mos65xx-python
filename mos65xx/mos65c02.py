@@ -135,11 +135,13 @@ class Cpu(Nmos):
 
     @override
     def irq(self) -> bool:
+        self.refuse_inside("irq")
         self.waiting = False
         return super().irq()
 
     @override
     def nmi(self) -> None:
+        self.refuse_inside("nmi")
         self.waiting = False
         super().nmi()
 

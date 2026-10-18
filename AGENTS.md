@@ -25,8 +25,10 @@ Three ways to run it, sharing one place where a cycle is spent:
 - `Clock(cpu).tick()` advances exactly one cycle and stops, on a thread, because
   Python cannot suspend a call stack. Fifty times slower and the only way to
   change what a read answers mid-instruction. Only the clock's own thread stops:
-  `irq()` or `nmi()` called while it is paused acts at once, as between two
-  steps, and its cycles count in `cycles` without being ticks.
+  `irq()` or `nmi()` called while it is paused at an instruction boundary acts
+  at once, as between two steps, and its cycles count in `cycles` without being
+  ticks. Paused inside an instruction there is no such place, so the call raises
+  `InsideInstruction` and changes nothing.
 
 Three inputs are lines rather than events, each read where the data sheets say
 the part reads them: `irq_line` as a level tested at instruction completion,

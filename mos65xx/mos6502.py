@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from .errors import NoSuchPin, RunLimit, Stopped, UnsupportedError
+from .errors import InsideInstruction, NoSuchPin, RunLimit, Stopped, UnsupportedError
 from .memory import UNSET_SEED, scramble
 from .opcodes6502 import MODE_SIZE, NMOS
 
@@ -40,6 +40,7 @@ MODIFY = "modify"
 
 class Cpu:
     __slots__ = (
+        "_inside",
         "_open",
         "a",
         "address_mask",
@@ -105,6 +106,8 @@ class Cpu:
         self.on_cycle: Callable[[], None] | None = None
 
         self._open = False
+
+        self._inside = False
 
         self.trace: list[tuple[int, int, str]] | None = None
 
@@ -346,14 +349,18 @@ class Cpu:
         if self.stopped:
             raise Stopped("the processor has been stopped")
         self.steps += 1
-        opcode = self.fetch8()
-        mnemonic, mode = self.table[opcode]
-        if self.idles_after_opcode(opcode, mnemonic, mode):
-            self.dead(self.pc)
-        handler = getattr(self, f"op_{mnemonic}", None)
-        if handler is None:
-            raise UnsupportedError(f"{mnemonic} is not implemented")
-        handler(mode)
+        self._inside = True
+        try:
+            opcode = self.fetch8()
+            mnemonic, mode = self.table[opcode]
+            if self.idles_after_opcode(opcode, mnemonic, mode):
+                self.dead(self.pc)
+            handler = getattr(self, f"op_{mnemonic}", None)
+            if handler is None:
+                raise UnsupportedError(f"{mnemonic} is not implemented")
+            handler(mode)
+        finally:
+            self._inside = False
         self.close_cycle()
         self.sample_pins()
         self.close_cycle()
@@ -639,8 +646,13 @@ class Cpu:
             return self.irq()
         return False
 
+    def refuse_inside(self, line: str) -> None:
+        if self._inside:
+            raise InsideInstruction(line)
+
     def irq(self) -> bool:
         self.require("irq")
+        self.refuse_inside("irq")
         if self.i:
             return False
         self.interrupt(IRQ_VECTOR)
@@ -649,6 +661,7 @@ class Cpu:
 
     def nmi(self) -> None:
         self.require("nmi")
+        self.refuse_inside("nmi")
         self.interrupt(NMI_VECTOR)
         self.close_cycle()
 

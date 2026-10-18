@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16** 款芯片，比对了 **17,900,000** 个状态用例和 **17,870,080** 个周期精确用例，**0** 个无法解释的失败，**1,460** 个测试，**100%** 语句和分支覆盖率，无依赖
+**16** 款芯片，比对了 **17,900,000** 个状态用例和 **17,870,080** 个周期精确用例，**0** 个无法解释的失败，**1,463** 个测试，**100%** 语句和分支覆盖率，无依赖
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -146,6 +146,7 @@ print(cpu.step(), hex(cpu.pc))
 |:--|:--|
 | `UnknownModelError` | `Cpu()` 没有得到名称，或得到的名称不属于任何型号或别名 |
 | `NoSuchPin` | 在封装未引出该线的 8 位芯片上调用 `irq()` 或 `nmi()` |
+| `InsideInstruction` | 在 `Clock` 暂停于一条指令中途时从外部调用 `irq()` 或 `nmi()`。应 tick 到指令边界，或设置 `irq_line` 或 `nmi_line` |
 | `RunLimit` | `run_until()` 或 `call()` 达到其 `limit` |
 | `Stopped` | 在执行了 `STP` 或已卡死的芯片上调用 `step()` |
 | `Waiting` | 在执行了 `WAI` 的芯片上调用 `step()`。它是 `Stopped` 的子类。`irq()` 和 `nmi()` 会将其释放 |
@@ -302,7 +303,7 @@ print([(hex(address), hex(value)) for address, value, _ in cpu.trace])
 | `close()` | 停止工作线程并恢复芯片的 `on_cycle` |
 | `cycles`、`closed`、`cpu` | 到目前为止的 tick 数、是否已关闭、它驱动的芯片 |
 
-`Clock` 是一个上下文管理器，也是一个每次产生一个 tick 的迭代器。停机的芯片通过 `held_cycle()` 继续 tick。Python 无法挂起调用栈，因此时钟在工作线程上运行芯片，并在每个周期通过两个信号量交接控制权。追求吞吐量时用 `step()`，关心某件事发生在哪个周期时用 `Clock`。停在一条指令最后一个周期上的时钟，无论之后是否关闭，都使芯片处于与 `step()` 相同的状态。在时钟暂停时调用的 `irq()` 或 `nmi()` 会像在两次 `step()` 之间一样立即生效，其周期计入 `cpu.cycles`，但不计为 tick。
+`Clock` 是一个上下文管理器，也是一个每次产生一个 tick 的迭代器。停机的芯片通过 `held_cycle()` 继续 tick。Python 无法挂起调用栈，因此时钟在工作线程上运行芯片，并在每个周期通过两个信号量交接控制权。追求吞吐量时用 `step()`，关心某件事发生在哪个周期时用 `Clock`。停在一条指令最后一个周期上的时钟，无论之后是否关闭，都使芯片处于与 `step()` 相同的状态。在时钟暂停于指令边界时调用的 `irq()` 或 `nmi()` 会像在两次 `step()` 之间一样立即生效，其周期计入 `cpu.cycles`，但不计为 tick。暂停于指令中途时不存在这样的位置，因此调用会抛出 `InsideInstruction` 且不改变任何状态：应 tick 到边界，或设置芯片在指令完成时采样的 `irq_line` 或 `nmi_line`。
 
 <a id="models"></a>
 

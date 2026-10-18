@@ -10,6 +10,7 @@ from . import opcodes6502 as opcodes6502
 from .clock import Clock
 from .errors import (
     ClockClosed,
+    InsideInstruction,
     NoSuchPin,
     RunLimit,
     Stopped,
@@ -84,6 +85,7 @@ __all__ = [
     "ClockClosed",
     "Cpu",
     "Cpu65816",
+    "InsideInstruction",
     "Memory",
     "Model",
     "NoSuchPin",
