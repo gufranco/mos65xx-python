@@ -203,6 +203,8 @@ python3 -m conformance.singlestep
 | Undefined state | Nothing starts cleared. Registers, flags and memory come up scrambled from the seed. `Cpu(model, fill=N)` is the family's one way to ask for a store holding one byte everywhere, for a run that must get through a few dozen instructions; it never clears registers or flags |
 | Fidelity | Where the part and convenience disagree, the part wins. A behaviour that exists only to make a test easier is a defect |
 | Public API | The two cores in this family present the same surface. `Cpu(name)`, `step()`, `reset()`, `irq()`, `nmi()`, `decode(data)`, `disassemble(data)`. A difference needs a hardware reason |
+| [`mos65xx/mos6502.py`](mos65xx/mos6502.py) length | Past 500 lines under the exemption for a single calculation engine sharing intermediate state: one `Cpu` whose opcode handlers share the registers, flags, pin lines and cycle state, and whose hooks the 65C02 overrides one by one |
+| [`mos65xx/wdc65816.py`](mos65xx/wdc65816.py) length | Past 500 lines under the same exemption: one `Cpu` whose opcode handlers share the register file, the width and emulation flags, the stack and the cycle state |
 
 The linter's ignores in [`pyproject.toml`](pyproject.toml) carry no comments, so
 their reasons live here:
