@@ -28,7 +28,11 @@ Three ways to run it, sharing one place where a cycle is spent:
   `irq()` or `nmi()` called while it is paused at an instruction boundary acts
   at once, as between two steps, and its cycles count in `cycles` without being
   ticks. Paused inside an instruction, or inside an interrupt entry, there is no
-  such place, so the call raises `InsideInstruction` and changes nothing.
+  such place, so the call raises `InsideInstruction` and changes nothing. A
+  boundary whose lines will start an entry, an `nmi_line` edge not yet taken or
+  an `irq_line` held with interrupts enabled, is not one either: the step is not
+  finished, and the error names the pending line. `sampled_line()` decides this
+  for `sample_pins()` and the refusal alike.
 
 Three inputs are lines rather than events, each read where the data sheets say
 the part reads them: `irq_line` as a level tested at instruction completion,

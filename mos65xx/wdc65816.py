@@ -76,6 +76,7 @@ class Cpu:
         "_inside",
         "_open",
         "_s",
+        "_unsampled",
         "a",
         "address_mask",
         "c",
@@ -134,6 +135,7 @@ class Cpu:
         self.on_cycle: Callable[[], None] | None = None
         self._open = False
         self._inside = False
+        self._unsampled = False
 
         self.trace: list[tuple[int | None, int | None, str]] | None = None
         self.locked = False
@@ -635,7 +637,11 @@ class Cpu:
             getattr(self, f"op_{mnemonic}")(mode)
         finally:
             self._inside = False
-        self.close_cycle()
+        self._unsampled = True
+        try:
+            self.close_cycle()
+        finally:
+            self._unsampled = False
         self.sample_pins()
         self.close_cycle()
         return self.cycles - started
@@ -1140,7 +1146,7 @@ class Cpu:
         if self.stopped:
             return False
         self.waiting = False
-        if kind == "irq" and self.irq_disable:
+        if self.masked(kind):
             return False
         self._inside = True
         try:
@@ -1166,24 +1172,45 @@ class Cpu:
             self.spend()
             self.close_cycle()
 
+    def sampled_line(self) -> str | None:
+        if self.nmi_line and not self.nmi_seen:
+            return "nmi"
+        if self.irq_line:
+            return "irq"
+        return None
+
     def sample_pins(self) -> bool:
-        edge = self.nmi_line and not self.nmi_seen
+        line = self.sampled_line()
         self.nmi_seen = self.nmi_line
-        if edge:
+        if line == "nmi":
             self.nmi()
             return True
-        if self.irq_line:
+        if line == "irq":
             return self.irq()
         return False
 
-    def irq(self) -> bool:
+    def masked(self, kind: str) -> bool:
+        return kind == "irq" and self.irq_disable
+
+    def entry_pending(self) -> str | None:
+        line = self.sampled_line() if self._unsampled else None
+        if line is None or self.stopped or self.masked(line):
+            return None
+        return line
+
+    def refuse_inside(self, line: str) -> None:
         if self._inside:
-            raise InsideInstruction("irq")
+            raise InsideInstruction(line)
+        pending = self.entry_pending()
+        if pending is not None:
+            raise InsideInstruction(line, pending)
+
+    def irq(self) -> bool:
+        self.refuse_inside("irq")
         return self.interrupt("irq")
 
     def nmi(self) -> bool:
-        if self._inside:
-            raise InsideInstruction("nmi")
+        self.refuse_inside("nmi")
         return self.interrupt("nmi")
 
     def abort(self) -> bool:

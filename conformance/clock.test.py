@@ -233,6 +233,77 @@ def inside_an_entry_the_line_began() -> dict[str, tuple[str, Any]]:
     return {model: within(functools.partial(offered, model)) for model in INTERRUPTING}
 
 
+def refusal_while_pending(line: str, pending: str) -> str:
+    return (
+        f"{line}() was called while an entry through {pending}_line is pending; tick the clock "
+        f"through that entry, or set {line}_line, which the part samples when the instruction "
+        "completes"
+    )
+
+
+def holding(model: str, pending: str) -> Any:
+    cpu = a_program(model)
+    setattr(cpu, f"{pending}_line", True)
+    return cpu
+
+
+def entered_after_the_first_instruction(model: str, pending: str) -> tuple[int, tuple[Any, ...]]:
+    cpu = holding(model, pending)
+    before = cpu.cycles
+    cpu.step()
+    return cpu.cycles - before, observed(cpu)
+
+
+def pending_at_a_boundary(offered: str, pending: str) -> dict[str, tuple[str, Any]]:
+    def offer(model: str) -> Any:
+        boundary = after_steps(model, 1)[0]
+        spent, _ = entered_after_the_first_instruction(model, pending)
+        cpu = holding(model, pending)
+        clock = mos65xx.Clock(cpu)
+        try:
+            clock.run_for(boundary)
+            outcome = attempted(getattr(cpu, offered))
+            clock.run_for(spent - boundary)
+            return outcome, observed(cpu)
+        finally:
+            clock.close()
+
+    return {model: within(functools.partial(offer, model)) for model in INTERRUPTING}
+
+
+INTERRUPTS_DISABLED = 0x04
+
+
+def held_but_masked(model: str) -> Any:
+    cpu = holding(model, "irq")
+    cpu.set_status(INTERRUPTS_DISABLED)
+    return cpu
+
+
+def masked_between_steps(model: str) -> tuple[int, tuple[Any, ...]]:
+    cpu = held_but_masked(model)
+    cpu.step()
+    outcome = attempted(cpu.nmi)
+    spent = cpu.step()
+    return spent, (outcome, observed(cpu))
+
+
+def masked_at_a_boundary() -> dict[str, tuple[str, Any]]:
+    def offer(model: str) -> Any:
+        afterwards, _ = masked_between_steps(model)
+        cpu = held_but_masked(model)
+        clock = mos65xx.Clock(cpu)
+        try:
+            clock.run_for(after_steps(model, 1)[0])
+            outcome = attempted(cpu.nmi)
+            clock.run_for(afterwards)
+            return outcome, observed(cpu)
+        finally:
+            clock.close()
+
+    return {model: within(functools.partial(offer, model)) for model in INTERRUPTING}
+
+
 def refused_between_ticks() -> Any:
     cpu = a_program("6507")
     clock = mos65xx.Clock(cpu)
@@ -459,6 +530,56 @@ class AnInterruptOfferedToAPausedClockTest(unittest.TestCase):
 
         # Act
         found = inside_an_entry_the_line_began()
+
+        # Assert
+        self.assertEqual(found, expected)
+
+    def test_a_pending_nmi_edge_at_a_boundary_refuses_irq_and_leaves_no_trace(self) -> None:
+        # Arrange
+        expected = {
+            model: (
+                "returned",
+                (
+                    ("refused", refusal_while_pending("irq", "nmi")),
+                    entered_after_the_first_instruction(model, "nmi")[1],
+                ),
+            )
+            for model in INTERRUPTING
+        }
+
+        # Act
+        found = pending_at_a_boundary("irq", "nmi")
+
+        # Assert
+        self.assertEqual(found, expected)
+
+    def test_an_irq_line_held_with_interrupts_enabled_at_a_boundary_refuses_nmi_and_leaves_no_trace(
+        self,
+    ) -> None:
+        # Arrange
+        expected = {
+            model: (
+                "returned",
+                (
+                    ("refused", refusal_while_pending("nmi", "irq")),
+                    entered_after_the_first_instruction(model, "irq")[1],
+                ),
+            )
+            for model in INTERRUPTING
+        }
+
+        # Act
+        found = pending_at_a_boundary("nmi", "irq")
+
+        # Assert
+        self.assertEqual(found, expected)
+
+    def test_an_irq_line_held_while_masked_leaves_nmi_taken_as_between_steps(self) -> None:
+        # Arrange
+        expected = {model: ("returned", masked_between_steps(model)[1]) for model in INTERRUPTING}
+
+        # Act
+        found = masked_at_a_boundary()
 
         # Assert
         self.assertEqual(found, expected)

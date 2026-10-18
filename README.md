@@ -8,7 +8,7 @@ English | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md) | [繁�
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16** parts, **17,900,000** state cases and **17,870,080** cycle-exact cases compared, **0** unexplained failures, **1,464** tests, **100%** statement and branch coverage, no dependencies
+**16** parts, **17,900,000** state cases and **17,870,080** cycle-exact cases compared, **0** unexplained failures, **1,467** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -146,7 +146,7 @@ print(cpu.step(), hex(cpu.pc))
 |:--|:--|
 | `UnknownModelError` | `Cpu()` gets no name, or a name no model or alias goes by |
 | `NoSuchPin` | `irq()` or `nmi()` on an 8-bit part whose package does not bring that line out |
-| `InsideInstruction` | `irq()` or `nmi()` from outside a `Clock` paused inside an instruction or an interrupt entry. Tick to the instruction boundary, or set `irq_line` or `nmi_line` |
+| `InsideInstruction` | `irq()` or `nmi()` from outside a `Clock` paused inside an instruction or an interrupt entry, or at a boundary where a line's entry is pending. Tick to the instruction boundary, or set `irq_line` or `nmi_line` |
 | `RunLimit` | `run_until()` or `call()` reaches its `limit` |
 | `Stopped` | `step()` on a part that executed `STP` or jammed |
 | `Waiting` | `step()` on a part that executed `WAI`. A subclass of `Stopped`. `irq()` and `nmi()` release it |
@@ -301,7 +301,7 @@ print([(hex(address), hex(value)) for address, value, _ in cpu.trace])
 | `close()` | Stops the worker thread and restores the part's `on_cycle` |
 | `cycles`, `closed`, `cpu` | Ticks so far, whether it is closed, the part it drives |
 
-A `Clock` is a context manager and an iterator that yields one tick at a time. A halted part keeps ticking through `held_cycle()`. Python cannot suspend a call stack, so the clock runs the part on a worker thread and hands control across two semaphores every cycle. Use `step()` for throughput and `Clock` when the question is which cycle something happens in. A clock stopped on an instruction's last cycle leaves the part as `step()` does, whether it is then closed or not. `irq()` or `nmi()` called while a clock is paused at an instruction boundary acts at once, as it does between two steps, and its cycles count in `cpu.cycles` without being ticks. Paused inside an instruction, or inside an interrupt entry, there is no such place, so the call raises `InsideInstruction` and changes nothing: tick to the boundary, or set `irq_line` or `nmi_line`, which the part samples when the instruction completes.
+A `Clock` is a context manager and an iterator that yields one tick at a time. A halted part keeps ticking through `held_cycle()`. Python cannot suspend a call stack, so the clock runs the part on a worker thread and hands control across two semaphores every cycle. Use `step()` for throughput and `Clock` when the question is which cycle something happens in. A clock stopped on an instruction's last cycle leaves the part as `step()` does, whether it is then closed or not. `irq()` or `nmi()` called while a clock is paused at an instruction boundary acts at once, as it does between two steps, and its cycles count in `cpu.cycles` without being ticks. Paused inside an instruction, or inside an interrupt entry, there is no such place, so the call raises `InsideInstruction` and changes nothing: tick to the boundary, or set `irq_line` or `nmi_line`, which the part samples when the instruction completes. The same holds at a boundary whose lines will start an entry, an `nmi_line` edge not yet taken or an `irq_line` held with interrupts enabled: the step is not finished, and the error names the pending line.
 
 ## Models
 

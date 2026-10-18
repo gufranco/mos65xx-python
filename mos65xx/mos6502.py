@@ -42,6 +42,7 @@ class Cpu:
     __slots__ = (
         "_inside",
         "_open",
+        "_unsampled",
         "a",
         "address_mask",
         "b",
@@ -108,6 +109,8 @@ class Cpu:
         self._open = False
 
         self._inside = False
+
+        self._unsampled = False
 
         self.trace: list[tuple[int, int, str]] | None = None
 
@@ -361,7 +364,11 @@ class Cpu:
             handler(mode)
         finally:
             self._inside = False
-        self.close_cycle()
+        self._unsampled = True
+        try:
+            self.close_cycle()
+        finally:
+            self._unsampled = False
         self.sample_pins()
         self.close_cycle()
         return self.cycles - started
@@ -636,24 +643,43 @@ class Cpu:
             self.spend()
             self.close_cycle()
 
+    def sampled_line(self) -> str | None:
+        if self.nmi_line and not self.nmi_seen:
+            return "nmi"
+        if self.irq_line:
+            return "irq"
+        return None
+
     def sample_pins(self) -> bool:
-        edge = self.nmi_line and not self.nmi_seen
+        line = self.sampled_line()
         self.nmi_seen = self.nmi_line
-        if edge:
+        if line == "nmi":
             self.nmi()
             return True
-        if self.irq_line:
+        if line == "irq":
             return self.irq()
         return False
 
     def refuse_inside(self, line: str) -> None:
         if self._inside:
             raise InsideInstruction(line)
+        pending = self.entry_pending()
+        if pending is not None:
+            raise InsideInstruction(line, pending)
+
+    def entry_pending(self) -> str | None:
+        line = self.sampled_line() if self._unsampled else None
+        if line == "irq" and self.irq_masked():
+            return None
+        return line
+
+    def irq_masked(self) -> bool:
+        return self.i
 
     def irq(self) -> bool:
         self.require("irq")
         self.refuse_inside("irq")
-        if self.i:
+        if self.irq_masked():
             return False
         self.enter(IRQ_VECTOR)
         return True
