@@ -8,7 +8,7 @@ English | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md) | [繁�
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16** parts, **17,900,000** state cases and **17,870,080** cycle-exact cases compared, **0** unexplained failures, **1,455** tests, **100%** statement and branch coverage, no dependencies
+**16** parts, **17,900,000** state cases and **17,870,080** cycle-exact cases compared, **0** unexplained failures, **1,458** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -105,7 +105,7 @@ On a part whose package does not bring a line out, `irq()` and `nmi()` raise `No
 | `steps` | Instructions since the last reset |
 | `stopped`, `jammed`, `waiting` | The three halt states. `jammed` is NMOS only, `waiting` is the CMOS parts and the 65816 |
 | `trace` | Set it to a list and every bus cycle is appended as `(address, value, kind)`. `kind` is `read` or `write` on 8-bit parts, and on the 65816 eight pin letters: data, program, vector pull, write, emulation, `m`, `x`, memory lock. A 65816 internal cycle records `None` as its value except the modify cycle in emulation mode, and a halted cycle records `(None, None, "--------")` |
-| `on_cycle` | Called once per cycle, after that cycle's bus activity |
+| `on_cycle` | Called once per cycle, at its end, after that cycle's bus activity and the work that follows it |
 | `model` | The canonical model name |
 | `package_pins` | The interrupt and ready lines the package brings out, such as `("irq", "nmi", "rdy")` |
 | `address_mask` | The address lines the package brings out. A 6507 reads `$F234` at `$1234` |
@@ -300,7 +300,7 @@ print([(hex(address), hex(value)) for address, value, _ in cpu.trace])
 | `close()` | Stops the worker thread and restores the part's `on_cycle` |
 | `cycles`, `closed`, `cpu` | Ticks so far, whether it is closed, the part it drives |
 
-A `Clock` is a context manager and an iterator that yields one tick at a time. A halted part keeps ticking through `held_cycle()`. Python cannot suspend a call stack, so the clock runs the part on a worker thread and hands control across two semaphores every cycle. Use `step()` for throughput and `Clock` when the question is which cycle something happens in.
+A `Clock` is a context manager and an iterator that yields one tick at a time. A halted part keeps ticking through `held_cycle()`. Python cannot suspend a call stack, so the clock runs the part on a worker thread and hands control across two semaphores every cycle. Use `step()` for throughput and `Clock` when the question is which cycle something happens in. A clock stopped on an instruction's last cycle leaves the part as `step()` does, whether it is then closed or not.
 
 ## Models
 

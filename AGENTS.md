@@ -30,11 +30,17 @@ Three inputs are lines rather than events, each read where the data sheets say
 the part reads them: `irq_line` as a level tested at instruction completion,
 `nmi_line` on its transition, `ready_line` before every cycle, with the NMOS
 carve-out for a write already on its way out. `on_cycle` is called once per
-cycle, after that cycle's activity.
+cycle, at its end, after that cycle's activity and the work that follows it.
 
-Every cycle passes through `spend()` and nowhere else. A counter kept in one
-method and a hook called from another drift the first time somebody adds a cycle
-to only one of them, and nothing catches it. Keep it that way.
+Every cycle passes through `spend()` and nowhere else. `spend()` opens a cycle,
+and `close_cycle()` is the only thing that closes one: it advances the cycle
+count and calls `on_cycle`. It runs just before the next access, before the
+interrupt lines are sampled and at the end of an instruction, so a clock that
+stops on a cycle sees that cycle's access and the work done before the next one,
+and a clock stopped on an instruction's last cycle leaves the part as `step()`
+does. A counter kept in one method and a hook called from another drift the
+first time somebody adds a cycle to only one of them, and nothing catches it.
+Keep it that way.
 
 ## The authority ladder
 

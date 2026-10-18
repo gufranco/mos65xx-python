@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import functools
+import hashlib
 import sys
+import threading
 import unittest
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -9,6 +13,137 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 import mos65xx  # noqa: E402
+
+EIGHT_BIT = bytes.fromhex(
+    "A9 2A 85 20 E6 20 A2 03 CA D0 FD 20 00 03 0A 48 68 18 69 11 9D 30 00 EA 38 E9 05 A8"
+)
+
+SIXTEEN_BIT = bytes.fromhex(
+    "18 FB C2 30 A9 34 12 85 20 E6 20 A2 03 00 CA D0 FD 20 00 03 0A 48 68 E2 20 EB 9D 30 00 EA"
+)
+
+INSTRUCTIONS = 22
+
+SUBROUTINE = 0x0300
+
+RETURN = 0x60
+
+NOP = 0xEA
+
+WIDE = ("65816", "65802")
+
+PATIENCE_SECONDS = 10.0
+
+REGISTERS = ("a", "x", "y", "s", "pc", "d", "db", "pb", "emulation", "m8", "x8", "cycles", "steps")
+
+
+def within(call: Callable[[], Any]) -> tuple[str, Any]:
+    outcome: list[tuple[str, Any]] = []
+
+    def attempt() -> None:
+        outcome.append(("returned", call()))
+
+    worker = threading.Thread(target=attempt, daemon=True)
+    worker.start()
+    worker.join(PATIENCE_SECONDS)
+    return outcome[0] if outcome else ("still running", None)
+
+
+def a_program(model: str, memory: Any = None) -> Any:
+    wide = model in WIDE
+    space = memory if memory is not None else mos65xx.Memory(fill=NOP)
+    for address, value in enumerate(SIXTEEN_BIT if wide else EIGHT_BIT):
+        space.write8(address, value)
+    space.write8(SUBROUTINE, RETURN)
+    cpu = mos65xx.Cpu(model, space)
+    cpu.pc = 0x0000
+    cpu.s = 0x01FF if wide else 0xFF
+    cpu.set_status(0x00)
+    if wide:
+        cpu.pb = cpu.db = cpu.d = 0x00
+    cpu.trace = []
+    return cpu
+
+
+def observed(cpu: Any) -> tuple[Any, ...]:
+    return (
+        tuple(getattr(cpu, name, None) for name in REGISTERS),
+        cpu.status(),
+        cpu.held(),
+        tuple(cpu.trace),
+        hashlib.sha256(bytes(cpu.memory.data)).hexdigest(),
+    )
+
+
+def after_steps(model: str, instructions: int) -> tuple[int, tuple[Any, ...]]:
+    cpu = a_program(model)
+    spent = sum(cpu.step() for _ in range(instructions))
+    return spent, observed(cpu)
+
+
+def after_ticks(model: str, budget: int, closing: bool) -> tuple[Any, ...]:
+    cpu = a_program(model)
+    clock = mos65xx.Clock(cpu)
+    try:
+        clock.run_for(budget)
+        if closing:
+            clock.close()
+        return observed(cpu)
+    finally:
+        clock.close()
+
+
+def every_prefix_stepped() -> dict[str, list[tuple[Any, ...]]]:
+    return {
+        model: [after_steps(model, count)[1] for count in range(1, INSTRUCTIONS + 1)]
+        for model in mos65xx.MODELS
+    }
+
+
+def every_prefix_ticked(closing: bool) -> dict[str, tuple[str, Any]]:
+    def ticked(model: str) -> list[tuple[Any, ...]]:
+        return [
+            after_ticks(model, after_steps(model, count)[0], closing)
+            for count in range(1, INSTRUCTIONS + 1)
+        ]
+
+    return {model: within(functools.partial(ticked, model)) for model in mos65xx.MODELS}
+
+
+class Watched:
+    __slots__ = ("cpu", "inner", "paused", "seen")
+
+    def __init__(self) -> None:
+        self.inner = mos65xx.Memory(fill=NOP)
+        self.cpu: Any = None
+        self.paused = 0
+        self.seen: list[tuple[int, int]] = []
+
+    def noted(self, address: int) -> int:
+        self.seen.append((self.paused, len(self.cpu.trace)))
+        return address
+
+    def read8(self, address: int) -> int:
+        return int(self.inner.read8(self.noted(address)))
+
+    def write8(self, address: int, value: int) -> None:
+        if self.cpu is None:
+            self.inner.write8(address, value)
+            return
+        self.inner.write8(self.noted(address), value)
+
+    def pause(self) -> None:
+        self.paused += 1
+
+
+def watched_run(model: str) -> list[tuple[int, int]]:
+    memory = Watched()
+    cpu = a_program(model, memory)
+    memory.cpu = cpu
+    cpu.on_cycle = memory.pause
+    for _ in range(INSTRUCTIONS):
+        cpu.step()
+    return memory.seen
 
 
 class ClockTest(unittest.TestCase):
@@ -128,6 +263,43 @@ class ClockTest(unittest.TestCase):
 
         with self.assertRaises(mos65xx.ClockClosed):
             clock.tick()
+
+
+class TheLastCycleOfAnInstructionFinishesItTest(unittest.TestCase):
+    def test_a_clock_leaves_the_state_steps_leave_on_every_part(self) -> None:
+        # Arrange
+        expected = {model: ("returned", states) for model, states in every_prefix_stepped().items()}
+
+        # Act
+        found = every_prefix_ticked(closing=False)
+
+        # Assert
+        self.assertEqual(found, expected)
+
+    def test_and_so_does_a_clock_closed_on_that_cycle(self) -> None:
+        # Arrange
+        expected = {model: ("returned", states) for model, states in every_prefix_stepped().items()}
+
+        # Act
+        found = every_prefix_ticked(closing=True)
+
+        # Assert
+        self.assertEqual(found, expected)
+
+
+class EveryAccessStaysOnItsOwnCycleTest(unittest.TestCase):
+    def test_no_access_is_made_before_the_cycle_ahead_of_it_has_paused(self) -> None:
+        # Arrange
+        models = list(mos65xx.MODELS)
+
+        # Act
+        seen = {model: watched_run(model) for model in models}
+
+        # Assert
+        self.assertEqual(
+            {model: [paused for paused, _ in pairs] for model, pairs in seen.items()},
+            {model: [due for _, due in pairs] for model, pairs in seen.items()},
+        )
 
 
 if __name__ == "__main__":

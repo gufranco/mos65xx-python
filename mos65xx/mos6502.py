@@ -40,6 +40,7 @@ MODIFY = "modify"
 
 class Cpu:
     __slots__ = (
+        "_open",
         "a",
         "address_mask",
         "b",
@@ -103,6 +104,8 @@ class Cpu:
 
         self.on_cycle: Callable[[], None] | None = None
 
+        self._open = False
+
         self.trace: list[tuple[int, int, str]] | None = None
 
         self.power_on(seed)
@@ -122,6 +125,7 @@ class Cpu:
         self.jammed = False
         self.steps = 0
         self.pc = self.read16(RESET_VECTOR)
+        self.close_cycle()
         return self
 
     def status(self) -> int:
@@ -145,11 +149,19 @@ class Cpu:
         self.c = bool(value & FLAG_C)
 
     def spend(self) -> None:
+        self.close_cycle()
+        self._open = True
+
+    def close_cycle(self) -> None:
+        if not self._open:
+            return
+        self._open = False
         self.cycles += 1
         if self.on_cycle is not None:
             self.on_cycle()
 
     def read8(self, address: int) -> int:
+        self.close_cycle()
         self.await_ready()
         address &= self.address_mask
         found = self.memory.read8(address) & 0xFF
@@ -160,6 +172,7 @@ class Cpu:
         return found
 
     def write8(self, address: int, value: int) -> None:
+        self.close_cycle()
         self.await_ready(write=True)
         address &= self.address_mask
         self.memory.write8(address, value & 0xFF)
@@ -341,7 +354,9 @@ class Cpu:
         if handler is None:
             raise UnsupportedError(f"{mnemonic} is not implemented")
         handler(mode)
+        self.close_cycle()
         self.sample_pins()
+        self.close_cycle()
         return self.cycles - started
 
     def run_for(self, cycles: int) -> int:
@@ -369,6 +384,7 @@ class Cpu:
         taken = 0
         while True:
             mnemonic = self.table[self.read8(self.pc)][0]
+            self.close_cycle()
             if mnemonic == "rts":
                 if depth == 0:
                     return self
@@ -611,6 +627,7 @@ class Cpu:
             return
         while not self.ready_line:
             self.spend()
+            self.close_cycle()
 
     def sample_pins(self) -> bool:
         edge = self.nmi_line and not self.nmi_seen
@@ -627,11 +644,13 @@ class Cpu:
         if self.i:
             return False
         self.interrupt(IRQ_VECTOR)
+        self.close_cycle()
         return True
 
     def nmi(self) -> None:
         self.require("nmi")
         self.interrupt(NMI_VECTOR)
+        self.close_cycle()
 
     def op_bpl(self, mode: str) -> None:
         self.branch(not self.n)
@@ -697,6 +716,7 @@ class Cpu:
 
     def held_cycle(self) -> None:
         self.jam_cycle()
+        self.close_cycle()
 
     def op_slo(self, mode: str) -> None:
         _, value = self.read_modify_write(mode, "slo", self.shift_left)

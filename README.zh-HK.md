@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16** 款晶片，比對了 **17,900,000** 個狀態案例及 **17,870,080** 個週期精確案例，**0** 個未獲解釋的失敗，**1,455** 個測試，**100%** 語句及分支覆蓋率，無任何依賴
+**16** 款晶片，比對了 **17,900,000** 個狀態案例及 **17,870,080** 個週期精確案例，**0** 個未獲解釋的失敗，**1,458** 個測試，**100%** 語句及分支覆蓋率，無任何依賴
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -105,7 +105,7 @@ python3 mos65xx/doctor.py
 | `steps` | 自上次重設以來的指令數 |
 | `stopped`, `jammed`, `waiting` | 三種停機狀態。`jammed` 僅見於 NMOS，`waiting` 見於 CMOS 晶片及 65816 |
 | `trace` | 把它設為一個列表，每個匯流排週期都會以 `(address, value, kind)` 附加到列表中。在 8 位元晶片上，`kind` 為 `read` 或 `write`；在 65816 上則為八個針腳字母：數據、程式、向量讀取、寫入、模擬、`m`、`x`、記憶體鎖定。65816 的內部週期以 `None` 記錄其數值，惟模擬模式中的修改週期除外；停機週期則記錄為 `(None, None, "--------")` |
-| `on_cycle` | 每個週期呼叫一次，在該週期的匯流排活動之後 |
+| `on_cycle` | 每個週期呼叫一次，在該週期結束時，在其匯流排活動及隨後的處理之後 |
 | `model` | 標準型號名稱 |
 | `package_pins` | 封裝引出的中斷線及就緒線，例如 `("irq", "nmi", "rdy")` |
 | `address_mask` | 封裝引出的位址線。6507 讀取 `$F234` 時落在 `$1234` |
@@ -302,7 +302,7 @@ print([(hex(address), hex(value)) for address, value, _ in cpu.trace])
 | `close()` | 停止工作執行緒，並還原晶片的 `on_cycle` |
 | `cycles`, `closed`, `cpu` | 至今的 tick 次數、是否已關閉、所驅動的晶片 |
 
-`Clock` 是一個上下文管理器，也是一個每次產生一個 tick 的迭代器。停機的晶片會經由 `held_cycle()` 繼續 tick。Python 無法暫停呼叫堆疊，因此時鐘在工作執行緒上執行晶片，並在每個週期經由兩個號誌交接控制權。追求吞吐量時用 `step()`，要知道某件事發生在哪個週期時用 `Clock`。
+`Clock` 是一個上下文管理器，也是一個每次產生一個 tick 的迭代器。停機的晶片會經由 `held_cycle()` 繼續 tick。Python 無法暫停呼叫堆疊，因此時鐘在工作執行緒上執行晶片，並在每個週期經由兩個號誌交接控制權。追求吞吐量時用 `step()`，要知道某件事發生在哪個週期時用 `Clock`。停在一條指令最後一個週期上的時鐘，無論之後是否關閉，都令晶片處於與 `step()` 相同的狀態。
 
 <a id="models"></a>
 

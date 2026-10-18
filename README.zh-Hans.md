@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16** 款芯片，比对了 **17,900,000** 个状态用例和 **17,870,080** 个周期精确用例，**0** 个无法解释的失败，**1,455** 个测试，**100%** 语句和分支覆盖率，无依赖
+**16** 款芯片，比对了 **17,900,000** 个状态用例和 **17,870,080** 个周期精确用例，**0** 个无法解释的失败，**1,458** 个测试，**100%** 语句和分支覆盖率，无依赖
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -105,7 +105,7 @@ python3 mos65xx/doctor.py
 | `steps` | 自上次复位以来的指令数 |
 | `stopped`、`jammed`、`waiting` | 三种停机状态。`jammed` 仅限 NMOS，`waiting` 适用于 CMOS 芯片和 65816 |
 | `trace` | 将其设为一个列表后，每个总线周期都会以 `(address, value, kind)` 的形式追加进去。`kind` 在 8 位芯片上是 `read` 或 `write`，在 65816 上是八个引脚字母：数据、程序、向量读取、写、仿真、`m`、`x`、存储器锁定。65816 的内部周期以 `None` 记录其值，仿真模式下的修改周期除外；停机周期记录为 `(None, None, "--------")` |
-| `on_cycle` | 每个周期调用一次，在该周期的总线活动之后 |
+| `on_cycle` | 每个周期调用一次，在该周期结束时，在其总线活动及随后的处理之后 |
 | `model` | 规范型号名称 |
 | `package_pins` | 封装引出的中断线和就绪线，例如 `("irq", "nmi", "rdy")` |
 | `address_mask` | 封装引出的地址线。6507 在 `$1234` 处读到的是 `$F234` |
@@ -302,7 +302,7 @@ print([(hex(address), hex(value)) for address, value, _ in cpu.trace])
 | `close()` | 停止工作线程并恢复芯片的 `on_cycle` |
 | `cycles`、`closed`、`cpu` | 到目前为止的 tick 数、是否已关闭、它驱动的芯片 |
 
-`Clock` 是一个上下文管理器，也是一个每次产生一个 tick 的迭代器。停机的芯片通过 `held_cycle()` 继续 tick。Python 无法挂起调用栈，因此时钟在工作线程上运行芯片，并在每个周期通过两个信号量交接控制权。追求吞吐量时用 `step()`，关心某件事发生在哪个周期时用 `Clock`。
+`Clock` 是一个上下文管理器，也是一个每次产生一个 tick 的迭代器。停机的芯片通过 `held_cycle()` 继续 tick。Python 无法挂起调用栈，因此时钟在工作线程上运行芯片，并在每个周期通过两个信号量交接控制权。追求吞吐量时用 `step()`，关心某件事发生在哪个周期时用 `Clock`。停在一条指令最后一个周期上的时钟，无论之后是否关闭，都使芯片处于与 `step()` 相同的状态。
 
 <a id="models"></a>
 

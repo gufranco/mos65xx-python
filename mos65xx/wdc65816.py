@@ -73,6 +73,7 @@ VECTOR_CYCLES = 2
 class Cpu:
     __slots__ = (
         "_emulation",
+        "_open",
         "_s",
         "a",
         "address_mask",
@@ -130,6 +131,7 @@ class Cpu:
         self.nmi_seen = False
 
         self.on_cycle: Callable[[], None] | None = None
+        self._open = False
 
         self.trace: list[tuple[int | None, int | None, str]] | None = None
         self.locked = False
@@ -203,6 +205,7 @@ class Cpu:
         self.steps = 0
         self.stopped = False
         self.waiting = False
+        self.close_cycle()
         return self
 
     def status(self) -> int:
@@ -267,13 +270,22 @@ class Cpu:
 
     def held_cycle(self) -> None:
         self.halt_cycle()
+        self.close_cycle()
 
     def spend(self) -> None:
+        self.close_cycle()
+        self._open = True
+
+    def close_cycle(self) -> None:
+        if not self._open:
+            return
+        self._open = False
         self.cycles += 1
         if self.on_cycle is not None:
             self.on_cycle()
 
     def read8(self, address: int, data: bool = True, program: bool = False) -> int:
+        self.close_cycle()
         self.await_ready()
         found = self.memory.read8(address & self.address_mask) & 0xFF
         assert isinstance(found, int)
@@ -285,6 +297,7 @@ class Cpu:
         return found
 
     def write8(self, address: int, value: int) -> None:
+        self.close_cycle()
         self.await_ready(write=True)
         self.memory.write8(address & self.address_mask, value & 0xFF)
         if self.trace is not None:
@@ -616,7 +629,9 @@ class Cpu:
         if not wdc65816.MODE_SIZE[mode]:
             self.internal(self.at_pc())
         getattr(self, f"op_{mnemonic}")(mode)
+        self.close_cycle()
         self.sample_pins()
+        self.close_cycle()
         return self.cycles - started
 
     def call(self, address: int, limit: int | None = None) -> Cpu:
@@ -626,6 +641,7 @@ class Cpu:
         taken = 0
         while True:
             mnemonic = OPCODES[self.read8((self.pb << 16) | self.pc)][0]
+            self.close_cycle()
             if mnemonic in ("rts", "rtl"):
                 if depth == 0:
                     return self
@@ -1129,11 +1145,13 @@ class Cpu:
         self.decimal = False
         self.clear_banks_for_interrupt()
         self.pc = self.vector16(vector)
+        self.close_cycle()
         return True
 
     def await_ready(self, write: bool = False) -> None:
         while not self.ready_line:
             self.spend()
+            self.close_cycle()
 
     def sample_pins(self) -> bool:
         edge = self.nmi_line and not self.nmi_seen

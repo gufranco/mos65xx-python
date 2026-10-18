@@ -242,6 +242,7 @@ class Cpu(Nmos):
     @override
     def held_cycle(self) -> None:
         self.spend()
+        self.close_cycle()
 
     def modify_bit(self, bit: int, set_it: bool) -> None:
         address = self.effective("zeroPage")
