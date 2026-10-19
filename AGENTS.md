@@ -42,7 +42,10 @@ are polled where a simulation of the die polls them, as an instruction's last
 cycle begins: `spend()` records the lines and the mask as each cycle opens,
 `polled()` hands back what the last one recorded, a taken branch inside its page
 holds what its operand cycle recorded, and a break skips the poll at its end.
-The CMOS parts override `polled()` to read the lines at completion. `on_cycle`
+The CMOS parts override `polled()` to read the lines at completion. The 65816
+adds `abort_line`, latched once per instruction on the cycle it is held during;
+`step()` snapshots the registers first and `roll_back()` restores them at the
+end, keeping what 8.4.1 of the data sheet says survives, before taking the abort. `on_cycle`
 is called once per cycle, at its end, after that cycle's activity and the work
 that follows it.
 

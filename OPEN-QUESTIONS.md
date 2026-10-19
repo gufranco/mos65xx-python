@@ -300,12 +300,13 @@ So the boundary is visible rather than implied:
 
 Absent rather than unknown, and absent on purpose:
 
-- **The abort rollback.** `abort()` performs the documented sequence without the
-  rollback. Suspension is no longer what stands in the way, since `Clock` stops
-  the part between any two cycles; what is missing is that an instruction which
-  has begun cannot be abandoned, because its changes are already in the
-  registers. No published corpus covers an abort, so there is nothing to hold an
-  implementation to.
+- **An abort outside an instruction, and an abort of an abort.** `abort_line`
+  rolls an instruction back as 3.1 and 8.4.1 of the W65C816S data sheet print,
+  and is watched only while `step()` runs an instruction. 8.4.1.3 also names a
+  hardware interrupt sequence aborted after its second cycle, and says only that
+  the banks become 00 there, not where the sequence resumes; 8.4.1 says aborting
+  the abort sequence is not recommended and not what follows. Neither is
+  modelled, because neither is printed far enough to implement.
 - **The reset line held low.** `reset()` is the line going high after a hold
   long enough to take. On the die the counter the first three cycles drive is
   whatever the hold left, and the hold moves it in ways that depend on the

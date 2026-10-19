@@ -376,6 +376,43 @@
         "conformance/emulation_facts.test.py::InterruptBankTest.test_each_interrupt_clears_the_banks_the_data_sheet_names_for_its_mode"
       ]
     },
+    "abortRollback": {
+      "document": "wdc816",
+      "section": "3.1 Abort (ABORTB)",
+      "quote": "A negative transition will inhibit modification of any internal register during the current instruction. Upon completion of this instruction, an interrupt sequence is initiated. The location of the aborted OpCode is stored as the return address in stack memory.",
+      "pdfPage": 16,
+      "readIn": "w65c816s.pdf",
+      "alsoSays": [
+        {
+          "document": "wdc816",
+          "section": "8.4.1.1",
+          "quote": "Read-Modify-Write: Processor status modified if ABORTB is asserted after a modify cycle."
+        },
+        {
+          "document": "wdc816",
+          "section": "8.4.1.2",
+          "quote": "RTI: Processor status modified if ABORTB is asserted after cycle 3."
+        },
+        {
+          "document": "wdc816",
+          "section": "8.4.1.3",
+          "quote": "When ABORTB is asserted after cycle 2, PBR and DBR will become 00 (Emulation mode) or PBR will become 00 (Native mode)."
+        }
+      ],
+      "note": "Table 6-7 note 3 marks the same three cycles, the modify cycle, the third cycle of RTI and the second of BRK and COP, as the last that may be aborted before those registers are updated. The model latches the line once per instruction, on the cycle it is held during, and the bus cycles of the aborted instruction still happen, because the document speaks only of internal registers.",
+      "appliesTo": ["65802", "65816"],
+      "appliesToCore": "wide",
+      "heldBy": [
+        "conformance/abort_facts.test.py::AbortTest.test_an_aborted_instruction_leaves_every_register_as_it_found_it",
+        "conformance/abort_facts.test.py::AbortTest.test_the_return_address_pushed_is_the_aborted_opcode",
+        "conformance/abort_facts.test.py::AbortTest.test_a_modify_aborted_after_its_modify_cycle_keeps_its_status",
+        "conformance/abort_facts.test.py::AbortTest.test_and_one_aborted_on_its_modify_cycle_does_not",
+        "conformance/abort_facts.test.py::AbortTest.test_a_return_aborted_after_the_printed_cycle_keeps_the_status_it_pulled",
+        "conformance/abort_facts.test.py::AbortTest.test_and_one_aborted_on_that_cycle_does_not",
+        "conformance/abort_facts.test.py::AbortTest.test_a_break_aborted_after_the_printed_cycle_clears_the_program_bank",
+        "conformance/abort_facts.test.py::AbortTest.test_and_one_aborted_on_that_cycle_keeps_it"
+      ]
+    },
     "switchingToEmulation": {
       "document": "wdc816",
       "section": "8.10",

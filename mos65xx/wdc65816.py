@@ -72,13 +72,19 @@ VECTOR_CYCLES = 2
 
 class Cpu:
     __slots__ = (
+        "_abort_after",
+        "_abort_at",
+        "_abort_cycle",
+        "_abort_keeps",
         "_emulation",
         "_inside",
         "_open",
         "_resetting",
         "_s",
         "_unsampled",
+        "_watching_abort",
         "a",
+        "abort_line",
         "address_mask",
         "c",
         "cycle_budget",
@@ -132,6 +138,13 @@ class Cpu:
         self.nmi_line = False
 
         self.nmi_seen = False
+
+        self.abort_line = False
+        self._watching_abort = False
+        self._abort_at = 0
+        self._abort_cycle = 0
+        self._abort_after = 0
+        self._abort_keeps = ""
 
         self.on_cycle: Callable[[], None] | None = None
         self._open = False
@@ -284,12 +297,15 @@ class Cpu:
 
     def spend(self) -> None:
         self.close_cycle()
+        self._abort_cycle += 1
         self._open = True
 
     def close_cycle(self) -> None:
         if not self._open:
             return
         self._open = False
+        if self.abort_line and self._watching_abort and not self._abort_at:
+            self._abort_at = self._abort_cycle
         self.cycles += 1
         if self.on_cycle is not None:
             self.on_cycle()
@@ -638,6 +654,8 @@ class Cpu:
         if self.waiting:
             raise Waiting("the processor is waiting for an interrupt")
         self.steps += 1
+        before = self.registers()
+        self.watch_for_abort()
         self._inside = True
         try:
             opcode = self.opcode8()
@@ -652,9 +670,51 @@ class Cpu:
             self.close_cycle()
         finally:
             self._unsampled = False
-        self.sample_pins()
+            self._watching_abort = False
+        if self._abort_at:
+            self.roll_back(before)
+            self.interrupt("abort")
+        else:
+            self.sample_pins()
         self.close_cycle()
         return self.cycles - started
+
+    def watch_for_abort(self) -> None:
+        self._abort_at = 0
+        self._abort_cycle = 0
+        self._abort_after = 0
+        self._abort_keeps = ""
+        self._watching_abort = True
+
+    def abort_point(self, keeps: str) -> None:
+        self._abort_keeps = keeps
+        self._abort_after = self._abort_cycle
+
+    def keeps(self, what: str) -> bool:
+        return self._abort_keeps == what and self._abort_at > self._abort_after
+
+    def registers(self) -> tuple[int, ...]:
+        return (
+            self.a,
+            self.x,
+            self.y,
+            self._s,
+            self.d,
+            self.db,
+            self.pb,
+            self.pc,
+            self.status(),
+            int(self._emulation),
+        )
+
+    def roll_back(self, before: tuple[int, ...]) -> None:
+        reached = self.status()
+        self.a, self.x, self.y, self._s, self.d, self.db, self.pb, self.pc = before[:8]
+        status, emulation = before[8:]
+        self._emulation = bool(emulation)
+        self.set_status(reached if self.keeps("status") else status)
+        if self.keeps("banks"):
+            self.clear_banks_for_interrupt()
 
     def call(self, address: int, limit: int | None = None) -> Cpu:
         self.pb = (address >> 16) & 0xFF
@@ -830,6 +890,7 @@ class Cpu:
                 write=self._emulation,
                 value=held if self._emulation else None,
             )
+            self.abort_point("status")
             self.write_value(address, operation(held, wide), wide, mode, high_first=True)
         finally:
             self.locked = False
@@ -1125,6 +1186,7 @@ class Cpu:
 
     def op_rti(self, mode: str) -> None:
         self.internal(self.at_pc())
+        self.abort_point("status")
         pulled = self.pull8()
         self.pc = self.pull16()
         if not self.emulation:
@@ -1133,6 +1195,7 @@ class Cpu:
 
     def _software_interrupt(self, native_vector: int, emulation_vector: int) -> None:
         self.fetch8()
+        self.abort_point("banks")
         pushed = self.status()
         if self.emulation:
             vector = emulation_vector
