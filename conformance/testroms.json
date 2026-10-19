@@ -333,7 +333,7 @@
       "outcome": "run",
       "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
       "heldBy": [
-        "conformance/screens.test.py::TheRecordedProgramsTest.test_gilyon_cputest_reaches_success_after_thirteen_failures_it_names"
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_gilyon_cputest_reaches_success_stopping_on_nothing"
       ]
     },
     {

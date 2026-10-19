@@ -52,22 +52,6 @@ _How much it settles._ Not outright. Silence in a programmer's account is weaker
 
 **What would settle it.** A program on a real part: set the data bank to something non-zero, drop into emulation mode, execute BRK, and have the handler push the data bank and read it back.
 
-### The stack address of a one byte pull at the top of emulation page one
-
-**The document says.** "In the Emulation mode, the Stack address range is 000100 to 0001FF. The following OpCodes and addressing modes will increment or decrement beyond this range when accessing two or three bytes: JSL, JSR (a,x), PEA, PEI, PER, PHD, PLD, RTL"
-
-Source: W65C816S Data Sheet, 8.1 Stack Addressing. PLB is not on that list and pulls one byte, so by the document it stays inside the page.
-
-**The recordings say.** PLB with the stack pointer at 0001FF reads 000200, and leaves the pointer at 000100. Thirty-seven cases, which is every case in the file where the pointer sits at the top of the page and no others. That figure arrived in the correction of 2024-09-22, alongside the two this project has just fixed.
-
-**What this project does.** Keeps it inside page one, following the document. The list of stack operations that step through consecutive addresses here is exactly the document's: JSL, JSR (a,x), PEA, PEI, PER, PHD, PLD and RTL. The stack relative modes reach past the page too, as the first printing of the sentence adds. Every other stack operation folds. Adding PLB to that list would mean following a recording against a manufacturer statement that names the opcodes one by one, which is the wrong way round on this project's ladder. `conformance/singlestep.py` leaves those thirty-seven out by condition rather than by name, and prints how many it left out.
-
-**Why the same correction is trusted for the other two.** There the document and the corrected recording agree, and it was the older recording that stood alone. Here they disagree, and a recording that has been wrong once about this exact instruction is not the thing to prefer over a sentence naming opcodes individually.
-
-**A test program sides with the recordings.** gilyon's 65816 test, run from reset on this processor by `conformance/screens.py`, stops at its test `03D9`: PLB in emulation mode with the stack pointer at 0001FF, expecting the data bank from 000200, which is what the recordings say. Its README lists the behaviour as undocumented and its tests as written for the machine, but nothing here shows it run on a part, so it is a second source and not a measurement; the question stays open, and the program's failure is recorded rather than excused (as of 2026-10-19).
-
-**What would settle it.** A logic capture of a real W65C816S executing PLB in emulation mode with the stack pointer at 0001FF, reading the address lines. Both sources give a definite answer and the answers differ, so nothing short of the part decides it.
-
 ### The stack addresses of an indexed indirect subroutine call at the bottom of emulation page one
 
 **The document says.** "In the Emulation mode, the Stack address range is 000100 to 0001FF. The following OpCodes and addressing modes will increment or decrement beyond this range when accessing two or three bytes: JSL, JSR (a,x), PEA, PEI, PER, PHD, PLD, RTL"
@@ -81,22 +65,6 @@ Source: W65C816S Data Sheet, 8.1 Stack Addressing. JSR (a,x) is named and pushes
 **Why it matters.** On the document's reading the low byte of the return address lands in the direct page while the RTS that ends the subroutine folds and pulls it from 0001FF, so the call does not return where it was made. On the recording's reading the two agree.
 
 **What would settle it.** A logic capture of a real W65C816S executing JSR (a,x) in emulation mode with the stack pointer at 000100, reading the address of the second write.
-
-### Whether a multi-byte pointer read out of the direct page stays inside the page, in emulation mode with the direct register page aligned
-
-**The document says.** When in the Emulation mode, the direct addressing range is 000000 to 0000FF, except for [Direct] and [Direct],Y addressing modes and the PEI instruction which will increment from 0000FE or 0000FF into the Stack area.
-
-Source: W65C816S Data Sheet, 8.2.1 and 8.2.2.
-
-**The recordings say.** Every emulation-mode file for all five pointer modes and for PEI, filtered to the cases where the direct register is page aligned and the pointer reaches the end of the page, then read straight off the recorded cycle addresses. Four modes are covered and all four leave the page: `[d]` reads 002FFE, 002FFF, 003000; `[d],y` reads 00B6FE, 00B6FF, 00B700; PEI reads 000CFF, 000D00; and `(d,x)` reads 00F4FF, 00F500. The first three are the ones the document names. The fourth is not, and it is the only `(d,x)` case in the suite that reaches the edge.
-
-**What this was, until 2026-08-25.** Six modes, four measured, and no rule fitting all four, because two of the recordings said the pointer wrapped where the document said it should not. Those two recordings were wrong. The corpus lived in a repository that was archived in May 2024 and continued in one of its own, where a correction landed on 2024-09-22 for `[d],y`, PEI and PLB. This project pinned the archived copy and so never saw it. Against the corrected recordings the document is right about every mode it names, and the model was wrong about two of them; both are fixed.
-
-**What this project does.** Follows the document for all six. `[d]`, `[d],y` and PEI leave the page, and the corpus agrees on each. `(d,x)`, `(d)` and `(d),y` wrap inside it. For `(d,x)` that is against the one recorded case, because the suite is generated by an implementation and the document is the higher rung, so both runners leave that case out by condition and print how many they left out. It cannot be compared field by field: the pointer's high byte is the disagreement, and the data read, the value loaded and the flags all follow from it.
-
-**When the direct register is not page aligned, a test program and the recordings disagree.** gilyon's 65816 test expects `(d,x)` in emulation mode, with D at $011A, to read the pointer's low byte from 0002FF and its high byte from 000200: past the page for the first byte and wrapped inside it for the second. The recordings read the second byte from the next page, 46 cases in `61.e.json` alone, and this processor follows them, so twelve of the program's tests stop here, one for each of ADC, AND, CMP twice, EOR, LDA, ORA, SBC twice, STA twice and ADC again in decimal (as of 2026-10-19). Neither source is a capture of a part, so nothing is changed on either's word; a capture of `(d,x)` with an unaligned direct register would settle it.
-
-**What would settle it.** Three short programs on a real part, one each for `(d,x)`, `(d)` and `(d),y`, each with the direct register page aligned and the pointer at FF, reading back the byte the part fetched. The three the document names are settled, since the document and the corpus agree on them.
 
 ### How many cycles the reserved opcode 5C spends on a CMOS part
 
@@ -239,6 +207,27 @@ Source: W65C816S Data Sheet, 3.6 Interrupt Request (IRQB). Recognition is named 
 **What the NMOS die does.** A simulation of the NMOS die spends six cycles from the one in progress when the line goes high, then the two of the vector fetch, which is the MOS figure exactly. `conformance/netlist.py` holds the NMOS parts to it.
 
 **What would settle it.** Whether the W65C02S's seven describes different silicon or one loose sentence. The NMOS half is settled by the die, so what is left is a logic capture of a reset on a W65C02S.
+
+## What a test program written for the part has settled
+
+gilyon's 65816 test, written for the machine this part went into and describing
+what it does, settled two questions that used to be here, and its README is
+quoted in `conformance/divergences.json` beside each (as of 2026-10-19).
+
+**PLB with the stack pointer at 0001FF.** The README says the pull reads 000200
+rather than 000100, though the data sheet does not list PLB among the
+operations that leave the stack page. The recordings say the same. The data
+sheet's sentence lists operations that access two or three bytes and is silent
+on this one, so nothing printed is contradicted. This part now reads 000200.
+
+**Where `(d,x)` reads its pointer's second byte in emulation mode.** The README
+says the first byte comes from where the operand, X and the direct register
+reach, without wrapping when the low byte of D is nonzero, and the second from
+the next address wrapped inside that page, and that no other indirect mode does
+this. This part now does exactly that. The recordings read the second byte from
+the next page instead; both runners compare those cases in full with that one
+address excused, after placing the byte the recording read where this part
+reads it.
 
 ## What a simulation of the die has settled
 

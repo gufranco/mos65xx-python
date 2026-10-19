@@ -350,7 +350,7 @@ class PointerWrapTest(unittest.TestCase):
             inside, {mode: "wrapped inside" in recorded[mode]["verdict"] for mode in opcodes}
         )
 
-    def test_the_indexed_mode_follows_the_document_against_its_one_recorded_case(self) -> None:
+    def test_the_indexed_mode_wraps_its_second_byte_where_the_recording_leaves(self) -> None:
         # Arrange
         recorded = pointer_cases()
 
@@ -383,7 +383,7 @@ class PointerWrapTest(unittest.TestCase):
         self.assertEqual(
             (
                 "(d) and (d),y" in held["suiteSays"]["notCovered"],
-                "document reading rather than a measurement" in held["whatWouldSettleIt"],
+                "(d) and (d),y wrap inside an aligned page" in held["whatThisProjectDoes"],
             ),
             (True, True),
         )

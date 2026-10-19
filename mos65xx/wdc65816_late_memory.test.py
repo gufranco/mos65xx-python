@@ -187,6 +187,20 @@ class DirectPagePointerWrapTest(unittest.TestCase):
         # Assert
         self.assertEqual(page_reads(memory), [0x000CFF, 0x000C00])
 
+    def test_an_unaligned_indexed_indirect_pointer_wraps_only_its_second_byte(self) -> None:
+        # Arrange
+        cpu, memory = emulated_reads([0xA1, 0xF7], 0x011A)
+        cpu.x = 0xEE
+
+        # Act
+        cpu.step()
+
+        # Assert
+        self.assertEqual(
+            [address for address in memory.seen if 0x000200 <= address <= 0x000300],
+            [0x0002FF, 0x000200],
+        )
+
     def test_a_long_indirect_pointer_leaves_the_page(self) -> None:
         # Arrange
         cpu, memory = emulated_reads([0xA7, 0xFF], 0x0C00)
@@ -226,6 +240,25 @@ class DirectPagePointerWrapTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(page_reads(memory), [0x000CFF, 0x000D00])
+
+
+class EmulatedStackPullTest(unittest.TestCase):
+    def test_a_data_bank_pull_at_the_top_of_page_one_reads_the_next_page(self) -> None:
+        # Arrange
+        memory = Memory(0x1000000)
+        cpu = Cpu("65816", memory)
+        cpu.emulation = True
+        cpu.s = 0x01FF
+        cpu.pb, cpu.pc = 0x00, START & 0xFFFF
+        memory.write8(START, 0xAB)
+        memory.write8(0x000200, 0x3D)
+        memory.write8(0x000100, 0x11)
+
+        # Act
+        cpu.step()
+
+        # Assert
+        self.assertEqual((cpu.db, cpu.s), (0x3D, 0x0100))
 
 
 if __name__ == "__main__":

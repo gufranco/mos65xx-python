@@ -547,25 +547,11 @@
           "PASS": 0,
           "FAIL": 0
         },
-        "failed": [
-          "0027",
-          "0074",
-          "015F",
-          "0194",
-          "0216",
-          "02CC",
-          "0397",
-          "03D9",
-          "046F",
-          "04E0",
-          "0518",
-          "05D2",
-          "0621"
-        ],
+        "failed": [],
         "screen": " Running tests... Success\n Test number: 0649",
-        "cycles": 1000013
+        "cycles": 1000014
       },
-      "testsFrom": "tests.txt as make_cpu_tests.py writes it at the same commit; every test this run stops on is one of the two behaviours its README lists as undocumented"
+      "testsFrom": "tests.txt as make_cpu_tests.py writes it at the same commit. It stops on none since this processor reads PLB's byte from 000200 at the top of emulation page one and wraps the second byte of an unaligned (d,x) pointer inside its page, as the program's README says"
     },
     {
       "id": "blargg-adc-8",

@@ -18,37 +18,36 @@ Difference = tuple[str, Any, Any]
 Cycle = tuple[int | None, int | None, str]
 
 
-def pulls_past_the_top_of_page_one(opcode: str, initial: Mapping[str, Any]) -> bool:
-    return opcode == "ab" and (int(initial["s"]) & 0xFF) == 0xFF
-
-
 def pushes_past_the_bottom_of_page_one(opcode: str, initial: Mapping[str, Any]) -> bool:
     return opcode == "fc" and (int(initial["s"]) & 0xFF) == 0x00
 
 
-def reads_a_pointer_across_the_direct_page_edge(opcode: str, initial: Mapping[str, Any]) -> bool:
-    if opcode not in INDEXED_INDIRECT_OPCODES or int(initial["d"]) & 0xFF:
-        return False
+def indexed_pointer_reads(opcode: str, initial: Mapping[str, Any]) -> tuple[int, int] | None:
+    if opcode not in INDEXED_INDIRECT_OPCODES:
+        return None
     at = (int(initial.get("pbr", 0)) << 16) | ((int(initial["pc"]) + 1) & 0xFFFF)
     operand = dict(initial["ram"]).get(at)
-    return operand is not None and (int(operand) + int(initial["x"])) & 0xFF == 0xFF
+    if operand is None:
+        return None
+    direct, index = int(initial["d"]), int(initial["x"]) & 0xFF
+    if direct & 0xFF:
+        first = (direct + int(operand) + index) & 0xFFFF
+    else:
+        first = (direct & 0xFF00) | ((int(operand) + index) & 0xFF)
+    if first & 0xFF != 0xFF:
+        return None
+    return (first + 1) & 0xFFFF, first & 0xFF00
 
 
 def clears_a_data_bank_the_recording_keeps(opcode: str, initial: Mapping[str, Any]) -> bool:
     return opcode in SOFTWARE_INTERRUPT_OPCODES and int(initial.get("dbr", 0)) != 0
 
 
-DIVERGENT = (
-    (
-        "the stack address of a one byte pull at the top of emulation page one",
-        pulls_past_the_top_of_page_one,
-    ),
-    (
-        "whether a multi-byte pointer read out of the direct page stays inside the page,"
-        " in emulation mode with the direct register page aligned",
-        reads_a_pointer_across_the_direct_page_edge,
-    ),
+POINTER_SUBJECT = (
+    "whether a multi-byte pointer read out of the direct page stays inside the page,"
+    " in emulation mode with the direct register page aligned"
 )
+
 
 EXCUSED_FIELDS = (
     (
@@ -80,17 +79,27 @@ def emulated_opcode(test: Mapping[str, Any], model: str) -> str:
     return str(test["name"]).split()[0]
 
 
-def recorded_divergence(test: Mapping[str, Any], model: str) -> str:
-    opcode = emulated_opcode(test, model)
+def pointer_pair(test: Mapping[str, Any], model: str) -> tuple[int, int] | None:
+    return indexed_pointer_reads(emulated_opcode(test, model), test["initial"])
+
+
+def restated(test: Mapping[str, Any], model: str) -> Mapping[str, Any]:
+    pair = pointer_pair(test, model)
     initial = test["initial"]
-    return next((subject for subject, applies in DIVERGENT if applies(opcode, initial)), "")
+    held = dict(initial["ram"])
+    if pair is None or pair[0] not in held:
+        return test
+    ram = [*initial["ram"], [pair[1], held[pair[0]]]]
+    return {**test, "initial": {**initial, "ram": ram}}
 
 
 def excused_fields(test: Mapping[str, Any], model: str) -> frozenset[str]:
     opcode = emulated_opcode(test, model)
     initial = test["initial"]
     found = (fields for _, applies, fields in EXCUSED_FIELDS if applies(opcode, initial))
-    return next(found, frozenset())
+    pair = pointer_pair(test, model)
+    moved = frozenset({f"${pair[1]:06X}"}) if pair is not None else frozenset()
+    return next(found, frozenset()) | moved
 
 
 def unexplained(test: Mapping[str, Any], wrong: list[Difference], model: str) -> list[Difference]:
@@ -102,7 +111,7 @@ def excused_address(test: Mapping[str, Any], model: str) -> tuple[int, int] | No
     opcode = emulated_opcode(test, model)
     initial = test["initial"]
     found = (pair for _, applies, pair in EXCUSED_ADDRESSES if applies(opcode, initial))
-    return next(found, None)
+    return next(found, pointer_pair(test, model))
 
 
 def differs_only_where_excused(

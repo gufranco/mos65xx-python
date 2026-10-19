@@ -117,7 +117,7 @@ class TheRecordedProgramsTest(unittest.TestCase):
         # Assert
         self.assertEqual(held, [(one[1], one[1], 0) for one in held])
 
-    def test_gilyon_cputest_reaches_success_after_thirteen_failures_it_names(self) -> None:
+    def test_gilyon_cputest_reaches_success_stopping_on_nothing(self) -> None:
         # Arrange
         entry = recorded("gilyon-cputest")
 
@@ -125,24 +125,8 @@ class TheRecordedProgramsTest(unittest.TestCase):
         run = entry["measured"]
 
         # Assert
-        self.assertIn("Success", run["screen"])
         self.assertEqual(
-            run["failed"],
-            [
-                "0027",
-                "0074",
-                "015F",
-                "0194",
-                "0216",
-                "02CC",
-                "0397",
-                "03D9",
-                "046F",
-                "04E0",
-                "0518",
-                "05D2",
-                "0621",
-            ],
+            (run["screen"].split("\n")[0], run["failed"]), (" Running tests... Success", [])
         )
 
     def test_shay_greens_adc_and_sbc_tests_each_print_passed(self) -> None:

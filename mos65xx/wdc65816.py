@@ -489,6 +489,12 @@ class Cpu:
             self.read8(bank | ((address + step) & 0xFFFF)) << (8 * step) for step in range(width)
         )
 
+    def read_indexed_pointer(self, address: int) -> int:
+        if not self.emulation:
+            return self.read_pointer(address, 2)
+        second = (address & 0xFF00) | ((address + 1) & 0xFF)
+        return self.read8(address) | (self.read8(second) << 8)
+
     def here(self) -> int:
         return (self.pb << 16) | ((self.pc - 1) & 0xFFFF)
 
@@ -537,7 +543,7 @@ class Cpu:
             self.unaligned()
             self.internal(self.here())
             pointer = self.direct(offset + self.x)
-            return (self.db << 16) | self.read_pointer(pointer, 2, wraps_in_page=True)
+            return (self.db << 16) | self.read_indexed_pointer(pointer)
         if mode == "indirectIndexedY":
             offset = self.fetch8()
             self.unaligned()
@@ -1047,7 +1053,7 @@ class Cpu:
 
     def op_plb(self, mode: str) -> None:
         self.internal(self.at_pc())
-        self.db = self.pull8()
+        self.db = self.pull_flat(1)
         self.set_nz(self.db, False)
 
     def op_phd(self, mode: str) -> None:

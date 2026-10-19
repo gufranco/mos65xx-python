@@ -102,7 +102,7 @@ Appendix B of the programming manual, Table 6-7 of the W65C816S data sheet and
 the reserved-opcode row of the W65C02S data sheet are each recorded and driven,
 so a claim about timing is checkable without any corpus on the machine.
 
-**Not settled: 14 things**, each named in [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)
+**Not settled: 12 things**, each named in [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)
 with the measurement that would close it. Do not close one by argument.
 
 ## The cycle claim, and what it rests on
@@ -227,12 +227,12 @@ the rest: the memory map, work RAM, video memory read as text, the vblank flags
 with the open bus beside them, and a pad that presses A and lets go. Every one
 of Peter Lemon's prints every PASS its source prints, MSC apart: its WAI waits
 for an interrupt only the 5A22 raises, so it waits on `snes-cpu-io`, and its STP
-asks for a reset. Shay Green's six print Passed. gilyon's reaches Success after
-stopping on thirteen tests, every one of them a behaviour two open questions
-already hold: PLB at the top of emulation page one, and `(d,x)` with an
-unaligned direct register. Nothing was changed on its word; the runner reports
-it and exits 1, and [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) says what would
-settle each. [`conformance/screens.json`](conformance/screens.json) holds what
+asks for a reset. Shay Green's six print Passed. gilyon's reaches Success, stopping on nothing.
+It used to stop on thirteen: PLB at the top of emulation page one, and `(d,x)`
+with an unaligned direct register. Its README describes both as what the part
+does, the data sheet prints neither, and the core now follows it; the
+recordings disagree on `(d,x)` and both runners excuse only the address of that
+pointer's second byte. [`conformance/screens.json`](conformance/screens.json) holds what
 every program printed.
 
 ```bash

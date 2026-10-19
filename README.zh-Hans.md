@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16** 款芯片，比对了 **17,900,000** 个状态用例和 **17,870,080** 个周期精确用例，**0** 个无法解释的失败，**1,601** 个测试，**100%** 语句和分支覆盖率，无依赖
+**16** 款芯片，比对了 **17,900,000** 个状态用例和 **17,870,080** 个周期精确用例，**0** 个无法解释的失败，**1,600** 个测试，**100%** 语句和分支覆盖率，无依赖
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -423,15 +423,15 @@ python3 -m conformance.singlestep ~/.cache/conformance-suites/6502/6502/v1 --mod
 python3 -m conformance.cycles ~/.cache/conformance-suites/6502/6502/v1 --model 6502
 ```
 
-这两个总数都由 [`conformance/suites.json`](conformance/suites.json) 推导，并有一个测试确保本页与之一致。wdc65c02 套件中 `WAI` 和 `STP` 的文件是空的。周期总数排除了 29,920 个 CMOS 十进制用例，它们额外的周期记录在一个任何寄存器都无法产生的固定地址上。凡本内核遵循数据手册而非测试套件之处，两个运行器都打印另行处理的 65816 用例数量。按条件排除的有三十八个：仿真模式栈指针位于第一页顶部时的单字节出栈有三十七个，指针从已对齐直接页末尾开始的 `(d,x)` 有一个。其余用例除两种读法不同之处外全部比对：19,924 个仿真模式 `BRK` 和 `COP` 用例中的数据存储体寄存器，以及栈指针位于第一页底部的四十三个 `JSR (a,x)` 用例中一次入栈写入的地址。
+这两个总数都由 [`conformance/suites.json`](conformance/suites.json) 推导，并有一个测试确保本页与之一致。wdc65c02 套件中 `WAI` 和 `STP` 的文件是空的。周期总数排除了 29,920 个 CMOS 十进制用例，它们额外的周期记录在一个任何寄存器都无法产生的固定地址上。凡本内核遵循其他来源而非测试套件之处，两个运行器都打印另行处理的 65816 用例数量。没有任何用例被排除。每个用例除读法不同之处外全部比对：19,924 个仿真模式 `BRK` 和 `COP` 用例中的数据存储体寄存器，栈指针位于第一页底部的四十三个 `JSR (a,x)` 用例中一次入栈写入的地址，以及指针在页末结束的 265 个仿真模式 `(d,x)` 用例中指针第二个字节的地址，该处本内核遵循 gilyon 的测试程序。
 
 [`conformance/hardware.json`](conformance/hardware.json) 保存了取自制造商文档页面的每一项事实，连同原句及其所在页面，并有测试确保代码与之一致。[`conformance/addressing-cycles.json`](conformance/addressing-cycles.json) 和 [`conformance/instruction-set.json`](conformance/instruction-set.json) 按印刷原样保存了硬件手册的 Appendix A 和编程手册的 Appendix B。[`conformance/divergences.json`](conformance/divergences.json) 记录了两个来源互相矛盾的 23 处、本包遵循哪一方，以及什么能解决每一处分歧。`python3 -m conformance.quotes` 会在各自的文档中找到每一句引文。
 
-测试套件按提交固定。一个每周任务会在每个上游的最新提交上运行它们，较新的套件通过时打开一个 pull request，失败时打开一个 issue。[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) 列出了文档和测试套件都无法解决的 14 个问题，每个问题都附有能解决它的真实芯片测量方法。
+测试套件按提交固定。一个每周任务会在每个上游的最新提交上运行它们，较新的套件通过时打开一个 pull request，失败时打开一个 issue。[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) 列出了文档和测试套件都无法解决的 12 个问题，每个问题都附有能解决它的真实芯片测量方法。
 
 这里也在裸处理器上运行两个完整的测试程序：Klaus Dormann 的 6502 功能测试以 6502 运行并通过，他的 65C02 扩展操作码测试以 r65c02 和 w65c02 运行并通过。每个程序都通过在一个地址上循环来停止，而他的清单说明哪个地址表示通过。[`conformance/exercisers.json`](conformance/exercisers.json) 记录每个程序停在哪里，并固定它们来源的提交；`python3 -m conformance.exercisers` 从 `MOS65XX_EXERCISERS` 指定的检出运行它们。[`conformance/testroms.json`](conformance/testroms.json) 列出这些部件的其他所有测试程序，以及每个程序在等待哪个成员。
 
-为这些部件所在的机器编写的测试程序也会运行。`python3 -m conformance.routines` 从六个工厂与维修测试映像中取出处理器例程，运行到它写入的标志：六个全部通过，记录在 [`conformance/routines.json`](conformance/routines.json) 中。`python3 -m conformance.screens` 从复位开始运行三十个完整的测试程序，由 [`conformance/board.py`](conformance/board.py) 代替机器的其余部分，并读回它们显示的文字：Peter Lemon 的 23 个和 Shay Green 的 6 个通过，gilyon 的则停在十三项测试上，正是仿真模式下 PLB 和 `(d,x)` 两个未解决的问题，记录在 [`conformance/screens.json`](conformance/screens.json) 中。两者都以 SHA-256 在 `MOS65XX_TEST_IMAGES` 指定的文件夹中找到映像。
+为这些部件所在的机器编写的测试程序也会运行。`python3 -m conformance.routines` 从六个工厂与维修测试映像中取出处理器例程，运行到它写入的标志：六个全部通过，记录在 [`conformance/routines.json`](conformance/routines.json) 中。`python3 -m conformance.screens` 从复位开始运行三十个完整的测试程序，由 [`conformance/board.py`](conformance/board.py) 代替机器的其余部分，并读回它们显示的文字：Peter Lemon 的 23 个和 Shay Green 的 6 个通过，gilyon 的则不停在任何地方，到达 Success，记录在 [`conformance/screens.json`](conformance/screens.json) 中。两者都以 SHA-256 在 `MOS65XX_TEST_IMAGES` 指定的文件夹中找到映像。
 
 ## 参与开发
 

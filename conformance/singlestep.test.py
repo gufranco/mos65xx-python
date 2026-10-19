@@ -120,26 +120,37 @@ class CompareTest(unittest.TestCase):
 
 class RunTest(unittest.TestCase):
     def test_a_run_counts_what_passed_and_what_did_not(self) -> None:
-        passed, failed, _, _, examples = singlestep.run_tests([a_test(), a_test()])
+        # Arrange
+        cases = [a_test(), a_test()]
 
+        # Act
+        passed, failed, _, examples = singlestep.run_tests(cases)
+
+        # Assert
         self.assertEqual((passed, failed), (2, 0))
         self.assertEqual(examples, [])
 
     def test_a_failing_case_is_kept_as_an_example(self) -> None:
+        # Arrange
         broken = a_test()
         broken["final"] = dict(broken["final"], a=0x9999)
 
-        passed, failed, _, _, examples = singlestep.run_tests([broken])
+        # Act
+        passed, failed, _, examples = singlestep.run_tests([broken])
 
+        # Assert
         self.assertEqual((passed, failed), (0, 1))
         self.assertEqual(examples[0][0], "ea n 0")
 
     def test_only_a_few_examples_are_kept(self) -> None:
+        # Arrange
         broken = a_test()
         broken["final"] = dict(broken["final"], a=0x9999)
 
-        _, _, _, _, examples = singlestep.run_tests([broken] * 50)
+        # Act
+        _, _, _, examples = singlestep.run_tests([broken] * 50)
 
+        # Assert
         self.assertLessEqual(len(examples), singlestep.EXAMPLE_LIMIT)
 
     def test_a_register_the_test_leaves_out_is_not_compared(self) -> None:
@@ -155,36 +166,30 @@ class RunTest(unittest.TestCase):
         self.assertIn(("e", 1, 0), singlestep.check(wrong))
 
     def test_a_case_that_raises_is_counted_rather_than_ending_the_run(self) -> None:
+        # Arrange
         broken = a_test()
         broken["initial"] = dict(broken["initial"], ram="not a list of pairs")
 
-        passed, failed, _, _, examples = singlestep.run_tests([broken, a_test()])
+        # Act
+        passed, failed, _, examples = singlestep.run_tests([broken, a_test()])
 
+        # Assert
         self.assertEqual((passed, failed), (1, 1))
         self.assertEqual(examples[0][1][0][0], "raised")
 
 
-class RecordedDivergenceTest(unittest.TestCase):
-    def a_pull(self, **changes: Any) -> dict[str, Any]:
-        held = a_test(name="ab e 75")
-        held["initial"] = dict(held["initial"], **{"e": 1, "s": 0x01FF, **changes})
-        return held
-
-    def test_a_run_counts_it_apart_from_what_agreed_and_what_failed(self) -> None:
-        wrong = self.a_pull()
+class TopOfPageOnePullTest(unittest.TestCase):
+    def test_a_data_bank_pull_at_the_top_of_page_one_is_held_to_the_recording(self) -> None:
+        # Arrange
+        wrong = a_test(name="ab e 75")
+        wrong["initial"] = dict(wrong["initial"], **{"e": 1, "s": 0x01FF})
         wrong["final"] = dict(wrong["final"], dbr=0xFF)
 
-        passed, failed, skipped, _, _ = singlestep.run_tests([wrong], model="65816")
+        # Act
+        passed, failed, _, _ = singlestep.run_tests([wrong], model="65816")
 
-        self.assertEqual((passed, failed, skipped), (0, 0, 1))
-
-    def test_and_a_case_that_simply_fails_is_still_a_failure(self) -> None:
-        wrong = self.a_pull(s=0x01FE)
-        wrong["final"] = dict(wrong["final"], dbr=0xFF)
-
-        passed, failed, skipped, _, _ = singlestep.run_tests([wrong], model="65816")
-
-        self.assertEqual((passed, failed, skipped), (0, 1, 0))
+        # Assert
+        self.assertEqual((passed, failed), (0, 1))
 
 
 class FileTest(unittest.TestCase):
@@ -199,17 +204,23 @@ class FileTest(unittest.TestCase):
         return path
 
     def test_a_file_runs_every_case_it_holds(self) -> None:
+        # Arrange
         path = self.write("ea.n.json", [a_test(), a_test()])
 
-        passed, failed, _, _, _ = singlestep.run_file(path)
+        # Act
+        passed, failed, _, _ = singlestep.run_file(path)
 
+        # Assert
         self.assertEqual((passed, failed), (2, 0))
 
     def test_a_limit_takes_only_the_first_few_cases(self) -> None:
+        # Arrange
         path = self.write("ea.n.json", [a_test()] * 10)
 
-        passed, failed, _, _, _ = singlestep.run_file(path, limit=3)
+        # Act
+        passed, failed, _, _ = singlestep.run_file(path, limit=3)
 
+        # Assert
         self.assertEqual((passed, failed), (3, 0))
 
 
@@ -247,18 +258,20 @@ class MainTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("no suite at", output)
 
-    def test_a_recorded_divergence_is_named_rather_than_counted_as_a_pass(self) -> None:
+    def test_a_pull_at_the_top_of_page_one_is_compared_like_any_other_case(self) -> None:
+        # Arrange
         held = a_test(name="ab e 75")
         held["initial"] = dict(held["initial"], **{"e": 1, "s": 0x01FF})
         held["final"] = dict(held["final"], dbr=0xFF)
         self.write("ab.e.json", [held])
 
+        # Act
         code, output = self.run_main([str(self.root), "--model", "65816"])
 
-        self.assertEqual(code, 0)
-        self.assertIn("0 agreed, 0 did not", output)
-        self.assertIn("1 left out as recorded divergences", output)
-        self.assertIn("divergences.json", output)
+        # Assert
+        self.assertEqual(code, 1)
+        self.assertIn("0 agreed, 1 did not", output)
+        self.assertNotIn("left out", output)
 
     def test_a_passing_suite_reports_success(self) -> None:
         self.write("ea.n.json", [a_test(), a_test()])
@@ -346,8 +359,13 @@ class NarrowPartTest(unittest.TestCase):
         self.assertEqual(singlestep.check(case, model="6502")[0][0], "a")
 
     def test_a_case_that_agrees_is_counted_as_agreeing(self) -> None:
-        passed, failed, _, _, _ = singlestep.run_tests([self.case()], model="2a03")
+        # Arrange
+        case = self.case()
 
+        # Act
+        passed, failed, _, _ = singlestep.run_tests([case], model="2a03")
+
+        # Assert
         self.assertEqual((passed, failed), (1, 0))
 
 
@@ -401,18 +419,26 @@ class RefusalTest(unittest.TestCase):
 
 class EmptyFileTest(unittest.TestCase):
     def test_an_empty_file_holds_no_cases(self) -> None:
-        with tempfile.TemporaryDirectory() as where:
-            path = Path(where) / "cb.json"
-            path.write_text("")
+        # Arrange
+        path = Path(tempfile.mkdtemp()) / "cb.json"
+        path.write_text("")
 
-            self.assertEqual(singlestep.run_file(path, model="6502"), (0, 0, 0, 0, []))
+        # Act
+        held = singlestep.run_file(path, model="6502")
+
+        # Assert
+        self.assertEqual(held, (0, 0, 0, []))
 
     def test_a_file_holding_only_whitespace_is_the_same(self) -> None:
-        with tempfile.TemporaryDirectory() as where:
-            path = Path(where) / "db.json"
-            path.write_text("\n  \n")
+        # Arrange
+        path = Path(tempfile.mkdtemp()) / "db.json"
+        path.write_text("\n  \n")
 
-            self.assertEqual(singlestep.run_file(path, model="6502"), (0, 0, 0, 0, []))
+        # Act
+        held = singlestep.run_file(path, model="6502")
+
+        # Assert
+        self.assertEqual(held, (0, 0, 0, []))
 
 
 if __name__ == "__main__":

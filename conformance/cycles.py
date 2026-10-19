@@ -9,7 +9,10 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from conformance.divergent import differs_only_where_excused, recorded_divergence  # noqa: E402
+from conformance.divergent import (  # noqa: E402
+    differs_only_where_excused,
+    restated,
+)
 from conformance.singlestep import (  # noqa: E402
     DEFAULT_MODEL,
     Usage,
@@ -64,7 +67,7 @@ def only_placeholder(test: Mapping[str, Any], seen: Sequence[Cycle]) -> bool:
 
 def check(test: Mapping[str, Any], model: str = DEFAULT_MODEL) -> list[Cycle] | None:
     try:
-        cpu, _ = machine_for(test["initial"], model)
+        cpu, _ = machine_for(restated(test, model)["initial"], model)
         if not hasattr(cpu, "trace"):
             raise Unsupported(f"a {model} does not record what it puts on the bus")
         if hasattr(cpu, "cycle_budget"):
@@ -93,7 +96,7 @@ def run_tests(tests: Iterable[Mapping[str, Any]], model: str = DEFAULT_MODEL) ->
         if seen is None:
             agreed += 1
             continue
-        if only_placeholder(test, seen) or recorded_divergence(test, model):
+        if only_placeholder(test, seen):
             skipped += 1
             continue
         if differs_only_where_excused(test, model, recorded(test), seen):
@@ -186,8 +189,7 @@ def main(argv: Sequence[str]) -> int:
     if empty:
         print(f"  {len(empty)} files hold no cases: {' '.join(empty)}")
     print(
-        f"  {agreed} agreed cycle for cycle, {differed} did not,"
-        f" {skipped} left out as placeholders or recorded divergences"
+        f"  {agreed} agreed cycle for cycle, {differed} did not, {skipped} left out as placeholders"
     )
     if excused:
         print(

@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16**品種、**17,900,000**件の状態ケースと**17,870,080**件のサイクル精度ケースを比較、説明のつかない失敗は**0**件、テスト**1,601**件、ステートメントとブランチのカバレッジ**100%**、依存関係なし
+**16**品種、**17,900,000**件の状態ケースと**17,870,080**件のサイクル精度ケースを比較、説明のつかない失敗は**0**件、テスト**1,600**件、ステートメントとブランチのカバレッジ**100%**、依存関係なし
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -423,15 +423,15 @@ python3 -m conformance.singlestep ~/.cache/conformance-suites/6502/6502/v1 --mod
 python3 -m conformance.cycles ~/.cache/conformance-suites/6502/6502/v1 --model 6502
 ```
 
-どちらの合計も[`conformance/suites.json`](conformance/suites.json)から導出され、テストがこのページをその値に保っています。wdc65c02スイートは`WAI`と`STP`のファイルを空で配布しています。サイクルの合計からは、追加のサイクルがどのレジスタも生成しない一定のアドレスで記録されている29,920件のCMOS十進ケースを除いています。このコアがスイートではなくデータシートに従う箇所について、どちらのランナーも別扱いにした65816のケースの件数を表示します。条件によって除くのは38ケースで、エミュレーションのスタックポインタがページ1の先頭にあるときの1バイトのプルが37ケース、整列したダイレクトページの末尾から始まる`(d,x)`のポインタが1ケースです。残りは2つの読み方が食い違う部分以外をすべて比較します。エミュレーションの`BRK`と`COP`の19,924ケースではデータバンクレジスタ、スタックポインタがページ1の末尾にある`JSR (a,x)`の43ケースではスタックへの書き込み1回のアドレスです。
+どちらの合計も[`conformance/suites.json`](conformance/suites.json)から導出され、テストがこのページをその値に保っています。wdc65c02スイートは`WAI`と`STP`のファイルを空で配布しています。サイクルの合計からは、追加のサイクルがどのレジスタも生成しない一定のアドレスで記録されている29,920件のCMOS十進ケースを除いています。このコアがスイートではなく別の情報源に従う箇所について、どちらのランナーも別扱いにした65816のケースの件数を表示します。除くケースはありません。どのケースも読み方が食い違う部分以外をすべて比較します。エミュレーションの`BRK`と`COP`の19,924ケースではデータバンクレジスタ、スタックポインタがページ1の末尾にある`JSR (a,x)`の43ケースではスタックへの書き込み1回のアドレス、ポインタがページの末尾で終わるエミュレーションの`(d,x)`の265ケースではポインタの2バイト目のアドレスです。最後のものでは、このコアはgilyonのテストプログラムに従います。
 
 [`conformance/hardware.json`](conformance/hardware.json)はメーカーのページから取ったすべての事実を、出典の文とページとともに保持しており、テストがコードをそれらに合わせています。[`conformance/addressing-cycles.json`](conformance/addressing-cycles.json)と[`conformance/instruction-set.json`](conformance/instruction-set.json)は、ハードウェアマニュアルのAppendix AとプログラミングマニュアルのAppendix Bを印刷されたとおりに保持しています。[`conformance/divergences.json`](conformance/divergences.json)は2つの出典が食い違う23か所について、このパッケージがどちらに従うか、それぞれ何があれば決着するかを記録しています。`python3 -m conformance.quotes`は引用したすべての文をその文書内で見つけます。
 
-スイートはコミットで固定されています。週次のジョブが各上流の最新でスイートを実行し、新しいスイートが合格すればプルリクエストを、失敗すればissueを開きます。[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)には、文書とスイートでは決着しない14の問いを、それを解決する実機での測定とともに挙げています。
+スイートはコミットで固定されています。週次のジョブが各上流の最新でスイートを実行し、新しいスイートが合格すればプルリクエストを、失敗すればissueを開きます。[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)には、文書とスイートでは決着しない12の問いを、それを解決する実機での測定とともに挙げています。
 
 素のプロセッサ上で、完結したテストプログラムも2本実行します。Klaus Dormannの6502機能テストは6502として合格し、65C02拡張オペコードテストはr65c02とw65c02として合格します。どちらも1つのアドレスでループして停止し、どのアドレスが合格を意味するかは彼のリストに書かれています。[`conformance/exercisers.json`](conformance/exercisers.json)はそれぞれの停止位置を記録し、取得元のコミットを固定しています。`python3 -m conformance.exercisers`は`MOS65XX_EXERCISERS`で指定したチェックアウトから実行します。[`conformance/testroms.json`](conformance/testroms.json)は、これらのパーツ向けのほかのテストプログラムと、それぞれが待っているメンバーを列挙しています。
 
-これらのパーツが搭載された機械向けに書かれたテストプログラムも実行します。`python3 -m conformance.routines`は工場用およびサービス用の6つのテストイメージからプロセッサのルーチンを取り出し、それが書くフラグまで実行します。6つとも合格し、[`conformance/routines.json`](conformance/routines.json)に記録しています。`python3 -m conformance.screens`は30本のテストプログラムをリセットから実行し、機械の残りの部分は[`conformance/board.py`](conformance/board.py)が代わりを務め、表示されたテキストを読み戻します。Peter Lemonの23本とShay Greenの6本は合格し、gilyonのものはエミュレーションモードのPLBと`(d,x)`に関する2つの未解決の問題にあたる13のテストで止まります。[`conformance/screens.json`](conformance/screens.json)に記録しています。どちらも`MOS65XX_TEST_IMAGES`が示すフォルダからSHA-256でイメージを見つけます。
+これらのパーツが搭載された機械向けに書かれたテストプログラムも実行します。`python3 -m conformance.routines`は工場用およびサービス用の6つのテストイメージからプロセッサのルーチンを取り出し、それが書くフラグまで実行します。6つとも合格し、[`conformance/routines.json`](conformance/routines.json)に記録しています。`python3 -m conformance.screens`は30本のテストプログラムをリセットから実行し、機械の残りの部分は[`conformance/board.py`](conformance/board.py)が代わりを務め、表示されたテキストを読み戻します。Peter Lemonの23本とShay Greenの6本は合格し、gilyonのものはどこでも止まらずSuccessに到達します。[`conformance/screens.json`](conformance/screens.json)に記録しています。どちらも`MOS65XX_TEST_IMAGES`が示すフォルダからSHA-256でイメージを見つけます。
 
 ## 開発に参加する
 

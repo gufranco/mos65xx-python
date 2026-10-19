@@ -43,69 +43,7 @@ def recorded_subjects() -> list[str]:
     return [str(one["subject"]) for one in held]
 
 
-class OnePullTest(unittest.TestCase):
-    def test_a_pull_at_the_page_edge_is_named(self) -> None:
-        # Arrange
-        case = a_case("ab e 75", s=0x01FF)
-
-        # Act
-        found = divergent.recorded_divergence(case, "65816")
-
-        # Assert
-        self.assertIn("one byte pull", found)
-
-    def test_one_anywhere_else_in_the_page_is_not(self) -> None:
-        # Arrange
-        case = a_case("ab e 75", s=0x01FE)
-
-        # Act
-        found = divergent.recorded_divergence(case, "65816")
-
-        # Assert
-        self.assertEqual(found, "")
-
-    def test_nor_is_one_in_native_mode(self) -> None:
-        # Arrange
-        case = a_case("ab n 75", s=0x01FF, e=0)
-
-        # Act
-        found = divergent.recorded_divergence(case, "65816")
-
-        # Assert
-        self.assertEqual(found, "")
-
-    def test_nor_is_a_different_opcode_at_the_same_edge(self) -> None:
-        # Arrange
-        case = a_case("68 e 75", s=0x01FF)
-
-        # Act
-        found = divergent.recorded_divergence(case, "65816")
-
-        # Assert
-        self.assertEqual(found, "")
-
-    def test_nor_is_it_left_out_for_another_part(self) -> None:
-        # Arrange
-        case = a_case("ab e 75", s=0x01FF)
-
-        # Act
-        found = divergent.recorded_divergence(case, "6502")
-
-        # Assert
-        self.assertEqual(found, "")
-
-
 class TableCallTest(unittest.TestCase):
-    def test_a_call_at_the_bottom_of_page_one_is_compared_rather_than_left_out(self) -> None:
-        # Arrange
-        case = a_case("fc e 458", s=0x0100)
-
-        # Act
-        found = divergent.recorded_divergence(case, "65816")
-
-        # Assert
-        self.assertEqual(found, "")
-
     def test_and_only_the_two_bytes_the_readings_disagree_on_are_excused(self) -> None:
         # Arrange
         case = a_case("fc e 458", s=0x0100)
@@ -129,56 +67,93 @@ class TableCallTest(unittest.TestCase):
         self.assertEqual(left, wrong)
 
 
+def an_unaligned_pointer(**initial: Any) -> dict[str, Any]:
+    ram = [[0x008000, 0xA1], [0x008001, 0xF7], [0x0002FF, 0x34], [0x000300, 0x12]]
+    held = {"d": 0x011A, "x": 0x00EE, "dbr": 0x7F, "ram": [*ram, [0x7F1234, 0xED]]}
+    return a_case("a1 e 1", **{**held, **initial})
+
+
 class PointerTest(unittest.TestCase):
-    def test_a_pointer_starting_at_the_end_of_an_aligned_page_is_named(self) -> None:
+    def test_an_unaligned_pointer_ending_a_page_names_both_second_byte_addresses(self) -> None:
         # Arrange
-        case = a_case("e1 e 8669")
+        case = an_unaligned_pointer()
 
         # Act
-        found = divergent.recorded_divergence(case, "65816")
+        found = divergent.pointer_pair(case, "65816")
 
         # Assert
-        self.assertIn("multi-byte pointer", found)
+        self.assertEqual(found, (0x000300, 0x000200))
 
-    def test_one_that_stops_short_of_the_end_is_not(self) -> None:
+    def test_an_aligned_pointer_ending_its_page_names_the_next_page_and_its_own(self) -> None:
         # Arrange
-        case = a_case("e1 e 8669", x=0x04)
+        case = a_case("e1 e 8669", ram=[[0x008000, 0xE1], [0x008001, 0xFA]])
 
         # Act
-        found = divergent.recorded_divergence(case, "65816")
+        found = divergent.pointer_pair(case, "65816")
 
         # Assert
-        self.assertEqual(found, "")
+        self.assertEqual(found, (0x000100, 0x000000))
 
-    def test_nor_is_one_with_an_unaligned_direct_register(self) -> None:
+    def test_one_that_stops_short_of_the_end_names_nothing(self) -> None:
         # Arrange
-        case = a_case("e1 e 8669", d=0x0001)
+        case = an_unaligned_pointer(x=0x00ED)
 
         # Act
-        found = divergent.recorded_divergence(case, "65816")
+        found = divergent.pointer_pair(case, "65816")
 
         # Assert
-        self.assertEqual(found, "")
+        self.assertIsNone(found)
 
-    def test_nor_is_one_whose_operand_the_case_does_not_carry(self) -> None:
+    def test_nor_does_one_whose_operand_the_case_does_not_carry(self) -> None:
         # Arrange
         case = a_case("e1 e 8669", ram=[[0x008000, 0xE1]])
 
         # Act
-        found = divergent.recorded_divergence(case, "65816")
+        found = divergent.pointer_pair(case, "65816")
 
         # Assert
-        self.assertEqual(found, "")
+        self.assertIsNone(found)
 
-    def test_nor_is_another_mode_reading_the_same_pointer(self) -> None:
+    def test_nor_another_mode_or_another_part(self) -> None:
         # Arrange
-        case = a_case("b2 e 8669")
+        cases = [(a_case("b2 e 1"), "65816"), (an_unaligned_pointer(), "6502")]
 
         # Act
-        found = divergent.recorded_divergence(case, "65816")
+        found = [divergent.pointer_pair(case, model) for case, model in cases]
 
         # Assert
-        self.assertEqual(found, "")
+        self.assertEqual(found, [None, None])
+
+    def test_the_byte_the_recording_read_is_placed_where_this_part_reads_it(self) -> None:
+        # Arrange
+        case = an_unaligned_pointer()
+
+        # Act
+        restated = divergent.restated(case, "65816")
+
+        # Assert
+        self.assertEqual(restated["initial"]["ram"][-1], [0x000200, 0x12])
+
+    def test_a_case_without_the_recorded_byte_is_left_as_it_is(self) -> None:
+        # Arrange
+        case = an_unaligned_pointer(ram=[[0x008000, 0xA1], [0x008001, 0xF7]])
+
+        # Act
+        restated = divergent.restated(case, "65816")
+
+        # Assert
+        self.assertIs(restated, case)
+
+    def test_only_the_moved_byte_is_excused(self) -> None:
+        # Arrange
+        case = an_unaligned_pointer()
+        wrong = [("$000200", 0x77, 0x12), ("a", 0x11ED, 0x1112)]
+
+        # Act
+        left = divergent.unexplained(case, wrong, "65816")
+
+        # Assert
+        self.assertEqual(left, [("a", 0x11ED, 0x1112)])
 
 
 class DataBankTest(unittest.TestCase):
@@ -226,23 +201,12 @@ class DataBankTest(unittest.TestCase):
         # Assert
         self.assertEqual(left, wrong)
 
-    def test_a_case_left_out_outright_has_nothing_excused_field_by_field(self) -> None:
-        # Arrange
-        case = a_case("ab e 75", s=0x01FF)
-        wrong = [("$000200", 0x01, 0x02)]
-
-        # Act
-        left = divergent.unexplained(case, wrong, "65816")
-
-        # Assert
-        self.assertEqual(left, wrong)
-
 
 class RecordTest(unittest.TestCase):
     def test_every_condition_names_a_divergence_the_record_explains(self) -> None:
         # Arrange
         named = [
-            *(subject for subject, _ in divergent.DIVERGENT),
+            divergent.POINTER_SUBJECT,
             *(subject for subject, _, _ in divergent.EXCUSED_FIELDS),
             *(subject for subject, _, _ in divergent.EXCUSED_ADDRESSES),
         ]
@@ -284,10 +248,10 @@ class RunTest(unittest.TestCase):
         case = a_break(dbr=0x12)
 
         # Act
-        counted = singlestep.run_tests([case], model="65816")[:4]
+        counted = singlestep.run_tests([case], model="65816")[:3]
 
         # Assert
-        self.assertEqual(counted, (0, 0, 0, 1))
+        self.assertEqual(counted, (0, 0, 1))
 
     def test_and_one_that_also_differs_elsewhere_still_fails(self) -> None:
         # Arrange
@@ -297,7 +261,7 @@ class RunTest(unittest.TestCase):
         counted = singlestep.run_tests([case], model="65816")
 
         # Assert
-        self.assertEqual((*counted[:4], counted[4][0][1]), (0, 1, 0, 0, [("a", 0x9999, 0x1234)]))
+        self.assertEqual((*counted[:3], counted[3][0][1]), (0, 1, 0, [("a", 0x9999, 0x1234)]))
 
     def test_the_state_runner_says_how_many_it_excused(self) -> None:
         # Arrange
@@ -308,6 +272,33 @@ class RunTest(unittest.TestCase):
 
         # Assert
         self.assertIn("1 agreed in every field but those a recorded divergence names", said)
+
+
+class PointerRunTest(unittest.TestCase):
+    def test_a_recorded_load_through_the_next_page_agrees_once_the_byte_is_moved(self) -> None:
+        # Arrange
+        case = an_unaligned_pointer()
+        expected = singlestep.machine_for(divergent.restated(case, "65816")["initial"], "65816")[0]
+        expected.step()
+        recorded = {**case, "final": {"a": expected.a, "p": expected.status()}}
+
+        # Act
+        counted = singlestep.run_tests([recorded], model="65816")[:3]
+
+        # Assert
+        self.assertEqual(counted, (1, 0, 0))
+
+    def test_its_cycles_differ_only_at_the_second_pointer_byte(self) -> None:
+        # Arrange
+        case = an_unaligned_pointer()
+        seen = cycles.check(case, "65816") or []
+        recorded = [[0x000300 if one[0] == 0x000200 else one[0], one[1], one[2]] for one in seen]
+
+        # Act
+        counted = cycles.run_tests([{**case, "cycles": recorded}], "65816")[:4]
+
+        # Assert
+        self.assertEqual(counted, (0, 0, 0, 1))
 
 
 class CycleTest(unittest.TestCase):
