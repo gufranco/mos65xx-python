@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16**品種、**17,900,000**件の状態ケースと**17,870,080**件のサイクル精度ケースを比較、説明のつかない失敗は**0**件、テスト**1,545**件、ステートメントとブランチのカバレッジ**100%**、依存関係なし
+**16**品種、**17,900,000**件の状態ケースと**17,870,080**件のサイクル精度ケースを比較、説明のつかない失敗は**0**件、テスト**1,601**件、ステートメントとブランチのカバレッジ**100%**、依存関係なし
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -219,20 +219,22 @@ gave up after 100 instructions at $31D0
 
 ### コマンドラインツール
 
-| コマンド                            | 引数                                                                                                                                                                                            | 終了コード                                                                                 |
-| :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------- |
-| `python3 mos65xx/doctor.py`         | なし                                                                                                                                                                                            | すべてのチェックに合格すれば0、それ以外は1                                                 |
-| `python3 -m conformance.fetch`      | `[directory] [--latest]`。デフォルトは`~/.cache/conformance-suites`。`--latest`は固定版の代わりに各上流の最新を取得します。既存のコピーは固定版へ移し、固定版で終わらないコピーは実行を止めます | 0、または上流に到達できない場合は1                                                         |
-| `python3 -m conformance.singlestep` | `<suite directory> [tests per file] [filter] [--model name]`。デフォルトのモデルは`65816`                                                                                                       | すべてのケースが一致するかスイートがなければ0、不一致があれば1、引数が不正なら2            |
-| `python3 -m conformance.cycles`     | `singlestep`と同じ                                                                                                                                                                              | `singlestep`と同じ                                                                         |
-| `python3 -m conformance.documents`  | `[--check] [--only substring]`                                                                                                                                                                  | すべてのダイジェストが一致すれば0、1つでも拒否されるか引数が不正なら1                      |
-| `python3 -m conformance.quotes`     | なし                                                                                                                                                                                            | すべての引用が文書内に見つかるか文書がなければ0、それ以外は1                               |
-| `python3 -m conformance.speed`      | `[--instructions N] [--repeats N]`。デフォルトは200,000と7                                                                                                                                      | 下限の毎秒700,000サイクルを上回れば0、下回れば1、引数が不正なら2                           |
-| `python3 -m conformance.netlist`    | なし。`NETLIST`変数を読みます                                                                                                                                                                   | すべてのケースが一致するかシミュレーションが設定されていなければ0、それ以外は1             |
-| `python3 -m conformance.exercisers` | なし。`MOS65XX_EXERCISERS`変数を読みます                                                                                                                                                        | すべてのエクササイザがリストの合格アドレスで止まれば0、それ以外は1、何も実行しなければ2    |
-| `python3 -m conformance.links`      | なし                                                                                                                                                                                            | 0、または引用したアドレスが404か410を返した場合は1                                         |
-| `python3 -m conformance.watch`      | `[definition] [--moved]`                                                                                                                                                                        | 0、または定義が読めないか食い違う場合は1                                                   |
-| `python3 -m conformance.package`    | `<wheel>`                                                                                                                                                                                       | すべてのモジュールがwheelに含まれテストが含まれていなければ0、それ以外は1、引数がなければ2 |
+| コマンド                            | 引数                                                                                                                                                                                            | 終了コード                                                                                        |
+| :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------ |
+| `python3 mos65xx/doctor.py`         | なし                                                                                                                                                                                            | すべてのチェックに合格すれば0、それ以外は1                                                        |
+| `python3 -m conformance.fetch`      | `[directory] [--latest]`。デフォルトは`~/.cache/conformance-suites`。`--latest`は固定版の代わりに各上流の最新を取得します。既存のコピーは固定版へ移し、固定版で終わらないコピーは実行を止めます | 0、または上流に到達できない場合は1                                                                |
+| `python3 -m conformance.singlestep` | `<suite directory> [tests per file] [filter] [--model name]`。デフォルトのモデルは`65816`                                                                                                       | すべてのケースが一致するかスイートがなければ0、不一致があれば1、引数が不正なら2                   |
+| `python3 -m conformance.cycles`     | `singlestep`と同じ                                                                                                                                                                              | `singlestep`と同じ                                                                                |
+| `python3 -m conformance.documents`  | `[--check] [--only substring]`                                                                                                                                                                  | すべてのダイジェストが一致すれば0、1つでも拒否されるか引数が不正なら1                             |
+| `python3 -m conformance.quotes`     | なし                                                                                                                                                                                            | すべての引用が文書内に見つかるか文書がなければ0、それ以外は1                                      |
+| `python3 -m conformance.speed`      | `[--instructions N] [--repeats N]`。デフォルトは200,000と7                                                                                                                                      | 下限の毎秒700,000サイクルを上回れば0、下回れば1、引数が不正なら2                                  |
+| `python3 -m conformance.netlist`    | なし。`NETLIST`変数を読みます                                                                                                                                                                   | すべてのケースが一致するかシミュレーションが設定されていなければ0、それ以外は1                    |
+| `python3 -m conformance.exercisers` | なし。`MOS65XX_EXERCISERS`変数を読みます                                                                                                                                                        | すべてのエクササイザがリストの合格アドレスで止まれば0、それ以外は1、何も実行しなければ2           |
+| `python3 -m conformance.routines`   | なし。`MOS65XX_TEST_IMAGES`変数を読みます。1つ以上のフォルダ                                                                                                                                    | すべてのルーチンが合格フラグを書き、すべてのコピーが一致すれば0、それ以外は1、何も実行しなければ2 |
+| `python3 -m conformance.screens`    | なし。`MOS65XX_TEST_IMAGES`変数を読みます                                                                                                                                                       | すべてのプログラムが判定を表示し、どこでも止まらなければ0、それ以外は1、何も実行しなければ2       |
+| `python3 -m conformance.links`      | なし                                                                                                                                                                                            | 0、または引用したアドレスが404か410を返した場合は1                                                |
+| `python3 -m conformance.watch`      | `[definition] [--moved]`                                                                                                                                                                        | 0、または定義が読めないか食い違う場合は1                                                          |
+| `python3 -m conformance.package`    | `<wheel>`                                                                                                                                                                                       | すべてのモジュールがwheelに含まれテストが含まれていなければ0、それ以外は1、引数がなければ2        |
 
 ## 実速度で動かす
 
@@ -428,6 +430,8 @@ python3 -m conformance.cycles ~/.cache/conformance-suites/6502/6502/v1 --model 6
 スイートはコミットで固定されています。週次のジョブが各上流の最新でスイートを実行し、新しいスイートが合格すればプルリクエストを、失敗すればissueを開きます。[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)には、文書とスイートでは決着しない14の問いを、それを解決する実機での測定とともに挙げています。
 
 素のプロセッサ上で、完結したテストプログラムも2本実行します。Klaus Dormannの6502機能テストは6502として合格し、65C02拡張オペコードテストはr65c02とw65c02として合格します。どちらも1つのアドレスでループして停止し、どのアドレスが合格を意味するかは彼のリストに書かれています。[`conformance/exercisers.json`](conformance/exercisers.json)はそれぞれの停止位置を記録し、取得元のコミットを固定しています。`python3 -m conformance.exercisers`は`MOS65XX_EXERCISERS`で指定したチェックアウトから実行します。[`conformance/testroms.json`](conformance/testroms.json)は、これらのパーツ向けのほかのテストプログラムと、それぞれが待っているメンバーを列挙しています。
+
+これらのパーツが搭載された機械向けに書かれたテストプログラムも実行します。`python3 -m conformance.routines`は工場用およびサービス用の6つのテストイメージからプロセッサのルーチンを取り出し、それが書くフラグまで実行します。6つとも合格し、[`conformance/routines.json`](conformance/routines.json)に記録しています。`python3 -m conformance.screens`は30本のテストプログラムをリセットから実行し、機械の残りの部分は[`conformance/board.py`](conformance/board.py)が代わりを務め、表示されたテキストを読み戻します。Peter Lemonの23本とShay Greenの6本は合格し、gilyonのものはエミュレーションモードのPLBと`(d,x)`に関する2つの未解決の問題にあたる13のテストで止まります。[`conformance/screens.json`](conformance/screens.json)に記録しています。どちらも`MOS65XX_TEST_IMAGES`が示すフォルダからSHA-256でイメージを見つけます。
 
 ## 開発に参加する
 

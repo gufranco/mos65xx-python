@@ -208,11 +208,44 @@ into a notice. CI fetches them at the pinned commit, so it runs both on every
 push. Nothing watches that pin: the upstream last moved on 2020-01-05, and a
 move has to be noticed by hand with `git ls-remote`.
 
-**The rest wait on `snes-machine`**, a whole-machine member no plan names yet.
-They are the 65816 tests that print their verdict on a screen, Peter Lemon's,
-gilyon's, Shay Green's ADC and SBC tests and Sour's instruction timing test, and
-the factory and service tests whose text names a CPU test. None of them reports
-anything without the video hardware around the processor.
+**Six factory and service routines run here, taken out of their images.** The
+burn-in, SNSP aging, control deck, NTF 2.5 and overdumped Test Program images
+each hold a processor routine: BIT on a zero accumulator, a long indirect load
+of `$7777`, and two 256-byte block moves, with SNSP adding fills under a moved
+direct page. Aging Program 1.00 holds a work RAM mirror routine.
+[`conformance/routines.py`](conformance/routines.py) runs each on this processor
+from its entry to the write of its pass flag, after a prelude of this project's
+own, and compares every block move with its source. All six write `$FF` and
+every copy matches, as [`conformance/routines.json`](conformance/routines.json)
+records.
+
+**Thirty whole test programs run from reset.** Peter Lemon's 23 65816 tests,
+gilyon's 65816 test and Shay Green's six ADC and SBC tests print their own
+verdicts. [`conformance/screens.py`](conformance/screens.py) runs each on this
+processor with [`conformance/board.py`](conformance/board.py) standing in for
+the rest: the memory map, work RAM, video memory read as text, the vblank flags
+with the open bus beside them, and a pad that presses A and lets go. Every one
+of Peter Lemon's prints every PASS its source prints, MSC apart: its WAI waits
+for an interrupt only the 5A22 raises, so it waits on `snes-cpu-io`, and its STP
+asks for a reset. Shay Green's six print Passed. gilyon's reaches Success after
+stopping on thirteen tests, every one of them a behaviour two open questions
+already hold: PLB at the top of emulation page one, and `(d,x)` with an
+unaligned direct register. Nothing was changed on its word; the runner reports
+it and exits 1, and [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) says what would
+settle each. [`conformance/screens.json`](conformance/screens.json) holds what
+every program printed.
+
+```bash
+MOS65XX_TEST_IMAGES=/path/to/images:/another/path python3 -m conformance.routines
+MOS65XX_TEST_IMAGES=/path/to/images:/another/path python3 -m conformance.screens
+```
+
+Images are found by SHA-256 under any name. Without the variable both run
+nothing, say so and exit 2, and CI turns that into a notice.
+
+**Two wait on a planned member.** Sour's instruction timing test times each
+instruction with the S-PPU's latched counters, so it waits on `snes-ppu`. The
+SA-1 speed test times the SA-1, so it waits on `snes-sa1`.
 
 ## Every gate, in the order to run them
 
@@ -344,6 +377,11 @@ conformance/
   exercisers.py  Klaus Dormann's exercisers, run to the address each one stops at
   exercisers.json  the verdicts they reached, and the commit they come from
   testroms.json  every test program that exercises these parts, and where each runs
+  board.py       what stands around the processor when a whole test program runs
+  routines.py    processor routines taken out of factory test images, run to their flag
+  routines.json  what each routine did
+  screens.py     whole test programs run from reset and read off the text they print
+  screens.json   what each printed
 ```
 
 ## Things that will bite you

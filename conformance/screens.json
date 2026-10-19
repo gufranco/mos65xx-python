@@ -1,0 +1,697 @@
+{
+  "what": "Whole test programs for this processor that report on a screen, run from reset on this processor with conformance/board.py standing in for everything around it, and read back off the text they print. What is kept here is what they printed, never the program.",
+  "why": "Each program checks its own results and prints the verdict; nothing it tests lives outside the processor. The board gives it the memory map, work RAM, video memory read as text, the vblank flags it waits on and a pad that presses A and lets go, so a program that stops on a failure moves on to its next test.",
+  "programs": [
+    {
+      "id": "peterlemon-cpu-adc",
+      "title": "Peter Lemon's 65816 ADC test",
+      "sha256": "d6c4f5a284ce7842b8a3944b2bc51c8cde2f5932305f9b561334f4b7f49b5b4c",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/ADC/CPUADC.sfc",
+      "layout": "lorom",
+      "limit": 40000000,
+      "passes": 120,
+      "passesFrom": "PrintText(Pass occurrences in ADC/CPUADC.asm at the same commit",
+      "until": {
+        "passes": 120
+      },
+      "measured": {
+        "printed": {
+          "PASS": 120,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " CPU Test ADC (Add With Carry):\n ------------------------------\n ADC (sr,S),Y (Opcode: $73)\n Modes | Result | NVZC | Test |\n ------------------------------\n BIN,8   $00      0011   PASS\n BIN,8   $FF      1100   PASS\n BIN,16  $0000    0011   PASS\n BIN,16  $FFFF    1100   PASS\n BCD,8   $00      0111   PASS\n BCD,8   $99      1100   PASS\n BCD,16  $0000    0111   PASS\n BCD,16  $9999    1100   PASS",
+        "cycles": 200008
+      }
+    },
+    {
+      "id": "peterlemon-cpu-and",
+      "title": "Peter Lemon's 65816 AND test",
+      "sha256": "b7438031625af35e86f2c1725a7157358525ffc83ef1f15c02e3654e52ac61c6",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/AND/CPUAND.sfc",
+      "layout": "lorom",
+      "limit": 40000000,
+      "passes": 60,
+      "passesFrom": "PrintText(Pass occurrences in AND/CPUAND.asm at the same commit",
+      "until": {
+        "passes": 60
+      },
+      "measured": {
+        "printed": {
+          "PASS": 60,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " CPU Test AND (AND With Memory):\n ------------------------------\n AND (sr,S),Y (Opcode: $33)\n Modes | Result | NVZC | Test |\n ------------------------------\n BIN,8   $00      0010   PASS\n BIN,8   $FF      1000   PASS\n BIN,16  $0000    0010   PASS\n BIN,16  $FFFF    1000   PASS",
+        "cycles": 200008
+      }
+    },
+    {
+      "id": "peterlemon-cpu-asl",
+      "title": "Peter Lemon's 65816 ASL test",
+      "sha256": "0abb736aaaf683a183355e712ccb98d170bb25e1e13db456b2c21d8be4de480f",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/ASL/CPUASL.sfc",
+      "layout": "lorom",
+      "limit": 40000000,
+      "passes": 20,
+      "passesFrom": "PrintText(Pass occurrences in ASL/CPUASL.asm at the same commit",
+      "until": {
+        "passes": 20
+      },
+      "measured": {
+        "printed": {
+          "PASS": 20,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " CPU Test ASL (Shift Left):\n ------------------------------\n ASL dp,X     (Opcode: $16)\n Modes | Result | NVZC | Test |\n ------------------------------\n BIN,8   $00      0011   PASS\n BIN,8   $FE      1000   PASS\n BIN,16  $0000    0011   PASS\n BIN,16  $FFFE    1000   PASS",
+        "cycles": 200009
+      }
+    },
+    {
+      "id": "peterlemon-cpu-bit",
+      "title": "Peter Lemon's 65816 BIT test",
+      "sha256": "fdfc621bcd1f9dfcc0800b331d540af69ca70dd7e075632b144b46d9583fa15e",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/BIT/CPUBIT.sfc",
+      "layout": "lorom",
+      "limit": 40000000,
+      "passes": 36,
+      "passesFrom": "PrintText(Pass occurrences in BIT/CPUBIT.asm at the same commit",
+      "until": {
+        "passes": 36
+      },
+      "measured": {
+        "printed": {
+          "PASS": 36,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " CPU Test BIT (Test Memory):\n ------------------------------\n TSB dp       (Opcode: $04)\n Modes | Result | NVZC | Test |\n ------------------------------\n BIN,8   $00      0010   PASS\n BIN,8   $FF      0000   PASS\n BIN,16  $0000    0010   PASS\n BIN,16  $FFFF    0000   PASS",
+        "cycles": 200009
+      }
+    },
+    {
+      "id": "peterlemon-cpu-bra",
+      "title": "Peter Lemon's 65816 BRA test",
+      "sha256": "1101903669864e5917f6d1f427ee24ca95c481fd4566125576e0f5a247f0cb25",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/BRA/CPUBRA.sfc",
+      "layout": "lorom",
+      "limit": 40000000,
+      "passes": 10,
+      "passesFrom": "PrintText(Pass occurrences in BRA/CPUBRA.asm at the same commit",
+      "until": {
+        "passes": 10
+      },
+      "measured": {
+        "printed": {
+          "PASS": 10,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " CPU Test BRA (Branch):\n ------------------------------\n Type  | Opcode | NVZC | Test |\n ------------------------------\n BCC     $90      1110   PASS\n BCS     $B0      0001   PASS\n BNE     $D0      1101   PASS\n BEQ     $F0      0010   PASS\n BVC     $50      1011   PASS\n BVS     $70      0100   PASS\n BPL     $10      0111   PASS\n BMI     $30      1000   PASS\n BRA     $80      0000   PASS\n BRL     $82      0000   PASS",
+        "cycles": 200009
+      }
+    },
+    {
+      "id": "peterlemon-cpu-cmp",
+      "title": "Peter Lemon's 65816 CMP test",
+      "sha256": "b24c5e15301a0b68806157af642b39d4d38c5dfdc335eb44ddcec0d9e0222672",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/CMP/CPUCMP.sfc",
+      "layout": "lorom",
+      "limit": 40000000,
+      "passes": 84,
+      "passesFrom": "PrintText(Pass occurrences in CMP/CPUCMP.asm at the same commit",
+      "until": {
+        "passes": 84
+      },
+      "measured": {
+        "printed": {
+          "PASS": 84,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " CPU Test CMP (CMP With Memory):\n ------------------------------\n CPY dp       (Opcode: $C4)\n Modes | Result | NVZC | Test |\n ------------------------------\n BIN,8   $FF      0011   PASS\n BIN,8   $FF      1001   PASS\n BIN,16  $FFFF    0011   PASS\n BIN,16  $FFFF    1001   PASS",
+        "cycles": 200008
+      }
+    },
+    {
+      "id": "peterlemon-cpu-dec",
+      "title": "Peter Lemon's 65816 DEC test",
+      "sha256": "d0d50a863b2b3dc6d5c14aad134c1b47dbd29bdc9af37ce34d68b552f3a3dee9",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/DEC/CPUDEC.sfc",
+      "layout": "lorom",
+      "limit": 40000000,
+      "passes": 28,
+      "passesFrom": "PrintText(Pass occurrences in DEC/CPUDEC.asm at the same commit",
+      "until": {
+        "passes": 28
+      },
+      "measured": {
+        "printed": {
+          "PASS": 28,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " CPU Test DEC (Decrement):\n ------------------------------\n DEY          (Opcode: $88)\n Modes | Result | NVZC | Test |\n ------------------------------\n BIN,8   $00      0010   PASS\n BIN,8   $80      1000   PASS\n BIN,16  $0000    0010   PASS\n BIN,16  $8000    1000   PASS",
+        "cycles": 200009
+      }
+    },
+    {
+      "id": "peterlemon-cpu-eor",
+      "title": "Peter Lemon's 65816 EOR test",
+      "sha256": "4db10b39d39125dcb83cddd5f8ad329c95653eb1d3e266db7a58a1ad1c97a2bd",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/EOR/CPUEOR.sfc",
+      "layout": "lorom",
+      "limit": 40000000,
+      "passes": 60,
+      "passesFrom": "PrintText(Pass occurrences in EOR/CPUEOR.asm at the same commit",
+      "until": {
+        "passes": 60
+      },
+      "measured": {
+        "printed": {
+          "PASS": 60,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " CPU Test EOR (XOR With Memory):\n ------------------------------\n EOR (sr,S),Y (Opcode: $53)\n Modes | Result | NVZC | Test |\n ------------------------------\n BIN,8   $00      0010   PASS\n BIN,8   $FF      1000   PASS\n BIN,16  $0000    0010   PASS\n BIN,16  $FFFF    1000   PASS",
+        "cycles": 200008
+      }
+    },
+    {
+      "id": "peterlemon-cpu-inc",
+      "title": "Peter Lemon's 65816 INC test",
+      "sha256": "d32d4a8128d07970e4d652d907b2fcb51ea2d79d311d5f4a452c357644167b18",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/INC/CPUINC.sfc",
+      "layout": "lorom",
+      "limit": 40000000,
+      "passes": 28,
+      "passesFrom": "PrintText(Pass occurrences in INC/CPUINC.asm at the same commit",
+      "until": {
+        "passes": 28
+      },
+      "measured": {
+        "printed": {
+          "PASS": 28,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " CPU Test INC (Increment):\n ------------------------------\n INY          (Opcode: $C8)\n Modes | Result | NVZC | Test |\n ------------------------------\n BIN,8   $00      0010   PASS\n BIN,8   $80      1000   PASS\n BIN,16  $0000    0010   PASS\n BIN,16  $8000    1000   PASS",
+        "cycles": 200009
+      }
+    },
+    {
+      "id": "peterlemon-cpu-jmp",
+      "title": "Peter Lemon's 65816 JMP test",
+      "sha256": "8be0c153f166e11d7d384cffffe5ae27ea9c1a57eb4a1b36a85759bab2fe59a3",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/JMP/CPUJMP.sfc",
+      "layout": "lorom",
+      "limit": 40000000,
+      "passes": 8,
+      "passesFrom": "PrintText(Pass occurrences in JMP/CPUJMP.asm at the same commit",
+      "until": {
+        "passes": 8
+      },
+      "measured": {
+        "printed": {
+          "PASS": 8,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " CPU Test JMP (Jump):\n ------------------------------\n Syntax       | Opcode | Test |\n ------------------------------\n JMP addr       $4C      PASS\n JMP (addr)     $6C      PASS\n JMP (addr,X)   $7C      PASS\n JMP/JML long   $5C      PASS\n JMP/JML [addr] $DC      PASS\n JSR addr       $20      PASS\n JSR (addr,X)   $FC      PASS\n JSR/JSL long   $22      PASS",
+        "cycles": 200008
+      }
+    },
+    {
+      "id": "peterlemon-cpu-ldr",
+      "title": "Peter Lemon's 65816 LDR test",
+      "sha256": "4598006dd6ec9ce03fa6622e18178ef25a6d471926ca40abb8748c10006e92da",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/LDR/CPULDR.sfc",
+      "layout": "lorom",
+      "limit": 40000000,
+      "passes": 100,
+      "passesFrom": "PrintText(Pass occurrences in LDR/CPULDR.asm at the same commit",
+      "until": {
+        "passes": 100
+      },
+      "measured": {
+        "printed": {
+          "PASS": 100,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " CPU Test LDR (Load Memory):\n ------------------------------\n LDY dp,X     (Opcode: $B4)\n Modes | Result | NVZC | Test |\n ------------------------------\n BIN,8   $00      0010   PASS\n BIN,8   $FF      1000   PASS\n BIN,16  $0000    0010   PASS\n BIN,16  $FFFF    1000   PASS",
+        "cycles": 200008
+      }
+    },
+    {
+      "id": "peterlemon-cpu-lsr",
+      "title": "Peter Lemon's 65816 LSR test",
+      "sha256": "01517b0bd134d93fe858d536f76ea36691b23b10462b19caef693c8b67c6b60d",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/LSR/CPULSR.sfc",
+      "layout": "lorom",
+      "limit": 40000000,
+      "passes": 20,
+      "passesFrom": "PrintText(Pass occurrences in LSR/CPULSR.asm at the same commit",
+      "until": {
+        "passes": 20
+      },
+      "measured": {
+        "printed": {
+          "PASS": 20,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " CPU Test LSR (Shift Right):\n ------------------------------\n LSR dp,X     (Opcode: $56)\n Modes | Result | NVZC | Test |\n ------------------------------\n BIN,8   $00      0011   PASS\n BIN,8   $7F      0000   PASS\n BIN,16  $0000    0011   PASS\n BIN,16  $7FFF    0000   PASS",
+        "cycles": 200009
+      }
+    },
+    {
+      "id": "peterlemon-cpu-mov",
+      "title": "Peter Lemon's 65816 MOV test",
+      "sha256": "98ae96bdc5035fe9074e5b7c2dc0a8da67cb94f3d9c5668f26f936d9f99b6ab5",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/MOV/CPUMOV.sfc",
+      "layout": "lorom",
+      "limit": 40000000,
+      "passes": 8,
+      "passesFrom": "PrintText(Pass occurrences in MOV/CPUMOV.asm at the same commit",
+      "until": {
+        "passes": 8
+      },
+      "measured": {
+        "printed": {
+          "PASS": 8,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " CPU Test MOV (Block Move):\n ------------------------------\n MVP src,dest (Opcode: $44)\n Result Block    | AXY | Test |\n ------------------------------\n                  $FFFF  PASS\n                  $8AC3  PASS\n                  $0045  PASS\n $0102030405060708\n $0910111213141516\n $1718192021222324\n $2526272829303132\n $3334353637383940\n $4142434445464748\n $4950515253545556\n $5758596061626364       PASS",
+        "cycles": 200008
+      }
+    },
+    {
+      "id": "peterlemon-cpu-msc",
+      "title": "Peter Lemon's 65816 MSC test",
+      "sha256": "00fa9244fe5a086042c4ca8e9f425892dbf115b135d7a14630c88dee3fd18490",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/MSC/CPUMSC.sfc",
+      "layout": "lorom",
+      "limit": 40000000,
+      "passes": 5,
+      "passesFrom": "Six PrintText(Pass in CPUMSC.asm at the same commit. NOP, WDM, BRK and COP print theirs; WAI waits for an interrupt, which the 5A22 raises and no member models yet (snes-cpu-io), and STP asks for a reset. The fifth PASS counted is the word in the program's own header, Please Reset To PASS STP",
+      "until": {
+        "passes": 5
+      },
+      "measured": {
+        "printed": {
+          "PASS": 5,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " CPU Test MSC (Miscellaneous):\n ------------------------------\n ** Please Reset To PASS STP **\n Type  | Opcode | NVZC | Test |\n ------------------------------\n NOP     $EA      0000   PASS\n WDM     $42      0000   PASS\n BRK     $00      0000   PASS\n COP     $02      0000   PASS\n WAI     $CB      0000",
+        "cycles": 200008
+      }
+    },
+    {
+      "id": "peterlemon-cpu-ora",
+      "title": "Peter Lemon's 65816 ORA test",
+      "sha256": "e9e4fdd107faa16ec43c13756a465b02f72a576b79e6b00869931535e3922379",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/ORA/CPUORA.sfc",
+      "layout": "lorom",
+      "limit": 40000000,
+      "passes": 60,
+      "passesFrom": "PrintText(Pass occurrences in ORA/CPUORA.asm at the same commit",
+      "until": {
+        "passes": 60
+      },
+      "measured": {
+        "printed": {
+          "PASS": 60,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " CPU Test ORA (OR With Memory):\n ------------------------------\n ORA (sr,S),Y (Opcode: $13)\n Modes | Result | NVZC | Test |\n ------------------------------\n BIN,8   $00      0010   PASS\n BIN,8   $FF      1000   PASS\n BIN,16  $0000    0010   PASS\n BIN,16  $FFFF    1000   PASS",
+        "cycles": 200009
+      }
+    },
+    {
+      "id": "peterlemon-cpu-phl",
+      "title": "Peter Lemon's 65816 PHL test",
+      "sha256": "27bb4a9e21d1e1021a7287cd48c612c87888ca83b4e30323c22d24ccb0764f76",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/PHL/CPUPHL.sfc",
+      "layout": "lorom",
+      "limit": 40000000,
+      "passes": 38,
+      "passesFrom": "PrintText(Pass occurrences in PHL/CPUPHL.asm at the same commit",
+      "until": {
+        "passes": 38
+      },
+      "measured": {
+        "printed": {
+          "PASS": 38,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " CPU Test PHL (Push Pull):\n ------------------------------\n PLY          (Opcode: $7A)\n Modes | Result | NVZC | Test |\n ------------------------------\n BIN,8   $00      0010   PASS\n BIN,8   $FF      1000   PASS\n BIN,16  $0000    0010   PASS\n BIN,16  $FFFF    1000   PASS",
+        "cycles": 200010
+      }
+    },
+    {
+      "id": "peterlemon-cpu-psr",
+      "title": "Peter Lemon's 65816 PSR test",
+      "sha256": "bd85187c7da1006b7c7111a8921b9b13cc73043a89eb7353f3d4fff207273067",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/PSR/CPUPSR.sfc",
+      "layout": "lorom",
+      "limit": 40000000,
+      "passes": 9,
+      "passesFrom": "PrintText(Pass occurrences in PSR/CPUPSR.asm at the same commit",
+      "until": {
+        "passes": 9
+      },
+      "measured": {
+        "printed": {
+          "PASS": 9,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " CPU Test PSR (PSR Flags):\n ------------------------------\n Type| Opcode | NVDIZC | Test |\n ------------------------------\n CLC   $18      111110   PASS\n CLD   $D8      110111   PASS\n CLI   $58      111011   PASS\n CLV   $B8      101111   PASS\n REP   $C2      000000   PASS\n SEC   $38      000001   PASS\n SED   $F8      001000   PASS\n SEI   $78      000100   PASS\n SEP   $E2      111111   PASS",
+        "cycles": 200009
+      }
+    },
+    {
+      "id": "peterlemon-cpu-ret",
+      "title": "Peter Lemon's 65816 RET test",
+      "sha256": "0f65834dae85684202643e648166c37c8ea7364a295992c92e99506d65c7247e",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/RET/CPURET.sfc",
+      "layout": "lorom",
+      "limit": 40000000,
+      "passes": 3,
+      "passesFrom": "PrintText(Pass occurrences in RET/CPURET.asm at the same commit",
+      "until": {
+        "passes": 3
+      },
+      "measured": {
+        "printed": {
+          "PASS": 3,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " CPU Test RET (Return):\n ------------------------------\n Type  | Opcode | NVZC | Test |\n ------------------------------\n RTI     $40      0000   PASS\n RTL     $6B      0000   PASS\n RTS     $60      0000   PASS",
+        "cycles": 200009
+      }
+    },
+    {
+      "id": "peterlemon-cpu-rol",
+      "title": "Peter Lemon's 65816 ROL test",
+      "sha256": "2b9c67c63befa2d0419c9a9f9b7fe2963fbe3cf84a0663f0bd36107c5aa0b255",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/ROL/CPUROL.sfc",
+      "layout": "lorom",
+      "limit": 40000000,
+      "passes": 20,
+      "passesFrom": "PrintText(Pass occurrences in ROL/CPUROL.asm at the same commit",
+      "until": {
+        "passes": 20
+      },
+      "measured": {
+        "printed": {
+          "PASS": 20,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " CPU Test ROL (Rotate Left):\n ------------------------------\n ROL dp,X     (Opcode: $36)\n Modes | Result | NVZC | Test |\n ------------------------------\n BIN,8   $00      0011   PASS\n BIN,8   $FF      1000   PASS\n BIN,16  $0000    0011   PASS\n BIN,16  $FFFF    1000   PASS",
+        "cycles": 200008
+      }
+    },
+    {
+      "id": "peterlemon-cpu-ror",
+      "title": "Peter Lemon's 65816 ROR test",
+      "sha256": "ff73f1dd8c2dd8605f8fbc09ff4fda8312741cd382258ec09518763056792fec",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/ROR/CPUROR.sfc",
+      "layout": "lorom",
+      "limit": 40000000,
+      "passes": 20,
+      "passesFrom": "PrintText(Pass occurrences in ROR/CPUROR.asm at the same commit",
+      "until": {
+        "passes": 20
+      },
+      "measured": {
+        "printed": {
+          "PASS": 20,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " CPU Test ROR (Rotate Right):\n ------------------------------\n ROR dp,X     (Opcode: $76)\n Modes | Result | NVZC | Test |\n ------------------------------\n BIN,8   $00      0011   PASS\n BIN,8   $FF      1000   PASS\n BIN,16  $0000    0011   PASS\n BIN,16  $FFFF    1000   PASS",
+        "cycles": 200010
+      }
+    },
+    {
+      "id": "peterlemon-cpu-sbc",
+      "title": "Peter Lemon's 65816 SBC test",
+      "sha256": "b9a688dcfcf9316227de98c305a260af35c80d0a0fd48bd227a21051159634a1",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/SBC/CPUSBC.sfc",
+      "layout": "lorom",
+      "limit": 40000000,
+      "passes": 120,
+      "passesFrom": "PrintText(Pass occurrences in SBC/CPUSBC.asm at the same commit",
+      "until": {
+        "passes": 120
+      },
+      "measured": {
+        "printed": {
+          "PASS": 120,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " CPU Test SBC (Sub With Borrow):\n ------------------------------\n SBC (sr,S),Y (Opcode: $F3)\n Modes | Result | NVZC | Test |\n ------------------------------\n BIN,8   $00      0011   PASS\n BIN,8   $FF      1100   PASS\n BIN,16  $0000    0011   PASS\n BIN,16  $FFFF    1100   PASS\n BCD,8   $00      0011   PASS\n BCD,8   $99      1000   PASS\n BCD,16  $0000    0011   PASS\n BCD,16  $9999    1000   PASS",
+        "cycles": 200010
+      }
+    },
+    {
+      "id": "peterlemon-cpu-str",
+      "title": "Peter Lemon's 65816 STR test",
+      "sha256": "f8bd66164c369d956145c747d71ce59c252693a735cc644a34521a599cf6847a",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/STR/CPUSTR.sfc",
+      "layout": "lorom",
+      "limit": 40000000,
+      "passes": 48,
+      "passesFrom": "PrintText(Pass occurrences in STR/CPUSTR.asm at the same commit",
+      "until": {
+        "passes": 48
+      },
+      "measured": {
+        "printed": {
+          "PASS": 48,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " CPU Test STR (Store Memory):\n ------------------------------\n STZ dp,X     (Opcode: $74)\n Modes | Result | NVZC | Test |\n ------------------------------\n BIN,8   $00      0000   PASS\n BIN,16  $0000    0000   PASS",
+        "cycles": 200010
+      }
+    },
+    {
+      "id": "peterlemon-cpu-trn",
+      "title": "Peter Lemon's 65816 TRN test",
+      "sha256": "60776a7bfbdf3f1f0e57885e885c66b9c0ebfa7866f18fece8f8cefd82221ad1",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/TRN/CPUTRN.sfc",
+      "layout": "lorom",
+      "limit": 40000000,
+      "passes": 71,
+      "passesFrom": "PrintText(Pass occurrences in TRN/CPUTRN.asm at the same commit",
+      "until": {
+        "passes": 71
+      },
+      "measured": {
+        "printed": {
+          "PASS": 71,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " CPU Test TRN (Transfer):\n ------------------------------\n XCE          (Opcode: $FB)\n Modes | Result | NVZC | Test |\n ------------------------------\n M8,X16  $00FF    0001   PASS\n M8,X16  $00FF    0001   PASS\n M16,X16 $FFFF    0001   PASS",
+        "cycles": 200010
+      }
+    },
+    {
+      "id": "gilyon-cputest",
+      "title": "gilyon's 65816 test",
+      "sha256": "f61de78d346a68c166d67472a414e5d207368889d37b977d1338f9221ca6400e",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "gilyon/cputest.sfc",
+      "layout": "lorom",
+      "limit": 20000000,
+      "until": {
+        "screen": "Success"
+      },
+      "measured": {
+        "printed": {
+          "PASS": 0,
+          "FAIL": 0
+        },
+        "failed": [
+          "0027",
+          "0074",
+          "015F",
+          "0194",
+          "0216",
+          "02CC",
+          "0397",
+          "03D9",
+          "046F",
+          "04E0",
+          "0518",
+          "05D2",
+          "0621"
+        ],
+        "screen": " Running tests... Success\n Test number: 0649",
+        "cycles": 1000013
+      },
+      "testsFrom": "tests.txt as make_cpu_tests.py writes it at the same commit; every test this run stops on is one of the two behaviours its README lists as undocumented"
+    },
+    {
+      "id": "blargg-adc-8",
+      "title": "Shay Green's 8-bit ADC test",
+      "sha256": "73c29b0810b1e84b2bf6870e434fe0f1cc5459d7fa18b3a1dbf77a94b1272d7b",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "jonasquinn-test-roms/test_adc_sbc/test_adc.smc",
+      "layout": "hirom",
+      "limit": 400000000,
+      "until": {
+        "screen": "Passed"
+      },
+      "measured": {
+        "printed": {
+          "PASS": 0,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " Passed",
+        "cycles": 39800256
+      }
+    },
+    {
+      "id": "blargg-sbc-8",
+      "title": "Shay Green's 8-bit SBC test",
+      "sha256": "5bf1be5a82fdb9c887207778314e6c590389c0c736c0ed45bc706c44b2c3a62c",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "jonasquinn-test-roms/test_adc_sbc/test_sbc.smc",
+      "layout": "hirom",
+      "limit": 400000000,
+      "until": {
+        "screen": "Passed"
+      },
+      "measured": {
+        "printed": {
+          "PASS": 0,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " Passed",
+        "cycles": 39800256
+      }
+    },
+    {
+      "id": "blargg-adc",
+      "title": "Shay Green's ADC test, later build",
+      "sha256": "78e0adc83ffa17ca3038e73620dd159ceb803a5ec863e17d132ec1101ed64159",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "jonasquinn-test-roms/snes_adc_sbc/test_adc.smc",
+      "layout": "hirom",
+      "limit": 400000000,
+      "until": {
+        "screen": "Passed"
+      },
+      "measured": {
+        "printed": {
+          "PASS": 0,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " Takes 15 seconds\n test_adc\n Passed",
+        "cycles": 40000248
+      }
+    },
+    {
+      "id": "blargg-adc-16",
+      "title": "Shay Green's 16-bit ADC test",
+      "sha256": "1c8cda4270f828906db53fb274f078e410ca1bc4686c87c6f41946c1044ec165",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "jonasquinn-test-roms/snes_adc_sbc/test_adc_16.smc",
+      "layout": "hirom",
+      "limit": 400000000,
+      "until": {
+        "screen": "Passed"
+      },
+      "measured": {
+        "printed": {
+          "PASS": 0,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " Takes 10 seconds\n test_adc_16\n Passed",
+        "cycles": 16800091
+      }
+    },
+    {
+      "id": "blargg-sbc",
+      "title": "Shay Green's SBC test, later build",
+      "sha256": "f92e6b35c859a7227c187e29603f74348d3fa658094c7e0f8a08d1c8a6e2a8e8",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "jonasquinn-test-roms/snes_adc_sbc/test_sbc.smc",
+      "layout": "hirom",
+      "limit": 400000000,
+      "until": {
+        "screen": "Passed"
+      },
+      "measured": {
+        "printed": {
+          "PASS": 0,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " Takes 15 seconds\n test_sbc\n Passed",
+        "cycles": 40000248
+      }
+    },
+    {
+      "id": "blargg-sbc-16",
+      "title": "Shay Green's 16-bit SBC test",
+      "sha256": "73479a6cd61217f2b72f85b8847a78e0e3298de906bdfd4e83925f938aebddb6",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "jonasquinn-test-roms/snes_adc_sbc/test_sbc_16.smc",
+      "layout": "hirom",
+      "limit": 400000000,
+      "until": {
+        "screen": "Passed"
+      },
+      "measured": {
+        "printed": {
+          "PASS": 0,
+          "FAIL": 0
+        },
+        "failed": [],
+        "screen": " Takes 10 seconds\n test_sbc_16\n Passed",
+        "cycles": 16800091
+      }
+    }
+  ]
+}

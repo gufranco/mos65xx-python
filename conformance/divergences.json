@@ -104,7 +104,28 @@
       "whatWouldSettleIt": "Three short programs on a real part, one each for (d,x), (d) and (d),y, each with the direct register page aligned and the pointer at FF, reading back the byte the part fetched. The three the document names are settled, since the document and the corpus agree on them. Until then this project's behaviour for the other three is a document reading rather than a measurement, and for (d,x) it contradicts the one recorded case.",
       "whyItIsOddEitherWay": "No simple rule produces the measured set. Whatever the part does, it is not deciding by pointer width and it is not deciding by whether the mode is one the 6502 had.",
       "status": "open",
-      "severity": "contradiction"
+      "severity": "contradiction",
+      "aTestProgramSays": {
+        "program": "gilyon's 65816 test, conformance/screens.json gilyon-cputest",
+        "tests": [
+          "0027",
+          "0074",
+          "015F",
+          "0194",
+          "0216",
+          "02CC",
+          "0397",
+          "046F",
+          "04E0",
+          "0518",
+          "05D2",
+          "0621"
+        ],
+        "expects": "(d,x) in emulation mode with D=$011A reads the pointer's low byte from $0002FF and its high byte from $000200, wrapping inside the page for the second byte only",
+        "recordingsSay": "the high byte from the next page, as 46 cases in 61.e.json with an unaligned direct register record",
+        "thisModel": "follows the recordings and fails all twelve",
+        "standing": "a test program, not a capture of a part; the case it tests is the unaligned direct register, which this entry's page-aligned rule does not reach"
+      }
     },
     {
       "subject": "which address the NMOS 6502 puts on the bus during a taken branch",
@@ -638,7 +659,14 @@
       "whyItMatters": "A program that pulls the data bank register with a full stack reads a byte from the wrong page on one of the two readings, and which byte that is decides what bank every following data access lands in.",
       "runnerBehaviour": "conformance/singlestep.py leaves these thirty-seven out by condition rather than by name, and prints how many it left out and where they are explained.",
       "status": "open",
-      "severity": "contradiction"
+      "severity": "contradiction",
+      "aTestProgramSays": {
+        "program": "gilyon's 65816 test, conformance/screens.json gilyon-cputest",
+        "test": "03D9",
+        "expects": "PLB in emulation mode with S=$01FF reads the data bank from $0200",
+        "thisModel": "fails it, reading $0100",
+        "standing": "a test program, not a capture of a part"
+      }
     },
     {
       "subject": "the stack addresses of an indexed indirect subroutine call at the bottom of emulation page one",

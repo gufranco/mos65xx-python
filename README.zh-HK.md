@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16** 款晶片，比對了 **17,900,000** 個狀態案例及 **17,870,080** 個週期精確案例，**0** 個未獲解釋的失敗，**1,545** 個測試，**100%** 語句及分支覆蓋率，無任何依賴
+**16** 款晶片，比對了 **17,900,000** 個狀態案例及 **17,870,080** 個週期精確案例，**0** 個未獲解釋的失敗，**1,601** 個測試，**100%** 語句及分支覆蓋率，無任何依賴
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -230,6 +230,8 @@ gave up after 100 instructions at $31D0
 | `python3 -m conformance.speed`      | `[--instructions N] [--repeats N]`。預設為 200,000 及 7                                                                                                                         | 高於每秒 700,000 個週期的下限時為 0，低於時為 1，參數錯誤時為 2                  |
 | `python3 -m conformance.netlist`    | 無。讀取 `NETLIST` 變數                                                                                                                                                         | 所有案例一致或未設定模擬時為 0，否則為 1                                         |
 | `python3 -m conformance.exercisers` | 無。讀取 `MOS65XX_EXERCISERS` 變數                                                                                                                                              | 每個測試程式都停在其清單標示為通過的位址時為 0，否則為 1，沒有執行任何一個時為 2 |
+| `python3 -m conformance.routines`   | 無。讀取 `MOS65XX_TEST_IMAGES` 變數，一個或多個資料夾                                                                                                                           | 每個例程都寫入其通過旗標且每份複製都相符時為 0，否則為 1，沒有執行任何一個時為 2 |
+| `python3 -m conformance.screens`    | 無。讀取 `MOS65XX_TEST_IMAGES` 變數                                                                                                                                             | 每個程式都顯示其判定且沒有停在任何地方時為 0，否則為 1，沒有執行任何一個時為 2   |
 | `python3 -m conformance.links`      | 無                                                                                                                                                                              | 0，或在引用的位址回應 404 或 410 時為 1                                          |
 | `python3 -m conformance.watch`      | `[definition] [--moved]`                                                                                                                                                        | 0，或在無法讀取定義或定義互相矛盾時為 1                                          |
 | `python3 -m conformance.package`    | `<wheel>`                                                                                                                                                                       | 所有模組都在 wheel 中且其中沒有任何測試時為 0，否則為 1，沒有參數時為 2          |
@@ -428,6 +430,8 @@ python3 -m conformance.cycles ~/.cache/conformance-suites/6502/6502/v1 --model 6
 測試套件以提交固定版本。一個每週執行的工作會以每個上游的最新提交執行它們，新版測試套件通過時開啟一個 pull request，失敗時則開啟一個 issue。[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) 列出 14 個文件及測試套件都未能解決的問題，每個都附有可以解決它的真實晶片量度方法。
 
 這裏也在裸處理器上執行兩個完整的測試程式：Klaus Dormann 的 6502 功能測試以 6502 執行並通過，他的 65C02 擴充操作碼測試以 r65c02 和 w65c02 執行並通過。每個程式都以在一個位址上循環來停止，而他的清單說明哪個位址代表通過。[`conformance/exercisers.json`](conformance/exercisers.json) 記錄每個程式停在哪裏，並固定它們來源的提交；`python3 -m conformance.exercisers` 從 `MOS65XX_EXERCISERS` 指定的檢出執行它們。[`conformance/testroms.json`](conformance/testroms.json) 列出這些部件的其他所有測試程式，以及每個程式在等待哪個成員。
+
+為這些部件所在的機器編寫的測試程式也會執行。`python3 -m conformance.routines` 從六個工廠與維修測試映像中取出處理器例程，執行至它寫入的旗標：六個全部通過，記錄於 [`conformance/routines.json`](conformance/routines.json)。`python3 -m conformance.screens` 從重設開始執行三十個完整的測試程式，由 [`conformance/board.py`](conformance/board.py) 代替機器的其餘部分，並讀回它們顯示的文字：Peter Lemon 的 23 個和 Shay Green 的 6 個通過，gilyon 的則停在十三項測試上，正是模擬模式下 PLB 和 `(d,x)` 兩個未解決的問題，記錄於 [`conformance/screens.json`](conformance/screens.json)。兩者都以 SHA-256 在 `MOS65XX_TEST_IMAGES` 指定的資料夾中找到映像。
 
 ## 參與開發
 

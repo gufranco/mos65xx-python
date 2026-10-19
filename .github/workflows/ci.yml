@@ -217,6 +217,54 @@ jobs:
         env:
           MOS65XX_EXERCISERS: ${{ runner.temp }}/exercisers
 
+  routines:
+    name: Processor routines taken out of test images
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Run every image that is on this machine, where exit two means none ran
+        run: |
+          set +e
+          python -m conformance.routines > said.txt
+          status=$?
+          set -e
+          cat said.txt
+          if [ "${status}" -eq 2 ]; then
+            echo "::notice title=No image ran::$(head -1 said.txt)"
+            exit 0
+          fi
+          exit "${status}"
+        shell: bash
+
+  screens:
+    name: Whole test programs, read off the text they print
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Run every image that is on this machine, where exit two means none ran
+        run: |
+          set +e
+          python -m conformance.screens > said.txt
+          status=$?
+          set -e
+          cat said.txt
+          if [ "${status}" -eq 2 ]; then
+            echo "::notice title=No image ran::$(head -1 said.txt)"
+            exit 0
+          fi
+          exit "${status}"
+        shell: bash
+
   cycles:
     name: Cycle for cycle against SingleStepTests
     runs-on: ubuntu-26.04

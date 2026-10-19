@@ -31,8 +31,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "PeterLemon/SNES-CPUTest-CPU/ADC/CPUADC.sfc",
       "exercises": "the 65816 instructions grouped as ADC, each result printed as pass or fail on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_peter_lemons_arithmetic_and_logic_tests_print_every_pass_their_source_prints"
+      ]
     },
     {
       "id": "peterlemon-cpu-and",
@@ -41,8 +44,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "PeterLemon/SNES-CPUTest-CPU/AND/CPUAND.sfc",
       "exercises": "the 65816 instructions grouped as AND, each result printed as pass or fail on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_peter_lemons_arithmetic_and_logic_tests_print_every_pass_their_source_prints"
+      ]
     },
     {
       "id": "peterlemon-cpu-asl",
@@ -51,8 +57,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "PeterLemon/SNES-CPUTest-CPU/ASL/CPUASL.sfc",
       "exercises": "the 65816 instructions grouped as ASL, each result printed as pass or fail on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_peter_lemons_shift_step_and_branch_tests_print_every_pass"
+      ]
     },
     {
       "id": "peterlemon-cpu-bit",
@@ -61,8 +70,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "PeterLemon/SNES-CPUTest-CPU/BIT/CPUBIT.sfc",
       "exercises": "the 65816 instructions grouped as BIT, each result printed as pass or fail on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_peter_lemons_arithmetic_and_logic_tests_print_every_pass_their_source_prints"
+      ]
     },
     {
       "id": "peterlemon-cpu-bra",
@@ -71,8 +83,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "PeterLemon/SNES-CPUTest-CPU/BRA/CPUBRA.sfc",
       "exercises": "the 65816 instructions grouped as BRA, each result printed as pass or fail on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_peter_lemons_shift_step_and_branch_tests_print_every_pass"
+      ]
     },
     {
       "id": "peterlemon-cpu-cmp",
@@ -81,8 +96,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "PeterLemon/SNES-CPUTest-CPU/CMP/CPUCMP.sfc",
       "exercises": "the 65816 instructions grouped as CMP, each result printed as pass or fail on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_peter_lemons_arithmetic_and_logic_tests_print_every_pass_their_source_prints"
+      ]
     },
     {
       "id": "peterlemon-cpu-dec",
@@ -91,8 +109,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "PeterLemon/SNES-CPUTest-CPU/DEC/CPUDEC.sfc",
       "exercises": "the 65816 instructions grouped as DEC, each result printed as pass or fail on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_peter_lemons_shift_step_and_branch_tests_print_every_pass"
+      ]
     },
     {
       "id": "peterlemon-cpu-eor",
@@ -101,8 +122,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "PeterLemon/SNES-CPUTest-CPU/EOR/CPUEOR.sfc",
       "exercises": "the 65816 instructions grouped as EOR, each result printed as pass or fail on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_peter_lemons_arithmetic_and_logic_tests_print_every_pass_their_source_prints"
+      ]
     },
     {
       "id": "peterlemon-cpu-inc",
@@ -111,8 +135,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "PeterLemon/SNES-CPUTest-CPU/INC/CPUINC.sfc",
       "exercises": "the 65816 instructions grouped as INC, each result printed as pass or fail on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_peter_lemons_shift_step_and_branch_tests_print_every_pass"
+      ]
     },
     {
       "id": "peterlemon-cpu-jmp",
@@ -121,8 +148,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "PeterLemon/SNES-CPUTest-CPU/JMP/CPUJMP.sfc",
       "exercises": "the 65816 instructions grouped as JMP, each result printed as pass or fail on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_peter_lemons_shift_step_and_branch_tests_print_every_pass"
+      ]
     },
     {
       "id": "peterlemon-cpu-ldr",
@@ -131,8 +161,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "PeterLemon/SNES-CPUTest-CPU/LDR/CPULDR.sfc",
       "exercises": "the 65816 instructions grouped as LDR, each result printed as pass or fail on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_peter_lemons_load_store_move_and_stack_tests_print_every_pass"
+      ]
     },
     {
       "id": "peterlemon-cpu-lsr",
@@ -141,8 +174,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "PeterLemon/SNES-CPUTest-CPU/LSR/CPULSR.sfc",
       "exercises": "the 65816 instructions grouped as LSR, each result printed as pass or fail on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_peter_lemons_shift_step_and_branch_tests_print_every_pass"
+      ]
     },
     {
       "id": "peterlemon-cpu-mov",
@@ -151,8 +187,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "PeterLemon/SNES-CPUTest-CPU/MOV/CPUMOV.sfc",
       "exercises": "the 65816 instructions grouped as MOV, each result printed as pass or fail on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_peter_lemons_load_store_move_and_stack_tests_print_every_pass"
+      ]
     },
     {
       "id": "peterlemon-cpu-msc",
@@ -161,8 +200,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "PeterLemon/SNES-CPUTest-CPU/MSC/CPUMSC.sfc",
       "exercises": "the 65816 instructions grouped as MSC, each result printed as pass or fail on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_peter_lemons_load_store_move_and_stack_tests_print_every_pass"
+      ]
     },
     {
       "id": "peterlemon-cpu-ora",
@@ -171,8 +213,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "PeterLemon/SNES-CPUTest-CPU/ORA/CPUORA.sfc",
       "exercises": "the 65816 instructions grouped as ORA, each result printed as pass or fail on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_peter_lemons_arithmetic_and_logic_tests_print_every_pass_their_source_prints"
+      ]
     },
     {
       "id": "peterlemon-cpu-phl",
@@ -181,8 +226,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "PeterLemon/SNES-CPUTest-CPU/PHL/CPUPHL.sfc",
       "exercises": "the 65816 instructions grouped as PHL, each result printed as pass or fail on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_peter_lemons_load_store_move_and_stack_tests_print_every_pass"
+      ]
     },
     {
       "id": "peterlemon-cpu-psr",
@@ -191,8 +239,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "PeterLemon/SNES-CPUTest-CPU/PSR/CPUPSR.sfc",
       "exercises": "the 65816 instructions grouped as PSR, each result printed as pass or fail on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_peter_lemons_load_store_move_and_stack_tests_print_every_pass"
+      ]
     },
     {
       "id": "peterlemon-cpu-ret",
@@ -201,8 +252,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "PeterLemon/SNES-CPUTest-CPU/RET/CPURET.sfc",
       "exercises": "the 65816 instructions grouped as RET, each result printed as pass or fail on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_peter_lemons_shift_step_and_branch_tests_print_every_pass"
+      ]
     },
     {
       "id": "peterlemon-cpu-rol",
@@ -211,8 +265,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "PeterLemon/SNES-CPUTest-CPU/ROL/CPUROL.sfc",
       "exercises": "the 65816 instructions grouped as ROL, each result printed as pass or fail on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_peter_lemons_shift_step_and_branch_tests_print_every_pass"
+      ]
     },
     {
       "id": "peterlemon-cpu-ror",
@@ -221,8 +278,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "PeterLemon/SNES-CPUTest-CPU/ROR/CPUROR.sfc",
       "exercises": "the 65816 instructions grouped as ROR, each result printed as pass or fail on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_peter_lemons_shift_step_and_branch_tests_print_every_pass"
+      ]
     },
     {
       "id": "peterlemon-cpu-sbc",
@@ -231,8 +291,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "PeterLemon/SNES-CPUTest-CPU/SBC/CPUSBC.sfc",
       "exercises": "the 65816 instructions grouped as SBC, each result printed as pass or fail on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_peter_lemons_arithmetic_and_logic_tests_print_every_pass_their_source_prints"
+      ]
     },
     {
       "id": "peterlemon-cpu-str",
@@ -241,8 +304,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "PeterLemon/SNES-CPUTest-CPU/STR/CPUSTR.sfc",
       "exercises": "the 65816 instructions grouped as STR, each result printed as pass or fail on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_peter_lemons_load_store_move_and_stack_tests_print_every_pass"
+      ]
     },
     {
       "id": "peterlemon-cpu-trn",
@@ -251,8 +317,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "PeterLemon/SNES-CPUTest-CPU/TRN/CPUTRN.sfc",
       "exercises": "the 65816 instructions grouped as TRN, each result printed as pass or fail on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_peter_lemons_load_store_move_and_stack_tests_print_every_pass"
+      ]
     },
     {
       "id": "gilyon-cputest",
@@ -261,8 +330,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "gilyon/cputest.sfc",
       "exercises": "the 65816 instruction set with registers and memory checked before and after each test, reported on screen",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_gilyon_cputest_reaches_success_after_thirteen_failures_it_names"
+      ]
     },
     {
       "id": "blargg-adc-8",
@@ -271,8 +343,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "jonasquinn-test-roms/test_adc_sbc/test_adc.smc",
       "exercises": "8-bit ADC in binary and decimal mode over all 65,536 operand pairs, A and all eight flags",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_shay_greens_adc_and_sbc_tests_each_print_passed"
+      ]
     },
     {
       "id": "blargg-sbc-8",
@@ -281,8 +356,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "jonasquinn-test-roms/test_adc_sbc/test_sbc.smc",
       "exercises": "8-bit SBC in binary and decimal mode over all 65,536 operand pairs, A and all eight flags",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_shay_greens_adc_and_sbc_tests_each_print_passed"
+      ]
     },
     {
       "id": "blargg-adc",
@@ -291,8 +369,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "jonasquinn-test-roms/snes_adc_sbc/test_adc.smc",
       "exercises": "8-bit ADC in binary and decimal mode, A and all eight flags",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_shay_greens_adc_and_sbc_tests_each_print_passed"
+      ]
     },
     {
       "id": "blargg-adc-16",
@@ -301,8 +382,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "jonasquinn-test-roms/snes_adc_sbc/test_adc_16.smc",
       "exercises": "16-bit ADC in binary and decimal mode, A and all eight flags",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_shay_greens_adc_and_sbc_tests_each_print_passed"
+      ]
     },
     {
       "id": "blargg-sbc",
@@ -311,8 +395,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "jonasquinn-test-roms/snes_adc_sbc/test_sbc.smc",
       "exercises": "8-bit SBC in binary and decimal mode, A and all eight flags",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_shay_greens_adc_and_sbc_tests_each_print_passed"
+      ]
     },
     {
       "id": "blargg-sbc-16",
@@ -321,8 +408,11 @@
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "jonasquinn-test-roms/snes_adc_sbc/test_sbc_16.smc",
       "exercises": "16-bit SBC in binary and decimal mode, A and all eight flags",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "outcome": "run",
+      "runs": "run from reset on this processor by conformance/screens.py, with conformance/board.py standing in for the rest",
+      "heldBy": [
+        "conformance/screens.test.py::TheRecordedProgramsTest.test_shay_greens_adc_and_sbc_tests_each_print_passed"
+      ]
     },
     {
       "id": "sour-op-timing-v2",
@@ -330,46 +420,9 @@
       "sha256": "6881f66d7f833fbb062aba173b3946e204c7f43fc42acbf8278c705a01964b12",
       "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
       "file": "Sour/SnesTests/op_timing_test/op_timing_test_v2.sfc",
-      "exercises": "the cycles almost every 65816 instruction takes under every combination of the m and x flags, timed by the host's counters",
+      "exercises": "the cycles almost every 65816 instruction takes, timed with the S-PPU's latched H and V counters",
       "outcome": "hosted",
-      "needs": "snes-machine"
-    },
-    {
-      "id": "burn-in-rev-d",
-      "title": "Burn-in test, revision D",
-      "sha256": "092e80eab0d3a5300a30f7d41cf4e454cdb79cc0fac66f052567d37322cb891f",
-      "source": "the local library of test images, snes-roms/5 Tools & Service Test Carts/",
-      "exercises": "a factory burn-in run whose text names a CPU test among the parts it checks",
-      "outcome": "hosted",
-      "needs": "snes-machine"
-    },
-    {
-      "id": "aging-1-00",
-      "title": "Aging program 1.00",
-      "sha256": "f58837be3cf307edf550ec971993672d8d00e4fba99a2c5dee58383202d08c54",
-      "source": "the local library of test images, snes-roms/5 Tools & Service Test Carts/",
-      "exercises": "a factory aging run whose text names a CPU test among the parts it checks",
-      "outcome": "hosted",
-      "needs": "snes-machine"
-    },
-    {
-      "id": "snsp-aging-1-02",
-      "title": "SNSP aging program 1.02",
-      "sha256": "6c84f60b7a48b279ca4c1801947f843d79841cd92227c82d8c250edc25be2a9b",
-      "source": "the local library of test images, snes-roms/5 Tools & Service Test Carts/",
-      "file": "SNSP Aging Ver 1.02 (Japan) (En).sfc",
-      "exercises": "a factory aging run whose text names a CPU test among the parts it checks",
-      "outcome": "hosted",
-      "needs": "snes-machine"
-    },
-    {
-      "id": "control-deck-tester-rev-1",
-      "title": "Control deck tester, revision 1",
-      "sha256": "77c03d014c6e94a378d2acb7c2e92cdb14347d675eac1127e11164b1104fcd83",
-      "source": "the local library of test images, snes-roms/5 Tools & Service Test Carts/",
-      "exercises": "a service test whose text names CPU tests among the parts it checks",
-      "outcome": "hosted",
-      "needs": "snes-machine"
+      "needs": "snes-ppu"
     },
     {
       "id": "sa1-speed-test-5-1",
@@ -377,9 +430,82 @@
       "sha256": "21c24e4b0ec2cb32eeba25c5311aa39bd3228fc1327d2719c0b88671884c2541",
       "source": "the local library of test images, snes-roms/5 Tools & Service Test Carts/",
       "file": "SA-1 Speed Test (World) (v5.1) (Program) (Aftermarket) (Unl).sfc",
-      "exercises": "how fast the host's 65816 and the SA-1's run the same loops, measured against the host's counters",
+      "exercises": "how fast the SA-1's 65C816 core runs the same loops as this processor; the SA-1 is the part under test",
       "outcome": "hosted",
-      "needs": "snes-machine"
+      "needs": "snes-sa1"
+    },
+    {
+      "id": "burn-in-rev-d-cpu",
+      "title": "Burn-in test, revision D",
+      "sha256": "092e80eab0d3a5300a30f7d41cf4e454cdb79cc0fac66f052567d37322cb891f",
+      "source": "the local library of test images, snes-roms/5 Tools & Service Test Carts/",
+      "exercises": "its CPU row: BIT, a long indirect load and two 256-byte block moves. Its other rows test parts other planned members model",
+      "outcome": "run",
+      "runs": "the routine run on this processor by conformance/routines.py, from its entry to its pass flag",
+      "heldBy": [
+        "conformance/routines.test.py::TheRecordedRoutinesTest.test_the_burn_in_cpu_test_passes_and_its_unchecked_copies_hold"
+      ]
+    },
+    {
+      "id": "snsp-aging-1-02-65c816",
+      "title": "SNSP aging program 1.02",
+      "sha256": "6c84f60b7a48b279ca4c1801947f843d79841cd92227c82d8c250edc25be2a9b",
+      "source": "the local library of test images, snes-roms/5 Tools & Service Test Carts/",
+      "file": "SNSP Aging Ver 1.02 (Japan) (En).sfc",
+      "exercises": "its 65c816 row: the same checks, the copies compared by the program, and fills with the direct page moved twice",
+      "outcome": "run",
+      "runs": "the routine run on this processor by conformance/routines.py, from its entry to its pass flag",
+      "heldBy": [
+        "conformance/routines.test.py::TheRecordedRoutinesTest.test_the_snsp_aging_65c816_test_passes_with_its_copies_and_relocations"
+      ]
+    },
+    {
+      "id": "control-deck-tester-rev-1-cpu",
+      "title": "Control deck tester, revision 1",
+      "sha256": "77c03d014c6e94a378d2acb7c2e92cdb14347d675eac1127e11164b1104fcd83",
+      "source": "the local library of test images, snes-roms/5 Tools & Service Test Carts/",
+      "exercises": "its C P U row. Its CPU CLOCK row needs RAM a development board has and a retail image lacks, and the 5A22's vblank timing, so it waits on snes-cpu-io",
+      "outcome": "run",
+      "runs": "the routine run on this processor by conformance/routines.py, from its entry to its pass flag",
+      "heldBy": [
+        "conformance/routines.test.py::TheRecordedRoutinesTest.test_the_control_deck_tester_cpu_test_passes"
+      ]
+    },
+    {
+      "id": "ntf-2-5-rev-a-cpu",
+      "title": "NTF 2.5 test, revision A",
+      "sha256": "3a3ba7500728920093ff48caf5baac0c1ec9b19aacda4fe4dce8afbdd69e859e",
+      "source": "the local library of test images, snes-roms/5 Tools & Service Test Carts/",
+      "exercises": "its 65816 long indirect and block move subtest",
+      "outcome": "run",
+      "runs": "the routine run on this processor by conformance/routines.py, from its entry to its pass flag",
+      "heldBy": [
+        "conformance/routines.test.py::TheRecordedRoutinesTest.test_the_ntf_2_5_cpu_test_passes"
+      ]
+    },
+    {
+      "id": "test-program-overdump-cpu",
+      "title": "Test Program, an overdump of NTF 2.5",
+      "sha256": "f732685db2bfc93e995128e015657165fbaaa2dd8723e7655507fda4ddc2a3a9",
+      "source": "the local library of test images, snes-roms/5 Tools & Service Test Carts/",
+      "exercises": "the same subtest at the same addresses",
+      "outcome": "run",
+      "runs": "the routine run on this processor by conformance/routines.py, from its entry to its pass flag",
+      "heldBy": [
+        "conformance/routines.test.py::TheRecordedRoutinesTest.test_the_overdumped_test_program_runs_the_same_cpu_test_and_passes"
+      ]
+    },
+    {
+      "id": "aging-1-00-work-ram-mirror",
+      "title": "Aging program 1.00",
+      "sha256": "f58837be3cf307edf550ec971993672d8d00e4fba99a2c5dee58383202d08c54",
+      "source": "the local library of test images, snes-roms/5 Tools & Service Test Carts/",
+      "exercises": "the work RAM mirror routine run on plain RAM; whether the cells hold waits on snes-wram",
+      "outcome": "run",
+      "runs": "the routine run on this processor by conformance/routines.py, from its entry to its pass flag",
+      "heldBy": [
+        "conformance/routines.test.py::TheRecordedRoutinesTest.test_the_aging_1_00_work_ram_mirror_routine_passes"
+      ]
     }
   ]
 }

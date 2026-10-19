@@ -1,0 +1,153 @@
+{
+  "what": "Processor tests taken out of factory and service test images: each routine is run on its own, on this processor, from the address its program enters it to the moment it writes its pass or fail flag. The images are read at run time from a folder you name; what is kept here is what the processor did, never the image.",
+  "why": "These programs were built to pass on the machine they test, so the flag they write is their verdict on the processor. The rest of each image tests parts this project does not model and waits on the members that will.",
+  "variable": "MOS65XX_TEST_IMAGES",
+  "how": "A prelude of this project's own, placed in work RAM at $1F00, switches to native mode, clears the direct page and the data bank, puts the stack at $1EFF and jumps to the routine. conformance/board.py stands in for everything around the processor: the image decoded in its low layout, 128 KB of work RAM and its low mirror, and video memory nobody reads here. The run stops at the first write to the flag, and each block move is compared byte for byte with the table it came from.",
+  "routines": [
+    {
+      "id": "burn-in-rev-d-cpu",
+      "title": "Burn-in test, revision D: CPU",
+      "sha256": "092e80eab0d3a5300a30f7d41cf4e454cdb79cc0fac66f052567d37322cb891f",
+      "layout": "lorom",
+      "start": "009C0A",
+      "flag": "000075",
+      "copies": [
+        {
+          "to": "7F0000",
+          "from": "009CA0",
+          "length": 256
+        },
+        {
+          "to": "7EFF00",
+          "from": "009CA0",
+          "length": 256
+        }
+      ],
+      "tests": "BIT #$FFFF on a zero accumulator setting Z, a long indirect load of $7777 stored at $7E:AD10, and two 256-byte block moves, MVN to $7F:0000 and MVP ending at $7E:FFFF, of a table of 00 to FF; the program never compares the copies, so they are compared here",
+      "measured": {
+        "flag": "ff",
+        "steps": 51,
+        "copiesMatch": [true, true]
+      }
+    },
+    {
+      "id": "snsp-aging-1-02-65c816",
+      "title": "SNSP Aging 1.02: 65c816",
+      "sha256": "6c84f60b7a48b279ca4c1801947f843d79841cd92227c82d8c250edc25be2a9b",
+      "layout": "lorom",
+      "start": "009939",
+      "flag": "000075",
+      "copies": [
+        {
+          "to": "7F0000",
+          "from": "009A3F",
+          "length": 256
+        },
+        {
+          "to": "7EFF00",
+          "from": "009A3F",
+          "length": 256
+        }
+      ],
+      "tests": "BIT #$FFFF on a zero accumulator setting Z, a long indirect load of $7777 stored at $7E:AD10, and two 256-byte block moves, MVN to $7F:0000 and MVP ending at $7E:FFFF, of a table of 00 to FF, compared by the program itself, then a 256-byte fill and compare with the direct page moved to $1500 and to $0A00",
+      "measured": {
+        "flag": "ff",
+        "steps": 7238,
+        "copiesMatch": [true, true]
+      }
+    },
+    {
+      "id": "control-deck-tester-rev-1-cpu",
+      "title": "Control deck tester, revision 1: CPU",
+      "sha256": "77c03d014c6e94a378d2acb7c2e92cdb14347d675eac1127e11164b1104fcd83",
+      "layout": "lorom",
+      "start": "009A86",
+      "flag": "000075",
+      "copies": [
+        {
+          "to": "7F0000",
+          "from": "009B1C",
+          "length": 256
+        },
+        {
+          "to": "7EFF00",
+          "from": "009B1C",
+          "length": 256
+        }
+      ],
+      "tests": "BIT #$FFFF on a zero accumulator setting Z, a long indirect load of $7777 stored at $7E:AD10, and two 256-byte block moves, MVN to $7F:0000 and MVP ending at $7E:FFFF, of a table of 00 to FF",
+      "measured": {
+        "flag": "ff",
+        "steps": 51,
+        "copiesMatch": [true, true]
+      }
+    },
+    {
+      "id": "ntf-2-5-rev-a-cpu",
+      "title": "NTF 2.5, revision A: 65816 long indirect and block moves",
+      "sha256": "3a3ba7500728920093ff48caf5baac0c1ec9b19aacda4fe4dce8afbdd69e859e",
+      "layout": "lorom",
+      "start": "009825",
+      "flag": "000075",
+      "copies": [
+        {
+          "to": "7F0000",
+          "from": "009895",
+          "length": 256
+        },
+        {
+          "to": "7EFF00",
+          "from": "009895",
+          "length": 256
+        }
+      ],
+      "tests": "BIT #$FFFF on a zero accumulator setting Z, a long indirect load of $7777 stored at $7E:AD10, and two 256-byte block moves, MVN to $7F:0000 and MVP ending at $7E:FFFF, of a table of 00 to FF",
+      "measured": {
+        "flag": "ff",
+        "steps": 52,
+        "copiesMatch": [true, true]
+      }
+    },
+    {
+      "id": "test-program-overdump-cpu",
+      "title": "Test Program, an overdump of NTF 2.5: the same routine",
+      "sha256": "f732685db2bfc93e995128e015657165fbaaa2dd8723e7655507fda4ddc2a3a9",
+      "layout": "lorom",
+      "start": "009825",
+      "flag": "000075",
+      "copies": [
+        {
+          "to": "7F0000",
+          "from": "009895",
+          "length": 256
+        },
+        {
+          "to": "7EFF00",
+          "from": "009895",
+          "length": 256
+        }
+      ],
+      "tests": "BIT #$FFFF on a zero accumulator setting Z, a long indirect load of $7777 stored at $7E:AD10, and two 256-byte block moves, MVN to $7F:0000 and MVP ending at $7E:FFFF, of a table of 00 to FF",
+      "measured": {
+        "flag": "ff",
+        "steps": 52,
+        "copiesMatch": [true, true]
+      }
+    },
+    {
+      "id": "aging-1-00-work-ram-mirror",
+      "title": "Aging Program 1.00: work RAM mirror routine",
+      "sha256": "f58837be3cf307edf550ec971993672d8d00e4fba99a2c5dee58383202d08c54",
+      "layout": "lorom",
+      "start": "008392",
+      "flag": "000061",
+      "copies": [],
+      "tests": "16-bit stores of $AA55, $555A and $5AAA at $1000-$1005 read back through data bank $20, then $55AA, $AAA5 and $A555 written through bank $20 and read back through bank $00. The routine runs here on plain RAM with the low mirror standing in; whether the RAM cells hold is a work RAM test this project does not model",
+      "measured": {
+        "flag": "ff",
+        "steps": 55,
+        "copiesMatch": []
+      }
+    }
+  ]
+}
