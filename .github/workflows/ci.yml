@@ -180,6 +180,43 @@ jobs:
           exit "${status}"
         shell: bash
 
+  exercisers:
+    name: Klaus Dormann's exercisers, on the bare processor
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Fetch the exercisers at the commit the record pins
+        run: |
+          read -r repository commit < <(python3 -c "
+          import json
+          held = json.load(open('conformance/exercisers.json'))
+          print(held['repository'], held['commit'])
+          ")
+          git clone --quiet "${repository}" "${RUNNER_TEMP}/exercisers"
+          git -C "${RUNNER_TEMP}/exercisers" checkout --quiet "${commit}"
+        shell: bash
+
+      - name: Run each one to the address it stops at, where exit two means none ran
+        run: |
+          set +e
+          python -m conformance.exercisers > said.txt
+          status=$?
+          set -e
+          cat said.txt
+          if [ "${status}" -eq 2 ]; then
+            echo "::notice title=No exerciser ran::$(head -1 said.txt)"
+            exit 0
+          fi
+          exit "${status}"
+        shell: bash
+        env:
+          MOS65XX_EXERCISERS: ${{ runner.temp }}/exercisers
+
   cycles:
     name: Cycle for cycle against SingleStepTests
     runs-on: ubuntu-26.04

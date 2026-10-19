@@ -1,0 +1,385 @@
+{
+  "cartridges": [
+    {
+      "id": "dormann-6502-functional",
+      "title": "Klaus Dormann's 6502 functional test",
+      "sha256": "fa12bfc761e6f9057e4cc01a665a7b800ff01ae91f598af1e39a1201d01953fd",
+      "source": "https://github.com/Klaus2m5/6502_65C02_functional_tests at 7954e2dbb49c469ea286070bf46cdd71aeb29e4b",
+      "file": "bin_files/6502_functional_test.bin",
+      "exercises": "every documented 6502 instruction, addressing mode and flag, decimal mode included, on the bare processor",
+      "outcome": "run",
+      "heldBy": [
+        "conformance/exercisers.test.py::TheRecordedVerdictsTest.test_the_6502_functional_test_reported_passed"
+      ]
+    },
+    {
+      "id": "dormann-65c02-extended",
+      "title": "Klaus Dormann's 65C02 extended opcodes test",
+      "sha256": "10a2a07fa240666fa610c46accebe8d42b1000feef3aae619da15a8d152869b2",
+      "source": "https://github.com/Klaus2m5/6502_65C02_functional_tests at 7954e2dbb49c469ea286070bf46cdd71aeb29e4b",
+      "file": "bin_files/65C02_extended_opcodes_test.bin",
+      "exercises": "the 65C02 additions, the Rockwell and WDC bit instructions included, on the bare processor; run as the r65c02 and the w65c02, which have them",
+      "outcome": "run",
+      "heldBy": [
+        "conformance/exercisers.test.py::TheRecordedVerdictsTest.test_the_65c02_extended_test_reported_passed_on_both_parts_with_its_opcodes"
+      ]
+    },
+    {
+      "id": "peterlemon-cpu-adc",
+      "title": "Peter Lemon's 65816 ADC test",
+      "sha256": "d6c4f5a284ce7842b8a3944b2bc51c8cde2f5932305f9b561334f4b7f49b5b4c",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/ADC/CPUADC.sfc",
+      "exercises": "the 65816 instructions grouped as ADC, each result printed as pass or fail on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "peterlemon-cpu-and",
+      "title": "Peter Lemon's 65816 AND test",
+      "sha256": "b7438031625af35e86f2c1725a7157358525ffc83ef1f15c02e3654e52ac61c6",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/AND/CPUAND.sfc",
+      "exercises": "the 65816 instructions grouped as AND, each result printed as pass or fail on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "peterlemon-cpu-asl",
+      "title": "Peter Lemon's 65816 ASL test",
+      "sha256": "0abb736aaaf683a183355e712ccb98d170bb25e1e13db456b2c21d8be4de480f",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/ASL/CPUASL.sfc",
+      "exercises": "the 65816 instructions grouped as ASL, each result printed as pass or fail on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "peterlemon-cpu-bit",
+      "title": "Peter Lemon's 65816 BIT test",
+      "sha256": "fdfc621bcd1f9dfcc0800b331d540af69ca70dd7e075632b144b46d9583fa15e",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/BIT/CPUBIT.sfc",
+      "exercises": "the 65816 instructions grouped as BIT, each result printed as pass or fail on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "peterlemon-cpu-bra",
+      "title": "Peter Lemon's 65816 BRA test",
+      "sha256": "1101903669864e5917f6d1f427ee24ca95c481fd4566125576e0f5a247f0cb25",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/BRA/CPUBRA.sfc",
+      "exercises": "the 65816 instructions grouped as BRA, each result printed as pass or fail on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "peterlemon-cpu-cmp",
+      "title": "Peter Lemon's 65816 CMP test",
+      "sha256": "b24c5e15301a0b68806157af642b39d4d38c5dfdc335eb44ddcec0d9e0222672",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/CMP/CPUCMP.sfc",
+      "exercises": "the 65816 instructions grouped as CMP, each result printed as pass or fail on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "peterlemon-cpu-dec",
+      "title": "Peter Lemon's 65816 DEC test",
+      "sha256": "d0d50a863b2b3dc6d5c14aad134c1b47dbd29bdc9af37ce34d68b552f3a3dee9",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/DEC/CPUDEC.sfc",
+      "exercises": "the 65816 instructions grouped as DEC, each result printed as pass or fail on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "peterlemon-cpu-eor",
+      "title": "Peter Lemon's 65816 EOR test",
+      "sha256": "4db10b39d39125dcb83cddd5f8ad329c95653eb1d3e266db7a58a1ad1c97a2bd",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/EOR/CPUEOR.sfc",
+      "exercises": "the 65816 instructions grouped as EOR, each result printed as pass or fail on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "peterlemon-cpu-inc",
+      "title": "Peter Lemon's 65816 INC test",
+      "sha256": "d32d4a8128d07970e4d652d907b2fcb51ea2d79d311d5f4a452c357644167b18",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/INC/CPUINC.sfc",
+      "exercises": "the 65816 instructions grouped as INC, each result printed as pass or fail on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "peterlemon-cpu-jmp",
+      "title": "Peter Lemon's 65816 JMP test",
+      "sha256": "8be0c153f166e11d7d384cffffe5ae27ea9c1a57eb4a1b36a85759bab2fe59a3",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/JMP/CPUJMP.sfc",
+      "exercises": "the 65816 instructions grouped as JMP, each result printed as pass or fail on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "peterlemon-cpu-ldr",
+      "title": "Peter Lemon's 65816 LDR test",
+      "sha256": "4598006dd6ec9ce03fa6622e18178ef25a6d471926ca40abb8748c10006e92da",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/LDR/CPULDR.sfc",
+      "exercises": "the 65816 instructions grouped as LDR, each result printed as pass or fail on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "peterlemon-cpu-lsr",
+      "title": "Peter Lemon's 65816 LSR test",
+      "sha256": "01517b0bd134d93fe858d536f76ea36691b23b10462b19caef693c8b67c6b60d",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/LSR/CPULSR.sfc",
+      "exercises": "the 65816 instructions grouped as LSR, each result printed as pass or fail on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "peterlemon-cpu-mov",
+      "title": "Peter Lemon's 65816 MOV test",
+      "sha256": "98ae96bdc5035fe9074e5b7c2dc0a8da67cb94f3d9c5668f26f936d9f99b6ab5",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/MOV/CPUMOV.sfc",
+      "exercises": "the 65816 instructions grouped as MOV, each result printed as pass or fail on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "peterlemon-cpu-msc",
+      "title": "Peter Lemon's 65816 MSC test",
+      "sha256": "00fa9244fe5a086042c4ca8e9f425892dbf115b135d7a14630c88dee3fd18490",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/MSC/CPUMSC.sfc",
+      "exercises": "the 65816 instructions grouped as MSC, each result printed as pass or fail on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "peterlemon-cpu-ora",
+      "title": "Peter Lemon's 65816 ORA test",
+      "sha256": "e9e4fdd107faa16ec43c13756a465b02f72a576b79e6b00869931535e3922379",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/ORA/CPUORA.sfc",
+      "exercises": "the 65816 instructions grouped as ORA, each result printed as pass or fail on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "peterlemon-cpu-phl",
+      "title": "Peter Lemon's 65816 PHL test",
+      "sha256": "27bb4a9e21d1e1021a7287cd48c612c87888ca83b4e30323c22d24ccb0764f76",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/PHL/CPUPHL.sfc",
+      "exercises": "the 65816 instructions grouped as PHL, each result printed as pass or fail on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "peterlemon-cpu-psr",
+      "title": "Peter Lemon's 65816 PSR test",
+      "sha256": "bd85187c7da1006b7c7111a8921b9b13cc73043a89eb7353f3d4fff207273067",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/PSR/CPUPSR.sfc",
+      "exercises": "the 65816 instructions grouped as PSR, each result printed as pass or fail on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "peterlemon-cpu-ret",
+      "title": "Peter Lemon's 65816 RET test",
+      "sha256": "0f65834dae85684202643e648166c37c8ea7364a295992c92e99506d65c7247e",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/RET/CPURET.sfc",
+      "exercises": "the 65816 instructions grouped as RET, each result printed as pass or fail on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "peterlemon-cpu-rol",
+      "title": "Peter Lemon's 65816 ROL test",
+      "sha256": "2b9c67c63befa2d0419c9a9f9b7fe2963fbe3cf84a0663f0bd36107c5aa0b255",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/ROL/CPUROL.sfc",
+      "exercises": "the 65816 instructions grouped as ROL, each result printed as pass or fail on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "peterlemon-cpu-ror",
+      "title": "Peter Lemon's 65816 ROR test",
+      "sha256": "ff73f1dd8c2dd8605f8fbc09ff4fda8312741cd382258ec09518763056792fec",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/ROR/CPUROR.sfc",
+      "exercises": "the 65816 instructions grouped as ROR, each result printed as pass or fail on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "peterlemon-cpu-sbc",
+      "title": "Peter Lemon's 65816 SBC test",
+      "sha256": "b9a688dcfcf9316227de98c305a260af35c80d0a0fd48bd227a21051159634a1",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/SBC/CPUSBC.sfc",
+      "exercises": "the 65816 instructions grouped as SBC, each result printed as pass or fail on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "peterlemon-cpu-str",
+      "title": "Peter Lemon's 65816 STR test",
+      "sha256": "f8bd66164c369d956145c747d71ce59c252693a735cc644a34521a599cf6847a",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/STR/CPUSTR.sfc",
+      "exercises": "the 65816 instructions grouped as STR, each result printed as pass or fail on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "peterlemon-cpu-trn",
+      "title": "Peter Lemon's 65816 TRN test",
+      "sha256": "60776a7bfbdf3f1f0e57885e885c66b9c0ebfa7866f18fece8f8cefd82221ad1",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "PeterLemon/SNES-CPUTest-CPU/TRN/CPUTRN.sfc",
+      "exercises": "the 65816 instructions grouped as TRN, each result printed as pass or fail on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "gilyon-cputest",
+      "title": "gilyon's 65816 test",
+      "sha256": "f61de78d346a68c166d67472a414e5d207368889d37b977d1338f9221ca6400e",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "gilyon/cputest.sfc",
+      "exercises": "the 65816 instruction set with registers and memory checked before and after each test, reported on screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "blargg-adc-8",
+      "title": "Shay Green's 8-bit ADC test",
+      "sha256": "73c29b0810b1e84b2bf6870e434fe0f1cc5459d7fa18b3a1dbf77a94b1272d7b",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "jonasquinn-test-roms/test_adc_sbc/test_adc.smc",
+      "exercises": "8-bit ADC in binary and decimal mode over all 65,536 operand pairs, A and all eight flags",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "blargg-sbc-8",
+      "title": "Shay Green's 8-bit SBC test",
+      "sha256": "5bf1be5a82fdb9c887207778314e6c590389c0c736c0ed45bc706c44b2c3a62c",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "jonasquinn-test-roms/test_adc_sbc/test_sbc.smc",
+      "exercises": "8-bit SBC in binary and decimal mode over all 65,536 operand pairs, A and all eight flags",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "blargg-adc",
+      "title": "Shay Green's ADC test, later build",
+      "sha256": "78e0adc83ffa17ca3038e73620dd159ceb803a5ec863e17d132ec1101ed64159",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "jonasquinn-test-roms/snes_adc_sbc/test_adc.smc",
+      "exercises": "8-bit ADC in binary and decimal mode, A and all eight flags",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "blargg-adc-16",
+      "title": "Shay Green's 16-bit ADC test",
+      "sha256": "1c8cda4270f828906db53fb274f078e410ca1bc4686c87c6f41946c1044ec165",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "jonasquinn-test-roms/snes_adc_sbc/test_adc_16.smc",
+      "exercises": "16-bit ADC in binary and decimal mode, A and all eight flags",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "blargg-sbc",
+      "title": "Shay Green's SBC test, later build",
+      "sha256": "f92e6b35c859a7227c187e29603f74348d3fa658094c7e0f8a08d1c8a6e2a8e8",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "jonasquinn-test-roms/snes_adc_sbc/test_sbc.smc",
+      "exercises": "8-bit SBC in binary and decimal mode, A and all eight flags",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "blargg-sbc-16",
+      "title": "Shay Green's 16-bit SBC test",
+      "sha256": "73479a6cd61217f2b72f85b8847a78e0e3298de906bdfd4e83925f938aebddb6",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "jonasquinn-test-roms/snes_adc_sbc/test_sbc_16.smc",
+      "exercises": "16-bit SBC in binary and decimal mode, A and all eight flags",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "sour-op-timing-v2",
+      "title": "Sour's instruction timing test, version 2",
+      "sha256": "6881f66d7f833fbb062aba173b3946e204c7f43fc42acbf8278c705a01964b12",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "Sour/SnesTests/op_timing_test/op_timing_test_v2.sfc",
+      "exercises": "the cycles almost every 65816 instruction takes under every combination of the m and x flags, timed by the host's counters",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "burn-in-rev-d",
+      "title": "Burn-in test, revision D",
+      "sha256": "092e80eab0d3a5300a30f7d41cf4e454cdb79cc0fac66f052567d37322cb891f",
+      "source": "the local library of test images, snes-roms/5 Tools & Service Test Carts/",
+      "exercises": "a factory burn-in run whose text names a CPU test among the parts it checks",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "aging-1-00",
+      "title": "Aging program 1.00",
+      "sha256": "f58837be3cf307edf550ec971993672d8d00e4fba99a2c5dee58383202d08c54",
+      "source": "the local library of test images, snes-roms/5 Tools & Service Test Carts/",
+      "exercises": "a factory aging run whose text names a CPU test among the parts it checks",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "snsp-aging-1-02",
+      "title": "SNSP aging program 1.02",
+      "sha256": "6c84f60b7a48b279ca4c1801947f843d79841cd92227c82d8c250edc25be2a9b",
+      "source": "the local library of test images, snes-roms/5 Tools & Service Test Carts/",
+      "file": "SNSP Aging Ver 1.02 (Japan) (En).sfc",
+      "exercises": "a factory aging run whose text names a CPU test among the parts it checks",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "control-deck-tester-rev-1",
+      "title": "Control deck tester, revision 1",
+      "sha256": "77c03d014c6e94a378d2acb7c2e92cdb14347d675eac1127e11164b1104fcd83",
+      "source": "the local library of test images, snes-roms/5 Tools & Service Test Carts/",
+      "exercises": "a service test whose text names CPU tests among the parts it checks",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "sa1-speed-test-5-1",
+      "title": "SA-1 speed test 5.1",
+      "sha256": "21c24e4b0ec2cb32eeba25c5311aa39bd3228fc1327d2719c0b88671884c2541",
+      "source": "the local library of test images, snes-roms/5 Tools & Service Test Carts/",
+      "file": "SA-1 Speed Test (World) (v5.1) (Program) (Aftermarket) (Unl).sfc",
+      "exercises": "how fast the host's 65816 and the SA-1's run the same loops, measured against the host's counters",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    }
+  ]
+}

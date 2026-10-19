@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16**品種、**17,900,000**件の状態ケースと**17,870,080**件のサイクル精度ケースを比較、説明のつかない失敗は**0**件、テスト**1,507**件、ステートメントとブランチのカバレッジ**100%**、依存関係なし
+**16**品種、**17,900,000**件の状態ケースと**17,870,080**件のサイクル精度ケースを比較、説明のつかない失敗は**0**件、テスト**1,520**件、ステートメントとブランチのカバレッジ**100%**、依存関係なし
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -229,6 +229,7 @@ gave up after 100 instructions at $31D0
 | `python3 -m conformance.quotes`     | なし                                                                                                                                                                                            | すべての引用が文書内に見つかるか文書がなければ0、それ以外は1                               |
 | `python3 -m conformance.speed`      | `[--instructions N] [--repeats N]`。デフォルトは200,000と7                                                                                                                                      | 下限の毎秒700,000サイクルを上回れば0、下回れば1、引数が不正なら2                           |
 | `python3 -m conformance.netlist`    | なし。`NETLIST`変数を読みます                                                                                                                                                                   | すべてのケースが一致するかシミュレーションが設定されていなければ0、それ以外は1             |
+| `python3 -m conformance.exercisers` | なし。`MOS65XX_EXERCISERS`変数を読みます                                                                                                                                                        | すべてのエクササイザがリストの合格アドレスで止まれば0、それ以外は1、何も実行しなければ2    |
 | `python3 -m conformance.links`      | なし                                                                                                                                                                                            | 0、または引用したアドレスが404か410を返した場合は1                                         |
 | `python3 -m conformance.watch`      | `[definition] [--moved]`                                                                                                                                                                        | 0、または定義が読めないか食い違う場合は1                                                   |
 | `python3 -m conformance.package`    | `<wheel>`                                                                                                                                                                                       | すべてのモジュールがwheelに含まれテストが含まれていなければ0、それ以外は1、引数がなければ2 |
@@ -425,6 +426,8 @@ python3 -m conformance.cycles ~/.cache/conformance-suites/6502/6502/v1 --model 6
 [`conformance/hardware.json`](conformance/hardware.json)はメーカーのページから取ったすべての事実を、出典の文とページとともに保持しており、テストがコードをそれらに合わせています。[`conformance/addressing-cycles.json`](conformance/addressing-cycles.json)と[`conformance/instruction-set.json`](conformance/instruction-set.json)は、ハードウェアマニュアルのAppendix AとプログラミングマニュアルのAppendix Bを印刷されたとおりに保持しています。[`conformance/divergences.json`](conformance/divergences.json)は2つの出典が食い違う23か所について、このパッケージがどちらに従うか、それぞれ何があれば決着するかを記録しています。`python3 -m conformance.quotes`は引用したすべての文をその文書内で見つけます。
 
 スイートはコミットで固定されています。週次のジョブが各上流の最新でスイートを実行し、新しいスイートが合格すればプルリクエストを、失敗すればissueを開きます。[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)には、文書とスイートでは決着しない14の問いを、それを解決する実機での測定とともに挙げています。
+
+素のプロセッサ上で、完結したテストプログラムも2本実行します。Klaus Dormannの6502機能テストは6502として合格し、65C02拡張オペコードテストはr65c02とw65c02として合格します。どちらも1つのアドレスでループして停止し、どのアドレスが合格を意味するかは彼のリストに書かれています。[`conformance/exercisers.json`](conformance/exercisers.json)はそれぞれの停止位置を記録し、取得元のコミットを固定しています。`python3 -m conformance.exercisers`は`MOS65XX_EXERCISERS`で指定したチェックアウトから実行します。[`conformance/testroms.json`](conformance/testroms.json)は、これらのパーツ向けのほかのテストプログラムと、それぞれが待っているメンバーを列挙しています。
 
 ## 開発に参加する
 

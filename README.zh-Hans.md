@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16** 款芯片，比对了 **17,900,000** 个状态用例和 **17,870,080** 个周期精确用例，**0** 个无法解释的失败，**1,507** 个测试，**100%** 语句和分支覆盖率，无依赖
+**16** 款芯片，比对了 **17,900,000** 个状态用例和 **17,870,080** 个周期精确用例，**0** 个无法解释的失败，**1,520** 个测试，**100%** 语句和分支覆盖率，无依赖
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -219,19 +219,20 @@ gave up after 100 instructions at $31D0
 
 ### 命令行工具
 
-| 命令                                | 参数                                                                                                                                                                                | 退出码                                                              |
-| :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------ |
-| `python3 mos65xx/doctor.py`         | 无                                                                                                                                                                                  | 所有检查通过时为 0，否则为 1                                        |
-| `python3 -m conformance.fetch`      | `[directory] [--latest]`。默认为 `~/.cache/conformance-suites`。`--latest` 使用每个上游的最新提交，而不是固定的版本。已有的副本会被移到固定版本，最终不在固定版本上的副本会终止运行 | 0，无法访问某个上游时为 1                                           |
-| `python3 -m conformance.singlestep` | `<suite directory> [tests per file] [filter] [--model name]`。默认型号为 `65816`                                                                                                    | 所有用例一致或没有测试套件时为 0，出现不一致时为 1，参数错误时为 2  |
-| `python3 -m conformance.cycles`     | 与 `singlestep` 相同                                                                                                                                                                | 与 `singlestep` 相同                                                |
-| `python3 -m conformance.documents`  | `[--check] [--only substring]`                                                                                                                                                      | 所有摘要都匹配时为 0，有文件被拒绝或参数错误时为 1                  |
-| `python3 -m conformance.quotes`     | 无                                                                                                                                                                                  | 每条引文都在其文档中找到或本地没有文档时为 0，否则为 1              |
-| `python3 -m conformance.speed`      | `[--instructions N] [--repeats N]`。默认分别为 200,000 和 7                                                                                                                         | 高于每秒 700,000 个周期的下限时为 0，低于时为 1，参数错误时为 2     |
-| `python3 -m conformance.netlist`    | 无。读取 `NETLIST` 变量                                                                                                                                                             | 所有用例一致或未配置仿真时为 0，否则为 1                            |
-| `python3 -m conformance.links`      | 无                                                                                                                                                                                  | 0，某个引用的地址返回 404 或 410 时为 1                             |
-| `python3 -m conformance.watch`      | `[definition] [--moved]`                                                                                                                                                            | 0，定义无法读取或互相矛盾时为 1                                     |
-| `python3 -m conformance.package`    | `<wheel>`                                                                                                                                                                           | 每个模块都在 wheel 中且没有测试混入时为 0，否则为 1，没有参数时为 2 |
+| 命令                                | 参数                                                                                                                                                                                | 退出码                                                                           |
+| :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------- |
+| `python3 mos65xx/doctor.py`         | 无                                                                                                                                                                                  | 所有检查通过时为 0，否则为 1                                                     |
+| `python3 -m conformance.fetch`      | `[directory] [--latest]`。默认为 `~/.cache/conformance-suites`。`--latest` 使用每个上游的最新提交，而不是固定的版本。已有的副本会被移到固定版本，最终不在固定版本上的副本会终止运行 | 0，无法访问某个上游时为 1                                                        |
+| `python3 -m conformance.singlestep` | `<suite directory> [tests per file] [filter] [--model name]`。默认型号为 `65816`                                                                                                    | 所有用例一致或没有测试套件时为 0，出现不一致时为 1，参数错误时为 2               |
+| `python3 -m conformance.cycles`     | 与 `singlestep` 相同                                                                                                                                                                | 与 `singlestep` 相同                                                             |
+| `python3 -m conformance.documents`  | `[--check] [--only substring]`                                                                                                                                                      | 所有摘要都匹配时为 0，有文件被拒绝或参数错误时为 1                               |
+| `python3 -m conformance.quotes`     | 无                                                                                                                                                                                  | 每条引文都在其文档中找到或本地没有文档时为 0，否则为 1                           |
+| `python3 -m conformance.speed`      | `[--instructions N] [--repeats N]`。默认分别为 200,000 和 7                                                                                                                         | 高于每秒 700,000 个周期的下限时为 0，低于时为 1，参数错误时为 2                  |
+| `python3 -m conformance.netlist`    | 无。读取 `NETLIST` 变量                                                                                                                                                             | 所有用例一致或未配置仿真时为 0，否则为 1                                         |
+| `python3 -m conformance.exercisers` | 无。读取 `MOS65XX_EXERCISERS` 变量                                                                                                                                                  | 每个测试程序都停在其清单标明为通过的地址时为 0，否则为 1，没有运行任何一个时为 2 |
+| `python3 -m conformance.links`      | 无                                                                                                                                                                                  | 0，某个引用的地址返回 404 或 410 时为 1                                          |
+| `python3 -m conformance.watch`      | `[definition] [--moved]`                                                                                                                                                            | 0，定义无法读取或互相矛盾时为 1                                                  |
+| `python3 -m conformance.package`    | `<wheel>`                                                                                                                                                                           | 每个模块都在 wheel 中且没有测试混入时为 0，否则为 1，没有参数时为 2              |
 
 ## 以真实速度运行
 
@@ -425,6 +426,8 @@ python3 -m conformance.cycles ~/.cache/conformance-suites/6502/6502/v1 --model 6
 [`conformance/hardware.json`](conformance/hardware.json) 保存了取自制造商文档页面的每一项事实，连同原句及其所在页面，并有测试确保代码与之一致。[`conformance/addressing-cycles.json`](conformance/addressing-cycles.json) 和 [`conformance/instruction-set.json`](conformance/instruction-set.json) 按印刷原样保存了硬件手册的 Appendix A 和编程手册的 Appendix B。[`conformance/divergences.json`](conformance/divergences.json) 记录了两个来源互相矛盾的 23 处、本包遵循哪一方，以及什么能解决每一处分歧。`python3 -m conformance.quotes` 会在各自的文档中找到每一句引文。
 
 测试套件按提交固定。一个每周任务会在每个上游的最新提交上运行它们，较新的套件通过时打开一个 pull request，失败时打开一个 issue。[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) 列出了文档和测试套件都无法解决的 14 个问题，每个问题都附有能解决它的真实芯片测量方法。
+
+这里也在裸处理器上运行两个完整的测试程序：Klaus Dormann 的 6502 功能测试以 6502 运行并通过，他的 65C02 扩展操作码测试以 r65c02 和 w65c02 运行并通过。每个程序都通过在一个地址上循环来停止，而他的清单说明哪个地址表示通过。[`conformance/exercisers.json`](conformance/exercisers.json) 记录每个程序停在哪里，并固定它们来源的提交；`python3 -m conformance.exercisers` 从 `MOS65XX_EXERCISERS` 指定的检出运行它们。[`conformance/testroms.json`](conformance/testroms.json) 列出这些部件的其他所有测试程序，以及每个程序在等待哪个成员。
 
 ## 参与开发
 

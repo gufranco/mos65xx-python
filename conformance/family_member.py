@@ -99,6 +99,19 @@ def a_running_part() -> Part:
 
 TESTED_DIRECTORIES = ("mos65xx", "conformance")
 
+LONG_FILES: dict[str, str] = {
+    "mos65xx/mos6502.py": (
+        "A single calculation engine sharing intermediate state: one Cpu whose opcode"
+        " handlers share the registers, flags, pin lines and cycle state, and whose hooks"
+        " the 65C02 overrides one by one"
+    ),
+    "mos65xx/wdc65816.py": (
+        "A single calculation engine sharing intermediate state: one Cpu whose opcode"
+        " handlers share the register file, the width and emulation flags, the stack and"
+        " the cycle state"
+    ),
+}
+
 MACHINES = {
     "zilog-z80-python": (
         "ZX Spectrum",

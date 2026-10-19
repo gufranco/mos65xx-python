@@ -1,0 +1,55 @@
+{
+  "what": "Klaus Dormann's instruction exercisers, each a whole program that runs on the bare processor and reports its own verdict by looping on one address: the address his listing marks as passed, or any other as the test that failed. What is carried is the verdict this model reached, never the program.",
+  "author": "Klaus Dormann",
+  "repository": "https://github.com/Klaus2m5/6502_65C02_functional_tests.git",
+  "commit": "7954e2dbb49c469ea286070bf46cdd71aeb29e4b",
+  "license": "GPL-3.0, so the images are fetched at the pinned commit and never committed",
+  "variable": "MOS65XX_EXERCISERS",
+  "decides": "sha256",
+  "programs": [
+    {
+      "id": "dormann-6502-functional",
+      "file": "bin_files/6502_functional_test.bin",
+      "sha256": "fa12bfc761e6f9057e4cc01a665a7b800ff01ae91f598af1e39a1201d01953fd",
+      "loadAt": "0000",
+      "start": "0400",
+      "passedAt": "3469",
+      "passedListing": "3469 : 4c6934          >        jmp *           ;test passed, no errors",
+      "runs": [
+        {
+          "model": "6502",
+          "trappedAt": "3469",
+          "steps": 30646177,
+          "cycles": 96241367,
+          "runOn": "2026-10-19"
+        }
+      ]
+    },
+    {
+      "id": "dormann-65c02-extended",
+      "file": "bin_files/65C02_extended_opcodes_test.bin",
+      "sha256": "10a2a07fa240666fa610c46accebe8d42b1000feef3aae619da15a8d152869b2",
+      "loadAt": "0000",
+      "start": "0400",
+      "passedAt": "24f1",
+      "passedListing": "24f1 : 4cf124          >        jmp *           ;test passed, no errors",
+      "builtFor": "rkwl_wdc_op = 1, so it tests BBR, BBS, RMB and SMB in full, which only the Rockwell and WDC parts have. The plain 65c02 lacks them and stops at the first BBR, at 0730, which is the build asking for instructions that part never had rather than a fault.",
+      "runs": [
+        {
+          "model": "r65c02",
+          "trappedAt": "24f1",
+          "steps": 21986986,
+          "cycles": 66907072,
+          "runOn": "2026-10-19"
+        },
+        {
+          "model": "w65c02",
+          "trappedAt": "24f1",
+          "steps": 21986986,
+          "cycles": 66907072,
+          "runOn": "2026-10-19"
+        }
+      ]
+    }
+  ]
+}

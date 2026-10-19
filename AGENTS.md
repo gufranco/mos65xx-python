@@ -176,6 +176,44 @@ for the fourth, which the suite contradicts. Read the cycle table and the pin
 descriptions before the prose: both times the document contradicted itself,
 those two were the ones that matched the silicon.
 
+## Test cartridges
+
+[`conformance/testroms.json`](conformance/testroms.json) lists every test
+program written to exercise these parts, each pinned by SHA-256 and none of
+them carried here.
+
+**Two run, on the bare processor.** Klaus Dormann's instruction exercisers each
+loop on one address when they stop, and his listing marks which address means
+passed. [`conformance/exercisers.py`](conformance/exercisers.py) loads one, runs
+it from `$0400` until the program counter stops moving, and compares where it
+stopped with that address. The verdicts it reached are in
+[`conformance/exercisers.json`](conformance/exercisers.json), and the tests
+beside it replay them with no image present:
+
+- `6502_functional_test.bin` as the 6502: passed at `$3469`, 30,646,177
+  instructions.
+- `65C02_extended_opcodes_test.bin` as the r65c02 and the w65c02: passed at
+  `$24f1`, 21,986,986 instructions each. That build tests BBR, BBS, RMB and SMB
+  in full, so the plain 65c02, which never had them, stops at the first BBR and
+  is not run against it.
+
+```bash
+git clone https://github.com/Klaus2m5/6502_65C02_functional_tests.git /tmp/dormann
+git -C /tmp/dormann checkout 7954e2dbb49c469ea286070bf46cdd71aeb29e4b
+MOS65XX_EXERCISERS=/tmp/dormann python3 -m conformance.exercisers
+```
+
+Without the variable it runs nothing, says so and exits 2, and CI turns that
+into a notice. CI fetches them at the pinned commit, so it runs both on every
+push. Nothing watches that pin: the upstream last moved on 2020-01-05, and a
+move has to be noticed by hand with `git ls-remote`.
+
+**The rest wait on `snes-machine`**, a whole-machine member no plan names yet.
+They are the 65816 tests that print their verdict on a screen, Peter Lemon's,
+gilyon's, Shay Green's ADC and SBC tests and Sour's instruction timing test, and
+the factory and service tests whose text names a CPU test. None of them reports
+anything without the video hardware around the processor.
+
 ## Every gate, in the order to run them
 
 ```bash
@@ -303,6 +341,9 @@ conformance/
   hardware.json  what the manufacturers printed, with the sentence
   divergences.json  where a document and a recording part, and what would settle it
   links.py       the weekly check that every cited address still answers
+  exercisers.py  Klaus Dormann's exercisers, run to the address each one stops at
+  exercisers.json  the verdicts they reached, and the commit they come from
+  testroms.json  every test program that exercises these parts, and where each runs
 ```
 
 ## Things that will bite you
