@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16** 款芯片，比对了 **17,900,000** 个状态用例和 **17,870,080** 个周期精确用例，**0** 个无法解释的失败，**1,487** 个测试，**100%** 语句和分支覆盖率，无依赖
+**16** 款芯片，比对了 **17,900,000** 个状态用例和 **17,870,080** 个周期精确用例，**0** 个无法解释的失败，**1,498** 个测试，**100%** 语句和分支覆盖率，无依赖
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -98,8 +98,8 @@ python3 mos65xx/doctor.py
 | `n`、`v`、`z`、`c`                                | 在每款芯片上含义相同的标志，各为一个 `bool`                                                                                                                                                                                                                                                                        |
 | `i`、`d`、`b`、`decimal`                          | 8 位芯片。中断禁止、十进制标志、中断指令标志，以及是否接有十进制加法器                                                                                                                                                                                                                                             |
 | `irq_disable`、`decimal`、`m8`、`x8`、`emulation` | 仅 65816。中断禁止、十进制标志、8 位累加器、8 位变址寄存器、仿真模式                                                                                                                                                                                                                                               |
-| `irq_line`                                        | 以电平表示的请求线。它在每条指令之后采样，因此在此之前撤回的请求不会被响应                                                                                                                                                                                                                                         |
-| `nmi_line`                                        | 不可屏蔽中断线。由低到高的变化触发一次中断，保持为高不会再次中断。在 NMOS 芯片上，在 `BRK` 执行期间、读取其向量之前到达的变化，会如 WDC 和 Rockwell 所印，用 NMI 向量取代 `BRK` 向量                                                                                                                               |
+| `irq_line`                                        | 以电平表示的请求线。NMOS 芯片与晶粒仿真一致，在指令最后一个周期开始时轮询它：在最后一个周期中拉起的请求要等到下一条指令，已轮询的请求即使撤回也会被响应，`CLI` 让保持的请求晚一条指令进入，页内成立的分支提前一个周期轮询。CMOS 芯片和 65816 在每条指令之后采样，因此在此之前撤回的请求不会被响应                  |
+| `nmi_line`                                        | 不可屏蔽中断线。由低到高的变化触发一次中断，保持为高不会再次中断。NMOS 芯片在轮询 `irq_line` 的同一时刻看到变化。在 NMOS 芯片上，在 `BRK` 执行期间、压入状态的周期之前拉起的变化，会如 WDC 和 Rockwell 所印、晶粒所示，用 NMI 向量取代 `BRK` 向量，并且 `BRK` 之后总会先执行一条处理程序指令                       |
 | `ready_line`                                      | 为假时，读操作会持续花费周期直到它再次为真，因此主机从 `on_cycle` 中将其清除。CMOS 芯片和 65816 以同样方式挂起写操作，NMOS 芯片则不会                                                                                                                                                                              |
 | `cycles`                                          | 自构建以来的周期数。复位会累加到其中                                                                                                                                                                                                                                                                               |
 | `steps`                                           | 自上次复位以来的指令数                                                                                                                                                                                                                                                                                             |
@@ -133,12 +133,12 @@ print(cpu.step(), hex(cpu.pc))
 ```
 
 ```
-9 0x3000
+2 0x201
 9 0x4000
 2 0x4001
 ```
 
-`$0200` 处的 `CLI` 在请求线保持有效时清除中断禁止标志，因此同一步会经由 `$FFFE` 进入中断：`CLI` 用 2 个周期，进入中断用 7 个。拉高不可屏蔽中断线会经由 `$FFFA` 中断一次。第三步在该线仍为高时运行一条 `NOP`。
+`$0200` 处的 `CLI` 在请求线保持有效时清除中断禁止标志。NMOS 芯片与其晶粒一样在标志改变之前轮询，因此这一步用 2 个周期且不响应任何中断，请求在下一条指令轮询之前已被撤回。拉高不可屏蔽中断线会在 `$0201` 处的 `NOP` 之后经由 `$FFFA` 中断一次：`NOP` 用 2 个周期，进入中断用 7 个。第三步在该线仍为高时运行一条 `NOP`。
 
 ### 错误
 
@@ -421,9 +421,9 @@ python3 -m conformance.cycles ~/.cache/conformance-suites/6502/6502/v1 --model 6
 
 这两个总数都由 [`conformance/suites.json`](conformance/suites.json) 推导，并有一个测试确保本页与之一致。wdc65c02 套件中 `WAI` 和 `STP` 的文件是空的。周期总数排除了 29,920 个 CMOS 十进制用例，它们额外的周期记录在一个任何寄存器都无法产生的固定地址上。凡本内核遵循数据手册而非测试套件之处，两个运行器都打印另行处理的 65816 用例数量。按条件排除的有三十八个：仿真模式栈指针位于第一页顶部时的单字节出栈有三十七个，指针从已对齐直接页末尾开始的 `(d,x)` 有一个。其余用例除两种读法不同之处外全部比对：19,924 个仿真模式 `BRK` 和 `COP` 用例中的数据存储体寄存器，以及栈指针位于第一页底部的四十三个 `JSR (a,x)` 用例中一次入栈写入的地址。
 
-[`conformance/hardware.json`](conformance/hardware.json) 保存了取自制造商文档页面的每一项事实，连同原句及其所在页面，并有测试确保代码与之一致。[`conformance/addressing-cycles.json`](conformance/addressing-cycles.json) 和 [`conformance/instruction-set.json`](conformance/instruction-set.json) 按印刷原样保存了硬件手册的 Appendix A 和编程手册的 Appendix B。[`conformance/divergences.json`](conformance/divergences.json) 记录了两个来源互相矛盾的 21 处、本包遵循哪一方，以及什么能解决每一处分歧。`python3 -m conformance.quotes` 会在各自的文档中找到每一句引文。
+[`conformance/hardware.json`](conformance/hardware.json) 保存了取自制造商文档页面的每一项事实，连同原句及其所在页面，并有测试确保代码与之一致。[`conformance/addressing-cycles.json`](conformance/addressing-cycles.json) 和 [`conformance/instruction-set.json`](conformance/instruction-set.json) 按印刷原样保存了硬件手册的 Appendix A 和编程手册的 Appendix B。[`conformance/divergences.json`](conformance/divergences.json) 记录了两个来源互相矛盾的 23 处、本包遵循哪一方，以及什么能解决每一处分歧。`python3 -m conformance.quotes` 会在各自的文档中找到每一句引文。
 
-测试套件按提交固定。一个每周任务会在每个上游的最新提交上运行它们，较新的套件通过时打开一个 pull request，失败时打开一个 issue。[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) 列出了文档和测试套件都无法解决的 13 个问题，每个问题都附有能解决它的真实芯片测量方法。
+测试套件按提交固定。一个每周任务会在每个上游的最新提交上运行它们，较新的套件通过时打开一个 pull request，失败时打开一个 issue。[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) 列出了文档和测试套件都无法解决的 14 个问题，每个问题都附有能解决它的真实芯片测量方法。
 
 ## 参与开发
 

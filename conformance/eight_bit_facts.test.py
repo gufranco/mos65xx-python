@@ -413,8 +413,7 @@ class CmosFactTest(unittest.TestCase):
         watched = {address & cpu.address_mask for address in (*BREAK, *NMI)}
 
         # Act
-        with self.assertRaises(NoSuchPin):
-            cpu.step()
+        cpu.step()
 
         # Assert
         self.assertEqual(

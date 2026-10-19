@@ -44,6 +44,9 @@ class Cpu:
     __slots__ = (
         "_inside",
         "_open",
+        "_poll_held",
+        "_poll_skipped",
+        "_polled",
         "_resetting",
         "_unsampled",
         "a",
@@ -117,9 +120,15 @@ class Cpu:
 
         self._unsampled = False
 
+        self._poll_held = False
+
+        self._poll_skipped = False
+
         self.trace: list[tuple[int, int, str]] | None = None
 
         self.power_on(seed)
+
+        self._polled = (self.irq_line, self.nmi_line, self.i)
 
     def power_on(self, seed: int = UNSET_SEED) -> None:
         undefined = scramble(7, seed)
@@ -171,7 +180,12 @@ class Cpu:
 
     def spend(self) -> None:
         self.close_cycle()
+        if not self._poll_held:
+            self._polled = (self.irq_line, self.nmi_line, self.i)
         self._open = True
+
+    def polled(self) -> tuple[bool, bool, bool]:
+        return self._polled
 
     def close_cycle(self) -> None:
         if not self._open:
@@ -359,9 +373,13 @@ class Cpu:
             return
         if offset & 0x80:
             offset -= 0x100
-        self.dead(self.pc)
         target = (self.pc + offset) & 0xFFFF
         uncorrected = (self.pc & 0xFF00) | (target & 0x00FF)
+        self._poll_held = uncorrected == target
+        try:
+            self.dead(self.pc)
+        finally:
+            self._poll_held = False
         if uncorrected != target:
             self.dead(uncorrected)
         self.pc = target
@@ -636,6 +654,10 @@ class Cpu:
         hijacked = self.nmi_takes_over_break()
         self.nmi_seen = self.nmi_seen or hijacked
         self.pc = self.read16(NMI_VECTOR if hijacked else BREAK_VECTOR)
+        self._poll_skipped = self.skips_poll_after_break()
+
+    def skips_poll_after_break(self) -> bool:
+        return True
 
     def nmi_takes_over_break(self) -> bool:
         return "nmi" in self.package_pins and self.nmi_line and not self.nmi_seen
@@ -662,21 +684,32 @@ class Cpu:
             self.close_cycle()
 
     def sampled_line(self) -> str | None:
-        if self.nmi_line and not self.nmi_seen:
+        irq, nmi, _ = self.polled()
+        if nmi and not self.nmi_seen:
             return "nmi"
-        if self.irq_line:
+        if irq:
             return "irq"
         return None
 
     def sample_pins(self) -> bool:
+        if self._poll_skipped:
+            self._poll_skipped = False
+            return False
         line = self.sampled_line()
-        self.nmi_seen = self.nmi_line
+        self.nmi_seen = self.polled()[1]
         if line == "nmi":
             self.nmi()
             return True
         if line == "irq":
-            return self.irq()
+            return self.take_polled_irq()
         return False
+
+    def take_polled_irq(self) -> bool:
+        self.require("irq")
+        if self.polled()[2]:
+            return False
+        self.enter(IRQ_VECTOR)
+        return True
 
     def refuse_inside(self, line: str) -> None:
         if self._inside:
@@ -686,8 +719,8 @@ class Cpu:
             raise InsideInstruction(line, pending)
 
     def entry_pending(self) -> str | None:
-        line = self.sampled_line() if self._unsampled else None
-        if line == "irq" and self.irq_masked():
+        line = self.sampled_line() if self._unsampled and not self._poll_skipped else None
+        if line == "irq" and self.polled()[2]:
             return None
         return line
 

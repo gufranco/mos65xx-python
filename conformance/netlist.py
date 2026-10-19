@@ -19,15 +19,30 @@ AT = 0x0200
 
 FILL = 0xEA
 
+HANDLER = 0x0300
+
+VECTORS = (0xFFFA, 0xFFFE)
+
+LINES = {"irq": "irq_line", "nmi": "nmi_line"}
+
 
 class Case:
-    __slots__ = ("cycles", "program", "steps", "why")
+    __slots__ = ("cycles", "line", "program", "raised", "steps", "why")
 
-    def __init__(self, why: str, program: bytes, cycles: int, steps: int) -> None:
+    def __init__(
+        self, why: str, program: bytes, cycles: int, steps: int, line: str = "", raised: int = 0
+    ) -> None:
         self.why = why
         self.program = program
         self.cycles = cycles
         self.steps = steps
+        self.line = line
+        self.raised = raised
+
+    def argv(self) -> list[str]:
+        if self.line:
+            return [self.line, self.program.hex(), str(self.raised), str(self.cycles)]
+        return [self.program.hex(), str(self.cycles)]
 
 
 CASES = (
@@ -103,6 +118,62 @@ CASES = (
         6,
         2,
     ),
+    Case(
+        "an interrupt request raised as the last cycle of an instruction begins, taken after it",
+        bytes((0xA2, 0xFF, 0x9A, 0x58, 0xAD, 0x34, 0x12)),
+        16,
+        4,
+        "irq",
+        9,
+    ),
+    Case(
+        "an interrupt request raised during the last cycle, which waits for the next instruction",
+        bytes((0xA2, 0xFF, 0x9A, 0x58, 0xAD, 0x34, 0x12)),
+        18,
+        5,
+        "irq",
+        10,
+    ),
+    Case(
+        "a request held while the mask is cleared, taken an instruction late",
+        bytes((0xA2, 0xFF, 0x9A, 0xEA, 0x58, 0xEA, 0xEA)),
+        16,
+        5,
+        "irq",
+        5,
+    ),
+    Case(
+        "a taken branch inside its page, which polls before its operand cycle ends",
+        bytes((0xA2, 0xFF, 0x9A, 0x58, 0x18, 0x90, 0x02)),
+        19,
+        6,
+        "irq",
+        10,
+    ),
+    Case(
+        "a non-maskable edge during the last cycle, which waits for the next instruction",
+        bytes((0xA2, 0xFF, 0x9A, 0xEA, 0xAD, 0x34, 0x12)),
+        18,
+        5,
+        "nmi",
+        10,
+    ),
+    Case(
+        "a non-maskable edge before a break pushes its status, which takes the vector over",
+        bytes((0xA2, 0xFF, 0x9A, 0x00)),
+        15,
+        5,
+        "nmi",
+        8,
+    ),
+    Case(
+        "a non-maskable edge after a break pushes its status, which leaves the vector alone",
+        bytes((0xA2, 0xFF, 0x9A, 0x00)),
+        15,
+        5,
+        "nmi",
+        9,
+    ),
 )
 
 
@@ -144,7 +215,21 @@ def _memory(program: bytes) -> Any:
         memory.write8(AT + step, held)
     memory.write8(0xFFFC, AT & 0xFF)
     memory.write8(0xFFFD, AT >> 8)
+    for vector in VECTORS:
+        memory.write8(vector, HANDLER & 0xFF)
+        memory.write8(vector + 1, HANDLER >> 8)
     return memory
+
+
+def _raising(cpu: Any, case: Case) -> None:
+    closed = [0]
+
+    def hook() -> None:
+        closed[0] += 1
+        if closed[0] == case.raised:
+            setattr(cpu, LINES[case.line], True)
+
+    cpu.on_cycle = hook
 
 
 def reset_modelled(counter: int, stack: int) -> list[int]:
@@ -171,13 +256,15 @@ def compare_reset(where: Path, run: Any = None) -> list[str]:
 
 
 def _run(where: Path, case: Case, run: Any = None) -> list[int]:
-    return _addresses(where, [case.program.hex(), str(case.cycles)], run)
+    return _addresses(where, case.argv(), run)
 
 
 def modelled(case: Case) -> list[int]:
     cpu = mos65xx.Cpu("6502", _memory(case.program))
     cpu.reset()
     cpu.trace = []
+    if case.line:
+        _raising(cpu, case)
     for _ in range(case.steps):
         cpu.step()
     return [address for address, _value, *_rest in cpu.trace]

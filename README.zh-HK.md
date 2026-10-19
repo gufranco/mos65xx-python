@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16** 款晶片，比對了 **17,900,000** 個狀態案例及 **17,870,080** 個週期精確案例，**0** 個未獲解釋的失敗，**1,487** 個測試，**100%** 語句及分支覆蓋率，無任何依賴
+**16** 款晶片，比對了 **17,900,000** 個狀態案例及 **17,870,080** 個週期精確案例，**0** 個未獲解釋的失敗，**1,498** 個測試，**100%** 語句及分支覆蓋率，無任何依賴
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -98,8 +98,8 @@ python3 mos65xx/doctor.py
 | `n`, `v`, `z`, `c`                                | 在每款晶片上意義相同的旗標，各為一個 `bool`                                                                                                                                                                                                                                                                                    |
 | `i`, `d`, `b`, `decimal`                          | 8 位元晶片。中斷禁止旗標、十進制旗標、break 旗標，以及是否接有十進制加法器                                                                                                                                                                                                                                                     |
 | `irq_disable`, `decimal`, `m8`, `x8`, `emulation` | 僅限 65816。中斷禁止、十進制旗標、8 位元累加器、8 位元索引暫存器、模擬模式                                                                                                                                                                                                                                                     |
-| `irq_line`                                        | 以電平表示的請求線。它在每條指令之後取樣，因此在此之前撤回的請求不會被接受                                                                                                                                                                                                                                                     |
-| `nmi_line`                                        | 不可遮蔽中斷線。由低變高時中斷一次，維持高電平不會再次中斷。在 NMOS 晶片上，於 `BRK` 執行期間、讀取其向量之前到達的變化，會如 WDC 及 Rockwell 所印，以 NMI 向量取代 `BRK` 向量                                                                                                                                                 |
+| `irq_line`                                        | 以電平表示的請求線。NMOS 晶片與晶粒模擬一致，在指令最後一個週期開始時輪詢它：在最後一個週期中拉起的請求要等到下一條指令，已輪詢的請求即使撤回亦會被接受，`CLI` 令保持的請求遲一條指令才進入，頁內成立的分支會提早一個週期輪詢。CMOS 晶片及 65816 在每條指令之後取樣，因此在此之前撤回的請求不會被接受                          |
+| `nmi_line`                                        | 不可遮蔽中斷線。由低變高時中斷一次，維持高電平不會再次中斷。NMOS 晶片在輪詢 `irq_line` 的同一時刻看到變化。在 NMOS 晶片上，於 `BRK` 執行期間、推入狀態的週期之前拉起的變化，會如 WDC 及 Rockwell 所印、晶粒所示，以 NMI 向量取代 `BRK` 向量，而 `BRK` 之後總會先執行一條處理程式指令                                           |
 | `ready_line`                                      | 為假時，讀取會持續耗用週期直至它再次為真，因此主機要在 `on_cycle` 中清除它。CMOS 晶片及 65816 以同樣方式暫停寫入，NMOS 晶片則不會                                                                                                                                                                                              |
 | `cycles`                                          | 自建立以來的週期數。重設會累加到其中                                                                                                                                                                                                                                                                                           |
 | `steps`                                           | 自上次重設以來的指令數                                                                                                                                                                                                                                                                                                         |
@@ -133,12 +133,12 @@ print(cpu.step(), hex(cpu.pc))
 ```
 
 ```
-9 0x3000
+2 0x201
 9 0x4000
 2 0x4001
 ```
 
-位於 `$0200` 的 `CLI` 在請求線保持有效時清除中斷禁止旗標，因此同一步會經由 `$FFFE` 接受中斷：`CLI` 用 2 個週期，進入中斷用 7 個。拉高不可遮蔽中斷線會經由 `$FFFA` 中斷一次。第三步在該線仍為高電平時執行一條 `NOP`。
+位於 `$0200` 的 `CLI` 在請求線保持有效時清除中斷禁止旗標。NMOS 晶片與其晶粒一樣在旗標改變之前輪詢，因此這一步用 2 個週期且不接受任何中斷，請求在下一條指令輪詢之前已被撤回。拉高不可遮蔽中斷線會在 `$0201` 的 `NOP` 之後經由 `$FFFA` 中斷一次：`NOP` 用 2 個週期，進入中斷用 7 個。第三步在該線仍為高電平時執行一條 `NOP`。
 
 ### 錯誤
 
@@ -421,9 +421,9 @@ python3 -m conformance.cycles ~/.cache/conformance-suites/6502/6502/v1 --model 6
 
 兩個總數均由 [`conformance/suites.json`](conformance/suites.json) 推導得出，並有測試確保本頁與之一致。wdc65c02 測試套件中 `WAI` 及 `STP` 的檔案是空的。週期總數不包括 29,920 個 CMOS 十進制案例，這些案例的額外週期記錄在一個沒有任何暫存器會產生的固定位址上。凡本核心依從數據表而非測試套件之處，兩個執行器均列印另行處理的 65816 案例數目。按條件排除的有三十八個：模擬模式的堆疊指標位於第一頁頂部時的單位元組彈出有三十七個，指標從已對齊直接頁末端開始的 `(d,x)` 有一個。其餘案例除兩種讀法相異之處外全部比對：19,924 個模擬模式 `BRK` 及 `COP` 案例中的數據記憶庫暫存器，以及堆疊指標位於第一頁底部的四十三個 `JSR (a,x)` 案例中一次堆疊寫入的位址。
 
-[`conformance/hardware.json`](conformance/hardware.json) 記錄取自製造商頁面的每項事實，連同其出處的句子及頁面，並有測試確保程式碼與之相符。[`conformance/addressing-cycles.json`](conformance/addressing-cycles.json) 及 [`conformance/instruction-set.json`](conformance/instruction-set.json) 按原樣收錄硬件手冊的 Appendix A 及程式設計手冊的 Appendix B。[`conformance/divergences.json`](conformance/divergences.json) 記錄兩個來源互相矛盾的 21 處、本套件依從哪一方，以及甚麼可以解決每一處分歧。`python3 -m conformance.quotes` 會在其文件中找出每一段引文。
+[`conformance/hardware.json`](conformance/hardware.json) 記錄取自製造商頁面的每項事實，連同其出處的句子及頁面，並有測試確保程式碼與之相符。[`conformance/addressing-cycles.json`](conformance/addressing-cycles.json) 及 [`conformance/instruction-set.json`](conformance/instruction-set.json) 按原樣收錄硬件手冊的 Appendix A 及程式設計手冊的 Appendix B。[`conformance/divergences.json`](conformance/divergences.json) 記錄兩個來源互相矛盾的 23 處、本套件依從哪一方，以及甚麼可以解決每一處分歧。`python3 -m conformance.quotes` 會在其文件中找出每一段引文。
 
-測試套件以提交固定版本。一個每週執行的工作會以每個上游的最新提交執行它們，新版測試套件通過時開啟一個 pull request，失敗時則開啟一個 issue。[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) 列出 13 個文件及測試套件都未能解決的問題，每個都附有可以解決它的真實晶片量度方法。
+測試套件以提交固定版本。一個每週執行的工作會以每個上游的最新提交執行它們，新版測試套件通過時開啟一個 pull request，失敗時則開啟一個 issue。[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) 列出 14 個文件及測試套件都未能解決的問題，每個都附有可以解決它的真實晶片量度方法。
 
 ## 參與開發
 

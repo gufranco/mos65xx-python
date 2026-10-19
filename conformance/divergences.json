@@ -567,6 +567,57 @@
       "severity": "unstated"
     },
     {
+      "subject": "on which cycle an NMOS part polls its interrupt lines",
+      "packageFollows": "neither",
+      "documentSays": {
+        "document": "wdc816",
+        "quote": "Since IRQB is a level-sensitive input, an interrupt will occur if the interrupt source was not cleared since the last interrupt. Also, no interrupt will occur if the interrupt source is cleared prior to interrupt recognition.",
+        "section": "3.6 Interrupt Request (IRQB)",
+        "meaning": "Recognition is named and not placed. No MOS document here says on which cycle of an instruction it happens."
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests 65x02 6502 v1",
+        "measured": "Nothing. Every case runs one instruction with no pin asserted."
+      },
+      "dieSays": {
+        "source": "conformance/netlist.py",
+        "cases": [
+          "an interrupt request raised as the last cycle of an instruction begins, taken after it",
+          "an interrupt request raised during the last cycle, which waits for the next instruction",
+          "a request held while the mask is cleared, taken an instruction late",
+          "a taken branch inside its page, which polls before its operand cycle ends",
+          "a non-maskable edge during the last cycle, which waits for the next instruction",
+          "a non-maskable edge before a break pushes its status, which takes the vector over",
+          "a non-maskable edge after a break pushes its status, which leaves the vector alone"
+        ],
+        "measured": "A simulation of the NMOS die polls both lines, and the interrupt disable flag, at the end of an instruction's second to last cycle. A line raised from then on waits for the next instruction, and one polled is taken even when withdrawn before the instruction ends. CLI therefore lets a held request in an instruction late and SEI does not stop one already polled. A taken branch that stays inside its page polls at the end of its opcode fetch instead. A break polls nothing at its end, so one handler instruction always runs, and an NMI edge reaching it before the cycle that pushes the status takes the vector over. Measured on NOP, LDA and STA absolute, LDA absolute indexed, INC absolute, JMP, JSR, PHA, PLA, PLP, SEI and three kinds of branch, for both lines."
+      },
+      "whatThisProjectDoes": "Polls as the die does on the NMOS parts: the lines and the mask are read as an instruction's last cycle begins, a taken branch inside its page keeps what it read as its operand cycle began, and a break polls nothing at its end. The CMOS parts and the 65816 still read the lines after the instruction completes, which the entry about them covers.",
+      "whatWouldSettleIt": "Nothing outstanding for the NMOS parts: the die decides it and conformance/netlist.py holds the model to it.",
+      "whyItMatters": "A host that raises a line from on_cycle, which is what a cycle accurate board does, sees an interrupt taken an instruction early on a model that reads the lines at completion, and CLI followed by a pending request runs one instruction fewer than on the part.",
+      "status": "closed",
+      "severity": "unstated"
+    },
+    {
+      "subject": "on which cycle a CMOS part or a 65816 polls its interrupt lines",
+      "packageFollows": "neither",
+      "documentSays": {
+        "document": "wdc816",
+        "quote": "Since IRQB is a level-sensitive input, an interrupt will occur if the interrupt source was not cleared since the last interrupt. Also, no interrupt will occur if the interrupt source is cleared prior to interrupt recognition.",
+        "section": "3.6 Interrupt Request (IRQB)",
+        "meaning": "Recognition is named and not placed, on either WDC part."
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests 65x02 and 65816 v1",
+        "measured": "Nothing. Every case runs one instruction with no pin asserted."
+      },
+      "whatThisProjectDoes": "Reads the lines after the instruction completes, so a request raised during the last cycle is taken at once. The NMOS die polls a cycle earlier, but it is a different die, and borrowing its timing would be a guess presented as a measurement.",
+      "whatWouldSettleIt": "A logic capture of a W65C02S and of a W65C816S with the request line raised on each cycle of an instruction in turn, or WDC's Verilog model of the W65C02S, which WDC states matches the part in behaviour and in timing.",
+      "whyItMatters": "A host that raises a line from on_cycle sees the interrupt taken one instruction early or late depending on which reading is right, which changes when a handler runs relative to the code it interrupts.",
+      "status": "open",
+      "severity": "unstated"
+    },
+    {
       "subject": "the stack address of a one byte pull at the top of emulation page one",
       "packageFollows": "document",
       "documentSays": {

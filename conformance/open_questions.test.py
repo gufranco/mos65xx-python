@@ -60,7 +60,7 @@ class RecordTest(unittest.TestCase):
 
     def test_there_are_open_questions_to_report(self) -> None:
         # Arrange
-        expected = 13
+        expected = 14
 
         # Act
         found = opened()
@@ -70,7 +70,7 @@ class RecordTest(unittest.TestCase):
 
     def test_and_the_closed_ones_are_kept_rather_than_deleted(self) -> None:
         # Arrange
-        expected = 8
+        expected = 9
 
         # Act
         closed = [one for one in divergences() if one["status"] == "closed"]

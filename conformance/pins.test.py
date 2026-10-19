@@ -41,8 +41,11 @@ class RequestLineTest(unittest.TestCase):
         self.assertNotEqual(cpu.pc, 0x9000)
 
     def test_a_request_withdrawn_before_the_part_looks_is_not_taken(self) -> None:
+        # Arrange
         cpu = self.part()
+        cpu.memory.write8(0x0000, 0xAD)
 
+        # Act
         with mos65xx.Clock(cpu) as clock:
             clock.tick()
             cpu.irq_line = True
@@ -50,7 +53,8 @@ class RequestLineTest(unittest.TestCase):
             cpu.irq_line = False
             clock.run_for(6)
 
-        self.assertNotEqual(cpu.pc, 0x9000)
+        # Assert
+        self.assertEqual(cpu.s, 0xFF)
 
     def test_a_request_still_held_at_that_moment_is(self) -> None:
         cpu = self.part()
@@ -62,6 +66,178 @@ class RequestLineTest(unittest.TestCase):
             clock.run_for(40)
 
         self.assertTrue(cpu.held())
+
+
+PROGRAM_AT = 0x0200
+
+HANDLER = 0x0300
+
+
+def polling(model: str, program: bytes) -> Any:
+    space = mos65xx.Memory(image=bytes([0xEA] * 0x10000))
+    for offset, held in enumerate(program):
+        space.write8(PROGRAM_AT + offset, held)
+    for vector in (0xFFFA, 0xFFFE):
+        space.write8(vector, HANDLER & 0xFF)
+        space.write8(vector + 1, HANDLER >> 8)
+    cpu = mos65xx.Cpu(model, space)
+    cpu.reset()
+    cpu.pc, cpu.s = PROGRAM_AT, 0xFF
+    cpu.trace = []
+    return cpu
+
+
+def raising(cpu: Any, line: str, at: int) -> None:
+    closed = [0]
+
+    def hook() -> None:
+        closed[0] += 1
+        if closed[0] == at:
+            setattr(cpu, line, True)
+
+    cpu.on_cycle = hook
+
+
+def entered_after(cpu: Any, instructions: int) -> int | None:
+    landed = []
+    for _ in range(instructions):
+        cpu.step()
+        landed.append(cpu.pc)
+    return landed.index(HANDLER) + 1 if HANDLER in landed else None
+
+
+class DiePollTest(unittest.TestCase):
+    def test_a_request_raised_before_the_last_cycle_is_taken_after_that_instruction(
+        self,
+    ) -> None:
+        # Arrange
+        cpu = polling("6502", bytes((0x58, 0xAD, 0x34, 0x12)))
+        raising(cpu, "irq_line", 5)
+
+        # Act
+        taken = entered_after(cpu, 4)
+
+        # Assert
+        self.assertEqual(taken, 2)
+
+    def test_a_request_raised_during_the_last_cycle_waits_for_the_next_one(self) -> None:
+        # Arrange
+        cpu = polling("6502", bytes((0x58, 0xAD, 0x34, 0x12)))
+        raising(cpu, "irq_line", 6)
+
+        # Act
+        taken = entered_after(cpu, 4)
+
+        # Assert
+        self.assertEqual(taken, 3)
+
+    def test_a_request_polled_is_taken_even_when_withdrawn_before_the_end(self) -> None:
+        # Arrange
+        cpu = polling("6502", bytes((0x58, 0xEA)))
+        closed = [0]
+
+        def hook() -> None:
+            closed[0] += 1
+            cpu.irq_line = closed[0] == 3
+
+        cpu.on_cycle = hook
+
+        # Act
+        taken = entered_after(cpu, 3)
+
+        # Assert
+        self.assertEqual(taken, 2)
+
+    def test_clearing_the_mask_takes_effect_an_instruction_late(self) -> None:
+        # Arrange
+        cpu = polling("6502", bytes((0x58, 0xEA, 0xEA)))
+        cpu.i = True
+        cpu.irq_line = True
+
+        # Act
+        taken = entered_after(cpu, 3)
+
+        # Assert
+        self.assertEqual(taken, 2)
+
+    def test_setting_the_mask_does_not_stop_a_request_already_polled(self) -> None:
+        # Arrange
+        cpu = polling("6502", bytes((0x58, 0x78, 0xEA)))
+        cpu.i = True
+        cpu.irq_line = True
+
+        # Act
+        taken = entered_after(cpu, 3)
+
+        # Assert
+        self.assertEqual(taken, 2)
+
+    def test_a_taken_branch_inside_its_page_polls_before_its_operand_cycle_ends(self) -> None:
+        # Arrange
+        cpu = polling("6502", bytes((0x58, 0x18, 0x90, 0x02)))
+        raising(cpu, "irq_line", 6)
+
+        # Act
+        taken = entered_after(cpu, 4)
+
+        # Assert
+        self.assertEqual(taken, 4)
+
+    def test_a_taken_branch_that_crosses_a_page_polls_as_its_last_cycle_begins(self) -> None:
+        # Arrange
+        cpu = polling("6502", bytes((0x58, 0x18, 0x90, 0x80)))
+        raising(cpu, "irq_line", 7)
+
+        # Act
+        taken = entered_after(cpu, 4)
+
+        # Assert
+        self.assertEqual(taken, 3)
+
+    def test_a_non_maskable_edge_during_the_last_cycle_waits_for_the_next_one(self) -> None:
+        # Arrange
+        cpu = polling("6502", bytes((0xEA, 0xAD, 0x34, 0x12)))
+        raising(cpu, "nmi_line", 6)
+
+        # Act
+        taken = entered_after(cpu, 4)
+
+        # Assert
+        self.assertEqual(taken, 3)
+
+    def test_a_break_runs_one_handler_instruction_before_a_late_edge_is_taken(self) -> None:
+        # Arrange
+        cpu = polling("6502", bytes((0x00,)))
+        raising(cpu, "nmi_line", 6)
+
+        # Act
+        cpu.step()
+
+        # Assert
+        self.assertEqual((cpu.pc, cpu.s), (HANDLER, 0xFC))
+
+    def test_and_the_edge_is_taken_after_that_instruction(self) -> None:
+        # Arrange
+        cpu = polling("6502", bytes((0x00,)))
+        raising(cpu, "nmi_line", 6)
+        cpu.step()
+
+        # Act
+        cpu.step()
+
+        # Assert
+        self.assertEqual((cpu.pc, cpu.s), (HANDLER, 0xF9))
+
+    def test_a_cmos_part_still_samples_after_the_instruction(self) -> None:
+        # Arrange
+        cpu = polling("65c02", bytes((0x58, 0xAD, 0x34, 0x12)))
+        raising(cpu, "irq_line", 6)
+
+        # Act
+        taken = entered_after(cpu, 4)
+
+        # Assert
+        self.assertEqual(taken, 2)
 
 
 class NonMaskableLineTest(unittest.TestCase):

@@ -34,7 +34,7 @@ def agreeing() -> Any:
             return types.SimpleNamespace(
                 stdout="".join(f" {step} {one:04X} EA r\n" for step, one in enumerate(held))
             )
-        case = next(one for one in netlist.CASES if one.program.hex() == argv[1])
+        case = next(one for one in netlist.CASES if one.argv() == list(argv[1:]))
         held = netlist.modelled(case)
         return types.SimpleNamespace(
             stdout="".join(f" {step} {one:04X} EA r\n" for step, one in enumerate(held))
@@ -81,6 +81,10 @@ class ClaimedCaseCountTest(unittest.TestCase):
             "fourteen": 14,
             "fifteen": 15,
             "sixteen": 16,
+            "seventeen": 17,
+            "eighteen": 18,
+            "nineteen": 19,
+            "twenty": 20,
         }
         held = (ROOT / "OPEN-QUESTIONS.md").read_text()
 
@@ -99,7 +103,7 @@ class ClaimedCaseCountTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(
-            (claimed.group(1).lower() if claimed else None, netlist.CHECKED), ("thirteen", 13)
+            (claimed.group(1).lower() if claimed else None, netlist.CHECKED), ("twenty", 20)
         )
 
 

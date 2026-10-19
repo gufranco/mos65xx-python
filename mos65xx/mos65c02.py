@@ -134,9 +134,21 @@ class Cpu(Nmos):
         return False
 
     @override
+    def skips_poll_after_break(self) -> bool:
+        return False
+
+    @override
     def interrupt(self, vector: int) -> None:
         super().interrupt(vector)
         self.d = False
+
+    @override
+    def polled(self) -> tuple[bool, bool, bool]:
+        return (self.irq_line, self.nmi_line, self.i)
+
+    @override
+    def take_polled_irq(self) -> bool:
+        return self.irq()
 
     @override
     def irq(self) -> bool:

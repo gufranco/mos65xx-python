@@ -210,6 +210,20 @@ The third is an FPGA core rather than an emulator, and it is worth reading becau
 
 **What would settle it.** A logic capture of a real part running one of those opcodes with the interrupt line already low. An implementation is a lead here rather than an authority, and a weaker one than three sources sounds: ares and bsnes share a lineage, and the FPGA core's author states having compared against bsnes while writing it. All three corroborate one reading of the part rather than three readings of it, and none ships the measurement behind the behaviour. A later reader hunting for a second source should know that another implementation from the same community is unlikely to be one, because the ones that exist were built against that emulator.
 
+### On which cycle a CMOS part or a 65816 polls its interrupt lines
+
+**The document says.** "Since IRQB is a level-sensitive input, an interrupt will occur if the interrupt source was not cleared since the last interrupt. Also, no interrupt will occur if the interrupt source is cleared prior to interrupt recognition."
+
+Source: W65C816S Data Sheet, 3.6 Interrupt Request (IRQB). Recognition is named and not placed.
+
+**The recordings say.** Nothing. Every case runs one instruction with no pin asserted.
+
+**What the NMOS die does.** It polls both lines and the interrupt disable flag at the end of an instruction's second to last cycle, a taken branch inside its page polls a cycle earlier, and a break polls nothing at its end. The NMOS parts here do the same, and `conformance/netlist.py` holds them to it. It is a different die and says nothing about these parts.
+
+**What this project does.** Reads the lines after the instruction completes on the CMOS parts and the 65816, so a request raised during the last cycle is taken at once.
+
+**What would settle it.** A logic capture of a W65C02S and of a W65C816S with the request line raised on each cycle of an instruction in turn, or WDC's Verilog model of the W65C02S.
+
 ### How long a reset takes, which two manufacturers give differently
 
 **The documents say.** MOS: the part "will delay 6 cycles and then fetch the new program count vectors", which with the two cycles of that fetch is eight. WDC: "When a positive edge is detected, there will be a reset sequence lasting seven clock cycles."
@@ -229,7 +243,7 @@ is here because it is why several entries that used to be in this file are not.
 
 **What exists.** A transistor level simulation of the 6502 die is public, and others use it as an oracle: MAME's NMOS 6502 opcode definitions carry the note "Verified with visual6502". It answers what a data sheet drawn at cycle resolution and a recording written one row per cycle cannot, which is what a discarded read puts on the bus and on which cycle a taken branch drives each of its addresses.
 
-**What this project does.** It runs against it now, for thirteen cases, through
+**What this project does.** It runs against it now, for twenty cases, through
 `conformance/netlist.py`. The simulation drives an address every half cycle and
 the model is compared against it, and on all of them they agree. The runner is
 opt-in: `NETLIST` names a built probe and it runs, and without one every case
@@ -237,7 +251,7 @@ reports as skipped rather than as a pass it did not earn. Nothing is fetched,
 built or carried here, because the simulation is somebody else's work under
 their own licence.
 
-**What it has settled.** Thirteen cases, and the model agrees on every one. The
+**What it has settled.** Twenty cases, and the model agrees on every one. The
 discarded read of an indexed access lands at the base plus the index with the
 carry not yet applied, on reads and on writes and on read-modify-writes alike. A
 taken branch reads the unmodified counter on its third cycle and the un-fixed sum
@@ -247,7 +261,13 @@ page takes its high byte from the start of that page. A read-modify-write writes
 the old value before the new. A zero page indexed read wraps inside the page. The
 second cycle of a two cycle opcode reads the counter without incrementing it. A
 reset reads the counter three times and the stack three times before its vector,
-and leaves the stack pointer three lower. The entries about the discarded read,
+and leaves the stack pointer three lower. An interrupt line is polled as an
+instruction's last cycle begins: a request raised during the last cycle waits
+for the next instruction, one polled is taken even if withdrawn before the end,
+clearing the mask takes effect an instruction late, and a taken branch that
+stays inside its page polls a cycle earlier. A break polls nothing at its end, and
+an NMI edge that reaches it before its status push takes its vector over. The
+entries about the discarded read, the interrupt poll,
 the taken branch and the NMOS reset are closed in
 `conformance/divergences.json` with what the die drives beside each.
 
@@ -297,16 +317,3 @@ Absent rather than unknown, and absent on purpose:
   because the MOS manual states it. What a stalled part holds on its address
   lines is absent for the same reason a halted one is, which the entry above
   covers.
-- **Which cycle within an instruction the request line is latched on.** The
-  lines are lines now: `irq_line` is level sensitive and `nmi_line` interrupts on
-  its transition, and both are read where the data sheet puts recognition, after
-  the instruction completes. A request withdrawn before then is correctly not
-  taken, which is what "no interrupt will occur if the interrupt source is
-  cleared prior to interrupt recognition" describes. What no document here states
-  is which cycle inside the instruction the level is latched on, so it is read at
-  completion rather than at a cycle nobody named. One exception is printed: WDC
-  and Rockwell both state that an NMOS part meeting an interrupt after it fetches
-  BRK loads the interrupt vector in place of the BRK vector. An NMOS BRK here
-  reads the NMI line once more, just before its vector fetch, and a new edge
-  replaces the vector. Which cycle is the last one on which that still happens is
-  not printed either, so the line is read at the latest point it could be.

@@ -37,8 +37,14 @@ Three ways to run it, sharing one place where a cycle is spent:
 Three inputs are lines rather than events, each read where the data sheets say
 the part reads them: `irq_line` as a level tested at instruction completion,
 `nmi_line` on its transition, `ready_line` before every cycle, with the NMOS
-carve-out for a write already on its way out. `on_cycle` is called once per
-cycle, at its end, after that cycle's activity and the work that follows it.
+carve-out for a write already on its way out. On the NMOS parts the first two
+are polled where a simulation of the die polls them, as an instruction's last
+cycle begins: `spend()` records the lines and the mask as each cycle opens,
+`polled()` hands back what the last one recorded, a taken branch inside its page
+holds what its operand cycle recorded, and a break skips the poll at its end.
+The CMOS parts override `polled()` to read the lines at completion. `on_cycle`
+is called once per cycle, at its end, after that cycle's activity and the work
+that follows it.
 
 Every cycle passes through `spend()` and nowhere else. `spend()` opens a cycle,
 and `close_cycle()` is the only thing that closes one: it advances the cycle
@@ -93,7 +99,7 @@ Appendix B of the programming manual, Table 6-7 of the W65C816S data sheet and
 the reserved-opcode row of the W65C02S data sheet are each recorded and driven,
 so a claim about timing is checkable without any corpus on the machine.
 
-**Not settled: 13 things**, each named in [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)
+**Not settled: 14 things**, each named in [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)
 with the measurement that would close it. Do not close one by argument.
 
 ## The cycle claim, and what it rests on
