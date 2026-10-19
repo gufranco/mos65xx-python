@@ -12,6 +12,8 @@ RESET_VECTOR = 0xFFFC
 RESET_CYCLES = 8
 
 VECTOR_CYCLES = 2
+
+RESET_COUNTER_CYCLES = 3
 BREAK_VECTOR = 0xFFFE
 NMI_VECTOR = 0xFFFA
 IRQ_VECTOR = 0xFFFE
@@ -129,8 +131,7 @@ class Cpu:
     def reset(self, seed: int = UNSET_SEED) -> Cpu:
         self._resetting = True
         try:
-            for _ in range(self.reset_cycles - VECTOR_CYCLES):
-                self.spend()
+            self.reset_delay()
             self.i = True
             self.stopped = False
             self.jammed = False
@@ -140,6 +141,13 @@ class Cpu:
             self._resetting = False
         self.close_cycle()
         return self
+
+    def reset_delay(self) -> None:
+        for _ in range(RESET_COUNTER_CYCLES):
+            self.read8(self.pc)
+        for _ in range(self.reset_cycles - VECTOR_CYCLES - RESET_COUNTER_CYCLES):
+            self.read8(STACK_PAGE | self.s)
+            self.s = (self.s - 1) & 0xFF
 
     def status(self) -> int:
         value = FLAG_U

@@ -409,9 +409,35 @@
         "corpus": "SingleStepTests 65x02 6502 v1",
         "measured": "Nothing. Every case in every suite starts with the part already running and the registers set by the test, so no recording covers a reset at all. This is the manufacturer's statement standing alone."
       },
-      "whatThisProjectDoes": "Charges all eight cycles: the six the manual names and the two of the vector fetch. They appear in `cycles`, so a host pacing against a real clock is not six cycles ahead of the wall after every reset. They do not appear in `trace`, because every cycle of this part drives an address and no source on hand names the six driven here.",
-      "whatWouldSettleIt": "A recording of the reset sequence, which no published corpus carries. The count is not in question and is now modelled; what is missing is the address on the bus during those six cycles. Six invented addresses would read as knowledge, so the gap is left visible as the one place where `cycles` counts more than `trace` records.",
-      "whyItMatters": "A device that decodes the address bus sees six accesses this model cannot describe. The timing a host pays is now right; the picture of what the bus carried is absent rather than wrong, and those are different failures.",
+      "dieSays": {
+        "source": "conformance/netlist.py",
+        "cases": [
+          "a reset, from the cycle in progress when the line goes high to the push after it"
+        ],
+        "measured": "A simulation of the NMOS die, released from a reset held for eight cycles, reads its program counter on the cycle in progress when the line goes high and on the two after it, then reads 0100+S, 0100+S-1 and 0100+S-2, then FFFC and FFFD. Every one of the eight is a read. The stack pointer comes out three lower, which the push the program makes next shows: with S at C0 the push lands on 01BD. The counter the first three cycles drive is whatever the hold left it at, which the hold moves in ways that depend on the instruction it interrupted and on the data bus."
+      },
+      "whatThisProjectDoes": "Charges all eight cycles and puts each on the bus as the die does: three reads at the program counter, three reads down the stack that leave the stack pointer three lower, and the two of the vector fetch. The counter driven is the one the part holds when reset() is called, because reset() is the line going high and the model has no hold to move it.",
+      "whatWouldSettleIt": "Nothing outstanding for the NMOS parts: the die names all eight addresses and conformance/netlist.py holds the model to them. The CMOS parts and the 65816 are a different die, and the entry about them stays open.",
+      "whyItMatters": "A device that decodes the address bus sees six accesses before the vector, three of them in the stack page. A model that counted the cycles without driving them paid the right time and showed a bus that was absent rather than right.",
+      "status": "closed",
+      "severity": "unstated"
+    },
+    {
+      "subject": "what a CMOS part or a 65816 drives on the bus before its reset vector fetch",
+      "packageFollows": "document",
+      "documentSays": {
+        "document": "wdc816",
+        "quote": "When Reset is brought high, an interrupt sequence is initiated. STP and WAI instructions are cleared. RWB remains in the high state during the stack address cycles. The Reset vector address is 00FFFC,D. PC is loaded with the contents of 00FFFC,D",
+        "assembled": true,
+        "section": "3.13 Reset (RESB)"
+      },
+      "suiteSays": {
+        "corpus": "SingleStepTests 65x02 and 65816 v1",
+        "measured": "Nothing. Every case begins with the part already running and its registers set by the test, so no recording in any published corpus covers a reset."
+      },
+      "whatThisProjectDoes": "Charges each CMOS part and the 65816 the cycles its maker states, or the figure of the design it is built from, and records no bus activity before the vector fetch. The NMOS die drives its counter three times and its stack three times there, and the 65816 data sheet speaks of stack address cycles, but neither names an address these parts drive, so on them `cycles` counts more than `trace` records.",
+      "whatWouldSettleIt": "A logic capture of a reset on a W65C02S and on a W65C816S, or WDC's Verilog model of the W65C02S, which WDC states matches the part in behaviour and in timing.",
+      "whyItMatters": "A device that decodes the address bus of one of these parts sees accesses before the vector that this model does not describe. The time a host pays is right; the picture of the bus is absent rather than wrong.",
       "status": "open",
       "severity": "unstated"
     },
@@ -528,7 +554,14 @@
         "measured": "Nothing. Every case begins with the part already running and its registers set by the test, so no recording in any published corpus covers a reset."
       },
       "whatThisProjectDoes": "Charges each part what its own manufacturer states. Eight on the NMOS parts, which is the six-cycle delay plus the two of the vector fetch, and seven on the W65C02S. Rockwell and Synertek state no count for their CMOS parts, so those keep the figure of the design they are built from rather than borrowing WDC's, and WDC states none for the sixteen bit parts, so those do the same. The figure is a property of the model rather than of the family.",
-      "whatWouldSettleIt": "Whether the two figures describe different silicon or one loose sentence. They are one cycle apart and neither manufacturer mentions the other's part. A logic capture of a reset on an NMOS 6502 and on a W65C02S would say whether the difference is real, and no published corpus carries a reset at all.",
+      "dieSays": {
+        "source": "conformance/netlist.py",
+        "cases": [
+          "a reset, from the cycle in progress when the line goes high to the push after it"
+        ],
+        "measured": "A simulation of the NMOS die spends six cycles from the one in progress when the line goes high, then the two of the vector fetch, which is the MOS figure exactly."
+      },
+      "whatWouldSettleIt": "Whether the W65C02S's seven describes different silicon or one loose sentence. The NMOS half is settled by the die, so what is left is a logic capture of a reset on a W65C02S, and no published corpus carries a reset at all.",
       "whyItMatters": "Only for a host counting cycles across a reset, which happens once at power on. It is one cycle, and it is one cycle this project would have got wrong on the WDC part by assuming a family shares a figure that only one of its manufacturers ever printed.",
       "status": "open",
       "severity": "unstated"

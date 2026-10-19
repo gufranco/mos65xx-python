@@ -25,6 +25,76 @@ def machine(program: Sequence[int], at: int = 0x8000, model: str = "6502", **reg
     return cpu, memory
 
 
+def resetting(model: str, counter: int, stack: int) -> Any:
+    memory = SparseMemory(seed=4)
+    memory.write8(0xFFFC, 0x00)
+    memory.write8(0xFFFD, 0x02)
+    cpu = Cpu(model, memory)
+    cpu.pc, cpu.s = counter, stack
+    cpu.trace = []
+    return cpu
+
+
+class ResetBusTest(unittest.TestCase):
+    def test_a_reset_drives_the_counter_three_times_then_the_stack_three_times(self) -> None:
+        # Arrange
+        cpu = resetting("6502", counter=0xEAE9, stack=0xC0)
+
+        # Act
+        cpu.reset()
+
+        # Assert
+        self.assertEqual(
+            [address for address, _, _ in cpu.trace],
+            [0xEAE9, 0xEAE9, 0xEAE9, 0x01C0, 0x01BF, 0x01BE, 0xFFFC, 0xFFFD],
+        )
+
+    def test_every_cycle_of_a_reset_is_a_read(self) -> None:
+        # Arrange
+        cpu = resetting("6502", counter=0xEAE9, stack=0xC0)
+
+        # Act
+        cpu.reset()
+
+        # Assert
+        self.assertEqual({kind for _, _, kind in cpu.trace}, {"read"})
+
+    def test_a_reset_leaves_the_stack_pointer_three_lower(self) -> None:
+        # Arrange
+        cpu = resetting("6502", counter=0xEAE9, stack=0xC0)
+
+        # Act
+        cpu.reset()
+
+        # Assert
+        self.assertEqual(cpu.s, 0xBD)
+
+    def test_the_stack_reads_of_a_reset_wrap_inside_page_one(self) -> None:
+        # Arrange
+        cpu = resetting("6502", counter=0xEAE9, stack=0x01)
+
+        # Act
+        cpu.reset()
+
+        # Assert
+        self.assertEqual(
+            ([address for address, _, _ in cpu.trace][3:6], cpu.s),
+            ([0x0101, 0x0100, 0x01FF], 0xFE),
+        )
+
+    def test_a_cmos_part_puts_nothing_on_the_bus_before_its_vector(self) -> None:
+        # Arrange
+        cpu = resetting("65c02", counter=0xEAE9, stack=0xC0)
+
+        # Act
+        cpu.reset()
+
+        # Assert
+        self.assertEqual(
+            ([address for address, _, _ in cpu.trace], cpu.s), ([0xFFFC, 0xFFFD], 0xC0)
+        )
+
+
 class ResetTest(unittest.TestCase):
     def test_a_reset_takes_the_program_counter_from_the_vector(self) -> None:
         # Arrange

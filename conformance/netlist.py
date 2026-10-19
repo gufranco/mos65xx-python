@@ -114,10 +114,22 @@ def probe() -> Path | None:
     return where if where.is_file() else None
 
 
-def _run(where: Path, case: Case, run: Any = None) -> list[int]:
+RESET = Case(
+    "a reset, from the cycle in progress when the line goes high to the push after it",
+    bytes((0x48,)),
+    11,
+    1,
+)
+
+FIRST_STACK_CYCLE = 3
+
+CHECKED = len(CASES) + 1
+
+
+def _addresses(where: Path, argv: list[str], run: Any = None) -> list[int]:
     runner = subprocess.run if run is None else run
     done = runner(
-        [str(where), case.program.hex(), str(case.cycles)],
+        [str(where), *argv],
         capture_output=True,
         text=True,
         check=False,
@@ -126,13 +138,44 @@ def _run(where: Path, case: Case, run: Any = None) -> list[int]:
     return [int(line.split()[1], 16) for line in done.stdout.splitlines() if line.strip()]
 
 
-def modelled(case: Case) -> list[int]:
+def _memory(program: bytes) -> Any:
     memory = mos65xx.Memory(image=bytes([FILL]) * 65536)
-    for step, held in enumerate(case.program):
+    for step, held in enumerate(program):
         memory.write8(AT + step, held)
     memory.write8(0xFFFC, AT & 0xFF)
     memory.write8(0xFFFD, AT >> 8)
-    cpu = mos65xx.Cpu("6502", memory)
+    return memory
+
+
+def reset_modelled(counter: int, stack: int) -> list[int]:
+    cpu = mos65xx.Cpu("6502", _memory(RESET.program))
+    cpu.pc = counter
+    cpu.s = stack
+    cpu.trace = []
+    cpu.reset()
+    for _ in range(RESET.steps):
+        cpu.step()
+    return [address for address, _value, *_rest in cpu.trace][: RESET.cycles]
+
+
+def compare_reset(where: Path, run: Any = None) -> list[str]:
+    die = _addresses(where, ["reset", RESET.program.hex(), str(RESET.cycles)], run)
+    if len(die) != RESET.cycles:
+        return [f"{RESET.why}: the die answered {len(die)} of {RESET.cycles} cycles"]
+    ours = reset_modelled(die[0], die[FIRST_STACK_CYCLE] & 0xFF)
+    if die == ours:
+        return []
+    return [
+        f"{RESET.why}: die {[f'{one:04X}' for one in die]} model {[f'{one:04X}' for one in ours]}"
+    ]
+
+
+def _run(where: Path, case: Case, run: Any = None) -> list[int]:
+    return _addresses(where, [case.program.hex(), str(case.cycles)], run)
+
+
+def modelled(case: Case) -> list[int]:
+    cpu = mos65xx.Cpu("6502", _memory(case.program))
     cpu.reset()
     cpu.trace = []
     for _ in range(case.steps):
@@ -166,10 +209,10 @@ def main(
             " perfect6502 probe to run these. Nothing is fetched or carried here."
         )
         return 0
-    astray = compare(found, CASES, run)
+    astray = compare(found, CASES, run) + compare_reset(found, run)
     for one in astray:
         print(f"  ! {one}")
-    print(f"  {len(CASES)} cases against the die, {len(CASES) - len(astray)} agreed")
+    print(f"  {CHECKED} cases against the die, {CHECKED - len(astray)} agreed")
     return 1 if astray else 0
 
 

@@ -247,8 +247,8 @@ class NmosFactTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(
-            (cpu.cycles - before - len(cpu.trace), [address for address, _, _ in cpu.trace]),
-            (delay, vector),
+            (cpu.cycles - before, [address for address, _, _ in cpu.trace][delay:]),
+            (delay + len(vector), vector),
         )
 
     def test_every_cycle_of_an_instruction_puts_an_address_and_data_on_the_bus(self) -> None:

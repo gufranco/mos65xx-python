@@ -21,9 +21,19 @@ def answering(addresses: list[int]) -> Any:
     return run
 
 
+DIE_COUNTER = 0xEAE9
+
+DIE_STACK = 0xC0
+
+
 def agreeing() -> Any:
 
     def run(argv: Any, **_kwargs: Any) -> Any:
+        if argv[1] == "reset":
+            held = netlist.reset_modelled(DIE_COUNTER, DIE_STACK)
+            return types.SimpleNamespace(
+                stdout="".join(f" {step} {one:04X} EA r\n" for step, one in enumerate(held))
+            )
         case = next(one for one in netlist.CASES if one.program.hex() == argv[1])
         held = netlist.modelled(case)
         return types.SimpleNamespace(
@@ -53,6 +63,7 @@ class ModelTest(unittest.TestCase):
 
 class ClaimedCaseCountTest(unittest.TestCase):
     def test_the_document_says_how_many_cases_run_here(self) -> None:
+        # Arrange
         words = {
             "one": 1,
             "two": 2,
@@ -73,18 +84,23 @@ class ClaimedCaseCountTest(unittest.TestCase):
         }
         held = (ROOT / "OPEN-QUESTIONS.md").read_text()
 
+        # Act
         claimed = re.findall(r"for ([a-z]+) cases, through\n`conformance/netlist.py`", held)
 
-        self.assertEqual([words.get(one) for one in claimed], [len(netlist.CASES)])
+        # Assert
+        self.assertEqual([words.get(one) for one in claimed], [netlist.CHECKED])
 
     def test_and_says_the_same_number_where_it_says_what_they_settled(self) -> None:
+        # Arrange
         held = (ROOT / "OPEN-QUESTIONS.md").read_text()
 
+        # Act
         claimed = re.search(r"\*\*What it has settled\.\*\* ([A-Za-z]+) cases", held)
 
-        assert claimed is not None
-        self.assertEqual(claimed.group(1).lower(), "twelve")
-        self.assertEqual(len(netlist.CASES), 12)
+        # Assert
+        self.assertEqual(
+            (claimed.group(1).lower() if claimed else None, netlist.CHECKED), ("thirteen", 13)
+        )
 
 
 class ComparisonTest(unittest.TestCase):
@@ -103,6 +119,63 @@ class ComparisonTest(unittest.TestCase):
         head = netlist.modelled(case)[:3]
 
         self.assertEqual(netlist.compare(Path("/made-up"), (case,), answering(head)), [])
+
+
+class ResetTest(unittest.TestCase):
+    def test_the_die_reads_the_counter_three_times_then_the_stack_three_times(self) -> None:
+        # Arrange
+        counter, stack = DIE_COUNTER, DIE_STACK
+
+        # Act
+        found = netlist.reset_modelled(counter, stack)
+
+        # Assert
+        self.assertEqual(
+            found,
+            [
+                0xEAE9,
+                0xEAE9,
+                0xEAE9,
+                0x01C0,
+                0x01BF,
+                0x01BE,
+                0xFFFC,
+                0xFFFD,
+                0x0200,
+                0x0201,
+                0x01BD,
+            ],
+        )
+
+    def test_a_die_that_agrees_reports_nothing(self) -> None:
+        # Arrange
+        run = agreeing()
+
+        # Act
+        found = netlist.compare_reset(Path("/made-up"), run)
+
+        # Assert
+        self.assertEqual(found, [])
+
+    def test_a_die_that_answers_short_is_a_failure_rather_than_a_pass(self) -> None:
+        # Arrange
+        run = answering([DIE_COUNTER])
+
+        # Act
+        found = netlist.compare_reset(Path("/made-up"), run)
+
+        # Assert
+        self.assertEqual(found, [f"{netlist.RESET.why}: the die answered 1 of 11 cycles"])
+
+    def test_a_die_that_disagrees_names_both_answers(self) -> None:
+        # Arrange
+        run = answering([DIE_COUNTER] * 3 + [0x01C0] + [0xBEEF] * 7)
+
+        # Act
+        found = netlist.compare_reset(Path("/made-up"), run)
+
+        # Assert
+        self.assertEqual((len(found), "BEEF" in found[0], "01BF" in found[0]), (1, True, True))
 
 
 class SkipTest(unittest.TestCase):

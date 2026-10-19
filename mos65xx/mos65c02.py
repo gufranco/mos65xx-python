@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, override
 
 from .errors import Waiting
-from .mos6502 import MODIFY, READ, STACK_PAGE, WRITE
+from .mos6502 import MODIFY, READ, STACK_PAGE, VECTOR_CYCLES, WRITE
 from .mos6502 import Cpu as Nmos
 from .opcodes65c02 import CMOS
 
@@ -29,6 +29,11 @@ class Cpu(Nmos):
         held = super().reset(seed) if seed is not None else super().reset()
         self.d = False
         return held
+
+    @override
+    def reset_delay(self) -> None:
+        for _ in range(self.reset_cycles - VECTOR_CYCLES):
+            self.spend()
 
     @override
     def add_with_carry(self, value: int) -> None:

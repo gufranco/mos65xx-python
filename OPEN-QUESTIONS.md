@@ -154,17 +154,19 @@ Source: W65C02S Data Sheet, Table 7-1 Microprocessor Operational Enhancements, t
 
 **What would settle it.** A logic analyser on a real W65C02S during a decimal add. Until then the extra cycle is real and its address is not evidence, and a model that reproduced 00007F would be reproducing the recorder rather than the part.
 
-### What a reset drives on the bus during its six delay cycles
+### What a CMOS part or a 65816 drives on the bus before its reset vector fetch
 
-**The document says.** "When the line goes high, the microprocessor will delay 6 cycles and then fetch the new program count vectors from specific locations in memory (PCL from location FFFC and PCH from location FFFD)."
+**The document says.** "When Reset is brought high, an interrupt sequence is initiated. STP and WAI instructions are cleared. RWB remains in the high state during the stack address cycles. The Reset vector address is 00FFFC,D. PC is loaded with the contents of 00FFFC,D"
 
-Source: MCS6500 Microcomputer Family Hardware Manual, 1976, 1.4.1.2.11 RES--Reset.
+Source: W65C816S Data Sheet, 3.13 Reset (RESB). The W65C02S data sheet gives the length of its sequence, seven cycles, and no addresses.
 
-**The recordings say.** Nothing. Every case in every suite begins with the part already running and its registers set by the test, so no recording covers a reset. This is the manufacturer's statement standing alone, and it is not in doubt; it is simply not something the corpus can confirm.
+**The recordings say.** Nothing. Every case in every suite begins with the part already running, so no recording covers a reset.
 
-**What this project does.** Charges all eight: the six the manual names and the two of the vector fetch. They appear in `cycles`, so a host pacing against a real clock is no longer six cycles ahead of the wall after every reset. They do not appear in `trace`.
+**What the NMOS die does.** A simulation of the NMOS die, run through `conformance/netlist.py`, drives the program counter on the cycle in progress when the line goes high and on the two after it, then reads the stack three times going down and leaves the stack pointer three lower, then reads the vector. The NMOS parts here do exactly that, which closed the same question for them. It is a different die, so it says nothing about the addresses a CMOS part or a 65816 drives, though the 65816's "stack address cycles" are the same shape.
 
-**What would settle it.** The address on the bus during those six cycles. Every cycle of this processor is a bus cycle, so it is driving one, and no source on hand names it. Six invented addresses would look like knowledge and be nothing of the kind, so this is the one place in the project where `cycles` counts more than `trace` records, and it is named here rather than hidden.
+**What this project does.** Charges each CMOS part and the 65816 the cycles its maker states, or the figure of the design it is built from, and records no bus activity before the vector fetch. These are the parts where `cycles` counts more than `trace` records, and it is named here rather than hidden.
+
+**What would settle it.** A logic capture of a reset on a W65C02S and on a W65C816S, or WDC's Verilog model of the W65C02S, which WDC states matches the part in behaviour and in timing.
 
 ### How many cycles STP and WAI cost on a W65C02
 
@@ -216,7 +218,9 @@ The third is an FPGA core rather than an emulator, and it is worth reading becau
 
 **What this project does.** Charges each part what its own manufacturer states: eight on the NMOS parts, seven on the W65C02S. Rockwell and Synertek state no count for their CMOS parts and WDC states none for the sixteen bit ones, so both keep the figure of the design they are built from rather than borrowing one from a neighbour.
 
-**What would settle it.** Whether the two figures describe different silicon or one loose sentence. They are one cycle apart, neither manufacturer mentions the other's part, and a logic capture of a reset on each would say which.
+**What the NMOS die does.** A simulation of the NMOS die spends six cycles from the one in progress when the line goes high, then the two of the vector fetch, which is the MOS figure exactly. `conformance/netlist.py` holds the NMOS parts to it.
+
+**What would settle it.** Whether the W65C02S's seven describes different silicon or one loose sentence. The NMOS half is settled by the die, so what is left is a logic capture of a reset on a W65C02S.
 
 ## What a simulation of the die has settled
 
@@ -225,7 +229,7 @@ is here because it is why several entries that used to be in this file are not.
 
 **What exists.** A transistor level simulation of the 6502 die is public, and others use it as an oracle: MAME's NMOS 6502 opcode definitions carry the note "Verified with visual6502". It answers what a data sheet drawn at cycle resolution and a recording written one row per cycle cannot, which is what a discarded read puts on the bus and on which cycle a taken branch drives each of its addresses.
 
-**What this project does.** It runs against it now, for twelve cases, through
+**What this project does.** It runs against it now, for thirteen cases, through
 `conformance/netlist.py`. The simulation drives an address every half cycle and
 the model is compared against it, and on all of them they agree. The runner is
 opt-in: `NETLIST` names a built probe and it runs, and without one every case
@@ -233,7 +237,7 @@ reports as skipped rather than as a pass it did not earn. Nothing is fetched,
 built or carried here, because the simulation is somebody else's work under
 their own licence.
 
-**What it has settled.** Twelve cases, and the model agrees on every one. The
+**What it has settled.** Thirteen cases, and the model agrees on every one. The
 discarded read of an indexed access lands at the base plus the index with the
 carry not yet applied, on reads and on writes and on read-modify-writes alike. A
 taken branch reads the unmodified counter on its third cycle and the un-fixed sum
@@ -241,8 +245,10 @@ on its fourth, which is the manual's two rows one line later than it prints them
 A branch not taken spends no extra cycle. A jump through a pointer that ends a
 page takes its high byte from the start of that page. A read-modify-write writes
 the old value before the new. A zero page indexed read wraps inside the page. The
-second cycle of a two cycle opcode reads the counter without incrementing it. The
-three entries about the discarded read and the taken branch are closed in
+second cycle of a two cycle opcode reads the counter without incrementing it. A
+reset reads the counter three times and the stack three times before its vector,
+and leaves the stack pointer three lower. The entries about the discarded read,
+the taken branch and the NMOS reset are closed in
 `conformance/divergences.json` with what the die drives beside each.
 
 **What is left, and why the netlist cannot reach it.** Everything remaining here
@@ -280,6 +286,11 @@ Absent rather than unknown, and absent on purpose:
   has begun cannot be abandoned, because its changes are already in the
   registers. No published corpus covers an abort, so there is nothing to hold an
   implementation to.
+- **The reset line held low.** `reset()` is the line going high after a hold
+  long enough to take. On the die the counter the first three cycles drive is
+  whatever the hold left, and the hold moves it in ways that depend on the
+  instruction it interrupted and on what the data bus carried, so `reset()`
+  drives the counter the part holds when it is called.
 - **Bus arbitration.** A model with no second bus master has nothing to
   arbitrate. Wait states are no longer in this list: `ready_line` halts the part
   where it stands, and the NMOS exception for a write in progress is modelled
