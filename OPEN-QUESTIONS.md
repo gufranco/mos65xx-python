@@ -52,30 +52,6 @@ _How much it settles._ Not outright. Silence in a programmer's account is weaker
 
 **What would settle it.** A program on a real part: set the data bank to something non-zero, drop into emulation mode, execute BRK, and have the handler push the data bank and read it back.
 
-### Which address the NMOS 6502 puts on the bus during a taken branch
-
-**The document says.** T2* PC + 2 + offset (w/o carry), OP CODE, R/W 1, Offset Added to Program Counter; T3** PC + 2 + offset (with carry), OP CODE, R/W 1, Carry Added. *Skip if branch not taken. **Skip if branch not taken; skip if branch operation doesn't cross page boundary.
-
-Source: MCS6500 Microcomputer Family Hardware Manual, Appendix A.5.8.
-
-**The recordings say.** A taken branch that stays inside its page spends its third cycle reading the instruction it is not going to run, at PC+2. A taken branch that leaves its page spends a fourth cycle at PC+2 with the offset added to the low byte only. So the address the manual gives for the third cycle is what the fourth cycle carries, and the address it gives for the fourth cycle never appears on the bus at all.
-
-**What this project does.** Follows the recording: a dead read at PC+2 on any taken branch, and a second at the low-byte-only sum when the page changes. Every one of the 2,440,000 non-halting cases in the suite agrees, including 40,000 branch cases, which the manual's reading would fail.
-
-**What would settle it.** Nothing needs settling about the behaviour. What is unsettled is whether the manual's two rows were transposed in print or describe an earlier part, and only a run on real silicon of that vintage would say.
-
-### Which cycle of a taken branch carries which address
-
-**The document says.** T2 PC + 2 + offset (w/o carry), Offset Added to Program Counter. T3 PC + 2 + offset (with carry), Carry Added.
-
-Source: MCS6500 Hardware Manual, Appendix A, table A.5.8.
-
-**The recordings say.** Every taken branch drives the unmodified program counter on its third cycle. In four hundred cases checked with a non-zero offset that stay inside a page, the third address is PC + 2 exactly, never PC + 2 + offset. On a crossing branch the fourth cycle carries PC + 2 + offset without carry, which is the address the table prints one row higher, and the corrected target is not reached until the opcode fetch of the next instruction.
-
-**What this project does.** Drives the counter on the third cycle and the partially corrected address on the fourth, so both addresses appear one row later than the table prints them and the corrected target never appears inside the branch at all.
-
-**What would settle it.** A program on a real part: place a branch so its target is on the next page, put a memory-mapped register at the partially corrected address, and see on which cycle it is read.
-
 ### The stack address of a one byte pull at the top of emulation page one
 
 **The document says.** "In the Emulation mode, the Stack address range is 000100 to 0001FF. The following OpCodes and addressing modes will increment or decrement beyond this range when accessing two or three bytes: JSL, JSR (a,x), PEA, PEI, PER, PHD, PLD, RTL"
@@ -133,22 +109,6 @@ Source: W65C02S Data Sheet, Table 7-1, the Execution of invalid OpCodes row.
 ## Where a document disagrees with itself
 
 One publisher saying two things. The reading this project follows is argued in each entry, but only silicon closes it.
-
-### The address on the bus during the discarded read of an indexed access
-
-**The document says.** T3 ADL: BAL + index register / ADH: BAH + C. Carry is 0 or 1 as required from previous add operation.
-
-Source: MCS6500 Hardware Manual, Appendix A, tables A.2.5, A.2.7, A.3.4 and A.4.4.
-
-**And the same publisher also says.** T4 ADL: BAL + Y / ADH: BAH. Data (Discarded).
-
-The same cycle of the same kind of access, written without the carry two pages later. The appendix gives the discarded read two different addresses.
-
-**The recordings say.** Every crossing case in the suite puts the base high byte on the bus for that cycle, never the corrected one. If the corrected address were driven there, the read would land on the right byte and the appendix's own footnote, which says the data fetched in T3 is ignored when the page is crossed, would have nothing to ignore.
-
-**What this project does.** Drives the base high byte with the index added only to the low byte, which is the A.3.6 form. That is the reading the suite carries, the reading the footnote in the other four tables requires, and the reading under which a store to a hardware register does not touch a second register one page below the one it names.
-
-**What would settle it.** A program on a real part: point an indexed store at an address one byte below a page boundary so the index crosses it, put a memory-mapped register at the uncorrected address, and see whether the register is read.
 
 ### Whether the new program counter of an indexed indirect jump is a program address
 
@@ -258,17 +218,16 @@ The third is an FPGA core rather than an emulator, and it is worth reading becau
 
 **What would settle it.** Whether the two figures describe different silicon or one loose sentence. They are one cycle apart, neither manufacturer mentions the other's part, and a logic capture of a reset on each would say which.
 
-## Where the evidence has not been run here
+## What a simulation of the die has settled
 
-### The transistor level simulation that could settle most of the NMOS questions, and why it is not being used
+This is about a source rather than about the part, and nothing in it is open. It
+is here because it is why several entries that used to be in this file are not.
 
-**The document says.** Nothing. This is about a source rather than about the part.
-
-**What exists.** A transistor level simulation of the 6502 die is public, and others use it as an oracle: MAME's NMOS 6502 opcode definitions carry the note "Verified with visual6502". It answers what a data sheet drawn at cycle resolution and a recording written one row per cycle cannot, which is what a discarded read puts on the bus and which cycle of a taken branch carries which address.
+**What exists.** A transistor level simulation of the 6502 die is public, and others use it as an oracle: MAME's NMOS 6502 opcode definitions carry the note "Verified with visual6502". It answers what a data sheet drawn at cycle resolution and a recording written one row per cycle cannot, which is what a discarded read puts on the bus and on which cycle a taken branch drives each of its addresses.
 
 **What this project does.** It runs against it now, for twelve cases, through
 `conformance/netlist.py`. The simulation drives an address every half cycle and
-the model is compared against it, and on those four they agree. The runner is
+the model is compared against it, and on all of them they agree. The runner is
 opt-in: `NETLIST` names a built probe and it runs, and without one every case
 reports as skipped rather than as a pass it did not earn. Nothing is fetched,
 built or carried here, because the simulation is somebody else's work under
@@ -282,18 +241,17 @@ on its fourth, which is the manual's two rows one line later than it prints them
 A branch not taken spends no extra cycle. A jump through a pointer that ends a
 page takes its high byte from the start of that page. A read-modify-write writes
 the old value before the new. A zero page indexed read wraps inside the page. The
-second cycle of a two cycle opcode reads the counter without incrementing it.
+second cycle of a two cycle opcode reads the counter without incrementing it. The
+three entries about the discarded read and the taken branch are closed in
+`conformance/divergences.json` with what the die drives beside each.
 
 **What is left, and why the netlist cannot reach it.** Everything remaining here
 is about a CMOS part or the 65816, and this is a simulation of the NMOS die. It
 answers what that part does and says nothing about the others, so the entries
 about a 65C02's spare cycles, its decimal cycle, STP and WAI, and every 65816
-question stay open on the same grounds as before. The Z80 side is unanswered too:
-a port of the Z80Explorer netlist resolver was written in a session, does not
-converge, and is carried nowhere, so that sibling starts from a blank file rather
-than from a broken one. Its own record says so.
-
-Not unknown to the world, unverified in this repository.
+question stay open on the same grounds as before. The Z80 sibling now runs a
+netlist of its own die through its own `conformance/netlist.py`, and its record
+says which of its questions that has answered.
 
 ## What is not in question
 

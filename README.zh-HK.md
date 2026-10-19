@@ -423,7 +423,7 @@ python3 -m conformance.cycles ~/.cache/conformance-suites/6502/6502/v1 --model 6
 
 [`conformance/hardware.json`](conformance/hardware.json) 記錄取自製造商頁面的每項事實，連同其出處的句子及頁面，並有測試確保程式碼與之相符。[`conformance/addressing-cycles.json`](conformance/addressing-cycles.json) 及 [`conformance/instruction-set.json`](conformance/instruction-set.json) 按原樣收錄硬件手冊的 Appendix A 及程式設計手冊的 Appendix B。[`conformance/divergences.json`](conformance/divergences.json) 記錄兩個來源互相矛盾的 20 處、本套件依從哪一方，以及甚麼可以解決每一處分歧。`python3 -m conformance.quotes` 會在其文件中找出每一段引文。
 
-測試套件以提交固定版本。一個每週執行的工作會以每個上游的最新提交執行它們，新版測試套件通過時開啟一個 pull request，失敗時則開啟一個 issue。[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) 列出 17 個文件及測試套件都未能解決的問題，每個都附有可以解決它的真實晶片量度方法。
+測試套件以提交固定版本。一個每週執行的工作會以每個上游的最新提交執行它們，新版測試套件通過時開啟一個 pull request，失敗時則開啟一個 issue。[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) 列出 13 個文件及測試套件都未能解決的問題，每個都附有可以解決它的真實晶片量度方法。
 
 ## 參與開發
 

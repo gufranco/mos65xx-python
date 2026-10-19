@@ -1154,7 +1154,7 @@ corrects a defect is wrong for the machine that shipped it.
 **It is the only member that reaches the die.** MOS, Commodore, Synertek,
 Rockwell and WDC all printed documents, and every figure taken from one carries
 the sentence and the page it was on. Nothing here rests on a measurement of real
-silicon, which is why sixteen questions in
+silicon, which is why thirteen questions in
 [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) are still open. What stands below the
 documents is a simulation of the die, read off die photographs and stepped half a
 cycle at a time, and below that the per-opcode suites, which are a recording of

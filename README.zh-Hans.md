@@ -423,7 +423,7 @@ python3 -m conformance.cycles ~/.cache/conformance-suites/6502/6502/v1 --model 6
 
 [`conformance/hardware.json`](conformance/hardware.json) 保存了取自制造商文档页面的每一项事实，连同原句及其所在页面，并有测试确保代码与之一致。[`conformance/addressing-cycles.json`](conformance/addressing-cycles.json) 和 [`conformance/instruction-set.json`](conformance/instruction-set.json) 按印刷原样保存了硬件手册的 Appendix A 和编程手册的 Appendix B。[`conformance/divergences.json`](conformance/divergences.json) 记录了两个来源互相矛盾的 20 处、本包遵循哪一方，以及什么能解决每一处分歧。`python3 -m conformance.quotes` 会在各自的文档中找到每一句引文。
 
-测试套件按提交固定。一个每周任务会在每个上游的最新提交上运行它们，较新的套件通过时打开一个 pull request，失败时打开一个 issue。[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) 列出了文档和测试套件都无法解决的 17 个问题，每个问题都附有能解决它的真实芯片测量方法。
+测试套件按提交固定。一个每周任务会在每个上游的最新提交上运行它们，较新的套件通过时打开一个 pull request，失败时打开一个 issue。[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) 列出了文档和测试套件都无法解决的 13 个问题，每个问题都附有能解决它的真实芯片测量方法。
 
 ## 参与开发
 

@@ -423,7 +423,7 @@ python3 -m conformance.cycles ~/.cache/conformance-suites/6502/6502/v1 --model 6
 
 [`conformance/hardware.json`](conformance/hardware.json)はメーカーのページから取ったすべての事実を、出典の文とページとともに保持しており、テストがコードをそれらに合わせています。[`conformance/addressing-cycles.json`](conformance/addressing-cycles.json)と[`conformance/instruction-set.json`](conformance/instruction-set.json)は、ハードウェアマニュアルのAppendix AとプログラミングマニュアルのAppendix Bを印刷されたとおりに保持しています。[`conformance/divergences.json`](conformance/divergences.json)は2つの出典が食い違う20か所について、このパッケージがどちらに従うか、それぞれ何があれば決着するかを記録しています。`python3 -m conformance.quotes`は引用したすべての文をその文書内で見つけます。
 
-スイートはコミットで固定されています。週次のジョブが各上流の最新でスイートを実行し、新しいスイートが合格すればプルリクエストを、失敗すればissueを開きます。[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)には、文書とスイートでは決着しない17の問いを、それを解決する実機での測定とともに挙げています。
+スイートはコミットで固定されています。週次のジョブが各上流の最新でスイートを実行し、新しいスイートが合格すればプルリクエストを、失敗すればissueを開きます。[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)には、文書とスイートでは決着しない13の問いを、それを解決する実機での測定とともに挙げています。
 
 ## 開発に参加する
 

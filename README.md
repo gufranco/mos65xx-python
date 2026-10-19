@@ -419,7 +419,7 @@ Both totals are derived from [`conformance/suites.json`](conformance/suites.json
 
 [`conformance/hardware.json`](conformance/hardware.json) holds every fact taken from a manufacturer's page, with the sentence and the page it came from, and tests hold the code to them. [`conformance/addressing-cycles.json`](conformance/addressing-cycles.json) and [`conformance/instruction-set.json`](conformance/instruction-set.json) hold Appendix A of the hardware manual and Appendix B of the programming manual as printed. [`conformance/divergences.json`](conformance/divergences.json) records 20 places where two sources disagree, what this package follows, and what would settle each. `python3 -m conformance.quotes` finds every quoted sentence in its document.
 
-The suites are pinned by commit. A weekly job runs them at each upstream head and opens a pull request when the newer suite passes or an issue when it fails. [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) lists 17 questions the documents and the suites do not settle, each with the measurement on a real part that would close it.
+The suites are pinned by commit. A weekly job runs them at each upstream head and opens a pull request when the newer suite passes or an issue when it fails. [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) lists 13 questions the documents and the suites do not settle, each with the measurement on a real part that would close it.
 
 ## Working on it
 
