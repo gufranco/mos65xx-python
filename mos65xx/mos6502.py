@@ -42,6 +42,7 @@ class Cpu:
     __slots__ = (
         "_inside",
         "_open",
+        "_resetting",
         "_unsampled",
         "a",
         "address_mask",
@@ -110,6 +111,8 @@ class Cpu:
 
         self._inside = False
 
+        self._resetting = False
+
         self._unsampled = False
 
         self.trace: list[tuple[int, int, str]] | None = None
@@ -124,13 +127,17 @@ class Cpu:
         self.pc = undefined[5] | (undefined[6] << 8)
 
     def reset(self, seed: int = UNSET_SEED) -> Cpu:
-        for _ in range(self.reset_cycles - VECTOR_CYCLES):
-            self.spend()
-        self.i = True
-        self.stopped = False
-        self.jammed = False
-        self.steps = 0
-        self.pc = self.read16(RESET_VECTOR)
+        self._resetting = True
+        try:
+            for _ in range(self.reset_cycles - VECTOR_CYCLES):
+                self.spend()
+            self.i = True
+            self.stopped = False
+            self.jammed = False
+            self.steps = 0
+            self.pc = self.read16(RESET_VECTOR)
+        finally:
+            self._resetting = False
         self.close_cycle()
         return self
 
@@ -175,6 +182,8 @@ class Cpu:
         if self.trace is not None:
             self.trace.append((address, found, "read"))
         self.spend()
+        if not (self._inside or self._resetting):
+            self.close_cycle()
         return found
 
     def write8(self, address: int, value: int) -> None:
@@ -185,6 +194,8 @@ class Cpu:
         if self.trace is not None:
             self.trace.append((address, value & 0xFF, "write"))
         self.spend()
+        if not (self._inside or self._resetting):
+            self.close_cycle()
 
     def dead(self, address: int) -> None:
         self.read8(address)
@@ -398,7 +409,6 @@ class Cpu:
         taken = 0
         while True:
             mnemonic = self.table[self.read8(self.pc)][0]
-            self.close_cycle()
             if mnemonic == "rts":
                 if depth == 0:
                     return self

@@ -75,6 +75,7 @@ class Cpu:
         "_emulation",
         "_inside",
         "_open",
+        "_resetting",
         "_s",
         "_unsampled",
         "a",
@@ -135,6 +136,7 @@ class Cpu:
         self.on_cycle: Callable[[], None] | None = None
         self._open = False
         self._inside = False
+        self._resetting = False
         self._unsampled = False
 
         self.trace: list[tuple[int | None, int | None, str]] | None = None
@@ -191,24 +193,28 @@ class Cpu:
         self.x8 = bool(undefined[8] & 0x10) or self.emulation
 
     def reset(self, seed: int = UNSET_SEED) -> Cpu:
-        for _ in range(self.reset_cycles - VECTOR_CYCLES):
-            self.spend()
-        self.s = 0x0100 | (self.s & 0xFF)
+        self._resetting = True
+        try:
+            for _ in range(self.reset_cycles - VECTOR_CYCLES):
+                self.spend()
+            self.s = 0x0100 | (self.s & 0xFF)
 
-        self.d = 0x0000
-        self.db = 0x00
-        self.pb = 0x00
+            self.d = 0x0000
+            self.db = 0x00
+            self.pb = 0x00
 
-        self.emulation = True
-        self.m8 = True
-        self.x8 = True
-        self.decimal = False
-        self.irq_disable = True
+            self.emulation = True
+            self.m8 = True
+            self.x8 = True
+            self.decimal = False
+            self.irq_disable = True
 
-        self.pc = self.read16(RESET_VECTOR)
-        self.steps = 0
-        self.stopped = False
-        self.waiting = False
+            self.pc = self.read16(RESET_VECTOR)
+            self.steps = 0
+            self.stopped = False
+            self.waiting = False
+        finally:
+            self._resetting = False
         self.close_cycle()
         return self
 
@@ -298,6 +304,8 @@ class Cpu:
                 (address & self.address_mask, found, self.pins(data, program, self.pulling, False))
             )
         self.spend()
+        if not (self._inside or self._resetting):
+            self.close_cycle()
         return found
 
     def write8(self, address: int, value: int) -> None:
@@ -309,6 +317,8 @@ class Cpu:
                 (address & self.address_mask, value & 0xFF, self.pins(True, False, False, True))
             )
         self.spend()
+        if not (self._inside or self._resetting):
+            self.close_cycle()
 
     def internal(self, address: int, write: bool = False, value: int | None = None) -> None:
         if self.trace is not None:
@@ -653,7 +663,6 @@ class Cpu:
         taken = 0
         while True:
             mnemonic = OPCODES[self.read8((self.pb << 16) | self.pc)][0]
-            self.close_cycle()
             if mnemonic in ("rts", "rtl"):
                 if depth == 0:
                     return self

@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16** 款芯片，比对了 **17,900,000** 个状态用例和 **17,870,080** 个周期精确用例，**0** 个无法解释的失败，**1,469** 个测试，**100%** 语句和分支覆盖率，无依赖
+**16** 款芯片，比对了 **17,900,000** 个状态用例和 **17,870,080** 个周期精确用例，**0** 个无法解释的失败，**1,478** 个测试，**100%** 语句和分支覆盖率，无依赖
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -84,7 +84,7 @@ python3 mos65xx/doctor.py
 | `status()`                                  | 以一个字节表示的状态寄存器                                                                                                                                                                                           | `int`                                   |
 | `set_status(byte)`                          | 用一个字节设置所有标志                                                                                                                                                                                               | 无                                      |
 | `set_emulation(flag)`                       | 仅 65816。进入或退出仿真模式，仿真模式强制使用 8 位寄存器和第一页中的栈                                                                                                                                              | 无                                      |
-| `read8(address)` / `write8(address, value)` | 通过芯片地址线的一个总线周期，会被追踪和计数                                                                                                                                                                         | 读到的字节，或无                        |
+| `read8(address)` / `write8(address, value)` | 通过芯片地址线的一个总线周期，会被追踪和计数。在两条指令之间调用时，该周期在调用当时计入，因此下一次 `step()` 只返回它自己那条指令的周期                                                                             | 读到的字节，或无                        |
 | `power_on(seed)`                            | 像构建时一样再次打乱寄存器                                                                                                                                                                                           | 无                                      |
 
 在封装未引出某条线的芯片上，`irq()` 和 `nmi()` 会抛出 `NoSuchPin`。65816 和 65802 引出了全部三条线。

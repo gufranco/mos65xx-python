@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16**品種、**17,900,000**件の状態ケースと**17,870,080**件のサイクル精度ケースを比較、説明のつかない失敗は**0**件、テスト**1,469**件、ステートメントとブランチのカバレッジ**100%**、依存関係なし
+**16**品種、**17,900,000**件の状態ケースと**17,870,080**件のサイクル精度ケースを比較、説明のつかない失敗は**0**件、テスト**1,478**件、ステートメントとブランチのカバレッジ**100%**、依存関係なし
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -84,7 +84,7 @@ python3 mos65xx/doctor.py
 | `status()`                                  | ステータスレジスタを1バイトで返します                                                                                                                                                                                                                                      | `int`                                              |
 | `set_status(byte)`                          | 1バイトからすべてのフラグを設定します                                                                                                                                                                                                                                      | なし                                               |
 | `set_emulation(flag)`                       | 65816のみです。エミュレーションモードに入るか抜けます。このモードではレジスタが8ビット、スタックがページ1に固定されます                                                                                                                                                    | なし                                               |
-| `read8(address)` / `write8(address, value)` | 品種のアドレスラインを通る1バスサイクルで、トレースされ数えられます                                                                                                                                                                                                        | 読んだバイト、またはなし                           |
+| `read8(address)` / `write8(address, value)` | 品種のアドレスラインを通る1バスサイクルで、トレースされ数えられます。命令と命令の間では呼んだ時点で数えられるので、次の`step()`は自分の命令のサイクルだけを返します                                                                                                        | 読んだバイト、またはなし                           |
 | `power_on(seed)`                            | 生成時と同じようにレジスタを再びかき混ぜます                                                                                                                                                                                                                               | なし                                               |
 
 パッケージがラインを外に出していない品種では、`irq()`と`nmi()`は`NoSuchPin`を送出します。65816と65802は3本のラインをすべて外に出しています。

@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16** 款晶片，比對了 **17,900,000** 個狀態案例及 **17,870,080** 個週期精確案例，**0** 個未獲解釋的失敗，**1,469** 個測試，**100%** 語句及分支覆蓋率，無任何依賴
+**16** 款晶片，比對了 **17,900,000** 個狀態案例及 **17,870,080** 個週期精確案例，**0** 個未獲解釋的失敗，**1,478** 個測試，**100%** 語句及分支覆蓋率，無任何依賴
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -84,7 +84,7 @@ python3 mos65xx/doctor.py
 | `status()`                                  | 以位元組表示的狀態暫存器                                                                                                                                                                                               | `int`                             |
 | `set_status(byte)`                          | 由一個位元組設定所有旗標                                                                                                                                                                                               | 無                                |
 | `set_emulation(flag)`                       | 僅限 65816。進入或離開模擬模式，模擬模式強制使用 8 位元暫存器及位於第一頁的堆疊                                                                                                                                        | 無                                |
-| `read8(address)` / `write8(address, value)` | 經由晶片位址線的一個匯流排週期，會被追蹤及計數                                                                                                                                                                         | 讀取的位元組，或無                |
+| `read8(address)` / `write8(address, value)` | 經由晶片位址線的一個匯流排週期，會被追蹤及計數。在兩條指令之間呼叫時，該週期在呼叫當時計入，因此下一次 `step()` 只會傳回它自己那條指令的週期                                                                           | 讀取的位元組，或無                |
 | `power_on(seed)`                            | 再次打亂暫存器，與建立時相同                                                                                                                                                                                           | 無                                |
 
 若晶片的封裝沒有引出某條線，`irq()` 及 `nmi()` 會引發 `NoSuchPin`。65816 及 65802 三條線均有引出。

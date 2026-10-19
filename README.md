@@ -8,7 +8,7 @@ English | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md) | [繁�
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16** parts, **17,900,000** state cases and **17,870,080** cycle-exact cases compared, **0** unexplained failures, **1,469** tests, **100%** statement and branch coverage, no dependencies
+**16** parts, **17,900,000** state cases and **17,870,080** cycle-exact cases compared, **0** unexplained failures, **1,478** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -84,7 +84,7 @@ Releases follow [Semantic Versioning](https://semver.org/) and are cut from the 
 | `status()`                                  | The status register as a byte                                                                                                                                                                                                                                                        | `int`                                       |
 | `set_status(byte)`                          | Sets every flag from a byte                                                                                                                                                                                                                                                          | Nothing                                     |
 | `set_emulation(flag)`                       | 65816 only. Enters or leaves emulation mode, which forces 8-bit registers and a stack in page one                                                                                                                                                                                    | Nothing                                     |
-| `read8(address)` / `write8(address, value)` | One bus cycle through the part's address lines, traced and counted                                                                                                                                                                                                                   | The byte read, or nothing                   |
+| `read8(address)` / `write8(address, value)` | One bus cycle through the part's address lines, traced and counted. Between instructions it is counted as it is made, so the next `step()` returns only its own instruction's cycles                                                                                                 | The byte read, or nothing                   |
 | `power_on(seed)`                            | Scrambles the registers again, as at construction                                                                                                                                                                                                                                    | Nothing                                     |
 
 On a part whose package does not bring a line out, `irq()` and `nmi()` raise `NoSuchPin`. The 65816 and 65802 bring out all three lines.

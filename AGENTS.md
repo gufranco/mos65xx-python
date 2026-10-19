@@ -46,7 +46,9 @@ count and calls `on_cycle`. It runs just before the next access, before the
 interrupt lines are sampled and at the end of an instruction, so a clock that
 stops on a cycle sees that cycle's access and the work done before the next one,
 and a clock stopped on an instruction's last cycle leaves the part as `step()`
-does. A counter kept in one method and a hook called from another drift the
+does. An access the host makes between instructions, `read8`, `write8` or a push
+built on them, closes its own cycle at once, so the next `step()` and the next
+tick never count it as their own. A counter kept in one method and a hook called from another drift the
 first time somebody adds a cycle to only one of them, and nothing catches it.
 Keep it that way.
 
