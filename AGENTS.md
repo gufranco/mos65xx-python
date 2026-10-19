@@ -199,6 +199,30 @@ python3 -m conformance.fetch
 python3 -m conformance.singlestep
 ```
 
+The die comparison runs only with a probe you build, because the simulation is
+somebody else's work and nothing of it is carried here:
+
+```bash
+NETLIST=/path/to/probe python3 -m conformance.netlist
+```
+
+The probe is a small C program linked against perfect6502, verified at commit
+`09fc542877a84318291aa42dab143a3e2c3db974`. It loads a program at `$0200` over
+memory filled with `$EA`, points the reset vector at `$0200` and the IRQ and NMI
+vectors at `$0300`, and prints one line per cycle, ` <n> <address> <data> <r|w>`
+in hexadecimal. It answers four forms:
+
+| Arguments                                | What it prints                                                                           |
+| :--------------------------------------- | :--------------------------------------------------------------------------------------- |
+| `<program hex> <cycles>`                 | The cycles from the first fetch at `$0200`                                               |
+| `reset <program hex> <cycles>`           | The cycles from the release of reset, two half cycles each                               |
+| `irq <program hex> <raised at> <cycles>` | As the first form, with node 103 pulled low at the start of cycle `<raised at>` and held |
+| `nmi <program hex> <raised at> <cycles>` | As the first form, with node 1297 pulled low the same way                                |
+
+A probe that predates the `reset` form reports the reset case as zero of eleven
+cycles and exits 1, which is the runner refusing a probe it cannot use, not a
+model failure.
+
 ## Conventions that are not negotiable
 
 | Thing                                               | Rule                                                                                                                                                                                                                                                                           |
