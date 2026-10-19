@@ -36,10 +36,10 @@ The program at `$8000` is `CLC`, `XCE`, `REP #$30` and `LDA #$1234`. `reset()` c
 
 ## Install
 
-| Requirement | Version |
-|:--|:--|
-| Python | 3.12 or newer |
-| git | Any, to clone |
+| Requirement | Version       |
+| :---------- | :------------ |
+| Python      | 3.12 or newer |
+| git         | Any, to clone |
 
 ```bash
 git clone https://github.com/gufranco/mos65xx-python.git
@@ -61,57 +61,57 @@ Releases follow [Semantic Versioning](https://semver.org/) and are cut from the 
 
 `Cpu(model, memory=None, fill=None, **options)` builds one part, powered and not reset. `model` is required, and leaving it out raises `UnknownModelError` with every name accepted. The sixteen names and their aliases are in [Models](#models). Case, `-` and `_` in a name are ignored. `memory` is any object with `read8(address)` and `write8(address, value)`. Without it the part gets a `SparseMemory`, or a 16 MB `Memory` filled with `fill` when `fill` is given.
 
-| Option | Parts | Effect |
-|:--|:--|:--|
-| `seed=` | All | Seeds the scrambled power-on registers. Default `UNSET_SEED` |
+| Option     | Parts | Effect                                                                                 |
+| :--------- | :---- | :------------------------------------------------------------------------------------- |
+| `seed=`    | All   | Seeds the scrambled power-on registers. Default `UNSET_SEED`                           |
 | `decimal=` | 8-bit | Whether a decimal adder is wired. The model sets it, and only the `2a03` sets it false |
-| `table=` | 8-bit | The opcode table. The model sets it |
+| `table=`   | 8-bit | The opcode table. The model sets it                                                    |
 
 ### Calls
 
-| Call | Effect | Returns |
-|:--|:--|:--|
-| `reset(seed=UNSET_SEED)` | Drives RESET: six cycles, then two to read the vector at `$FFFC`. The W65C02S takes five and two. Clears `steps`, sets the interrupt disable flag, and on the CMOS parts clears the decimal flag. The 65816 also enters emulation mode with 8-bit registers, `d`, `db` and `pb` at 0 | The part |
-| `step()` | Runs one instruction, then samples the interrupt lines | Cycles spent, interrupt entry included |
-| `run_for(cycles)` | Runs whole instructions until at least `cycles` have passed. A halted part spends one cycle per call to `held_cycle()` | Cycles spent, which can exceed `cycles` |
-| `run_until(check, limit=None)` | Steps while `check(part)` is false. Raises `RunLimit` after `limit` instructions | The part |
-| `call(address, limit=None)` | Jumps to `address` and steps until the matching `RTS`, or `RTL` on the 65816, is next. Nested calls are counted | The part |
-| `held()` | Whether the part is jammed, stopped or waiting | `bool` |
-| `held_cycle()` | One cycle of a halted part. A jammed NMOS part reads `$FFFF`. The other parts spend a cycle with no bus access | Nothing |
-| `irq()` | Takes an interrupt request now unless the interrupt disable flag is set | `True` if taken |
-| `nmi()` | Takes a non-maskable interrupt now | Nothing on 8-bit parts, `True` on the 65816 |
-| `abort()` | 65816 only. Takes an abort now | `True` if taken |
-| `status()` | The status register as a byte | `int` |
-| `set_status(byte)` | Sets every flag from a byte | Nothing |
-| `set_emulation(flag)` | 65816 only. Enters or leaves emulation mode, which forces 8-bit registers and a stack in page one | Nothing |
-| `read8(address)` / `write8(address, value)` | One bus cycle through the part's address lines, traced and counted | The byte read, or nothing |
-| `power_on(seed)` | Scrambles the registers again, as at construction | Nothing |
+| Call                                        | Effect                                                                                                                                                                                                                                                                               | Returns                                     |
+| :------------------------------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------ |
+| `reset(seed=UNSET_SEED)`                    | Drives RESET: six cycles, then two to read the vector at `$FFFC`. The W65C02S takes five and two. Clears `steps`, sets the interrupt disable flag, and on the CMOS parts clears the decimal flag. The 65816 also enters emulation mode with 8-bit registers, `d`, `db` and `pb` at 0 | The part                                    |
+| `step()`                                    | Runs one instruction, then samples the interrupt lines                                                                                                                                                                                                                               | Cycles spent, interrupt entry included      |
+| `run_for(cycles)`                           | Runs whole instructions until at least `cycles` have passed. A halted part spends one cycle per call to `held_cycle()`                                                                                                                                                               | Cycles spent, which can exceed `cycles`     |
+| `run_until(check, limit=None)`              | Steps while `check(part)` is false. Raises `RunLimit` after `limit` instructions                                                                                                                                                                                                     | The part                                    |
+| `call(address, limit=None)`                 | Jumps to `address` and steps until the matching `RTS`, or `RTL` on the 65816, is next. Nested calls are counted                                                                                                                                                                      | The part                                    |
+| `held()`                                    | Whether the part is jammed, stopped or waiting                                                                                                                                                                                                                                       | `bool`                                      |
+| `held_cycle()`                              | One cycle of a halted part. A jammed NMOS part reads `$FFFF`. The other parts spend a cycle with no bus access                                                                                                                                                                       | Nothing                                     |
+| `irq()`                                     | Takes an interrupt request now unless the interrupt disable flag is set                                                                                                                                                                                                              | `True` if taken                             |
+| `nmi()`                                     | Takes a non-maskable interrupt now                                                                                                                                                                                                                                                   | Nothing on 8-bit parts, `True` on the 65816 |
+| `abort()`                                   | 65816 only. Takes an abort now                                                                                                                                                                                                                                                       | `True` if taken                             |
+| `status()`                                  | The status register as a byte                                                                                                                                                                                                                                                        | `int`                                       |
+| `set_status(byte)`                          | Sets every flag from a byte                                                                                                                                                                                                                                                          | Nothing                                     |
+| `set_emulation(flag)`                       | 65816 only. Enters or leaves emulation mode, which forces 8-bit registers and a stack in page one                                                                                                                                                                                    | Nothing                                     |
+| `read8(address)` / `write8(address, value)` | One bus cycle through the part's address lines, traced and counted                                                                                                                                                                                                                   | The byte read, or nothing                   |
+| `power_on(seed)`                            | Scrambles the registers again, as at construction                                                                                                                                                                                                                                    | Nothing                                     |
 
 On a part whose package does not bring a line out, `irq()` and `nmi()` raise `NoSuchPin`. The 65816 and 65802 bring out all three lines.
 
 ### State
 
-| Attribute | Meaning |
-|:--|:--|
-| `a`, `x`, `y`, `s`, `pc` | The registers. On the 65816 `a`, `x`, `y` and `s` hold 16 bits |
-| `db`, `pb`, `d` | 65816 only. Data bank, program bank and the direct page register |
-| `n`, `v`, `z`, `c` | The flags with the same meaning on every part, one `bool` each |
-| `i`, `d`, `b`, `decimal` | 8-bit parts. Interrupt disable, the decimal flag, the break flag, and whether a decimal adder is wired |
-| `irq_disable`, `decimal`, `m8`, `x8`, `emulation` | 65816 only. Interrupt disable, the decimal flag, 8-bit accumulator, 8-bit index registers, emulation mode |
-| `irq_line` | The request line as a level. It is sampled after each instruction, so a request withdrawn before then is not taken |
-| `nmi_line` | The non-maskable line. A low-to-high change interrupts once, and holding it high does not interrupt again. On an NMOS part a change that arrives during `BRK`, before its vector is read, replaces the `BRK` vector with the NMI vector, as WDC and Rockwell print |
-| `ready_line` | While false, a read spends cycles until it is true again, so a host clears it from `on_cycle`. The CMOS parts and the 65816 hold writes the same way, and the NMOS parts do not |
-| `cycles` | Cycles since construction. A reset adds to it |
-| `steps` | Instructions since the last reset |
-| `stopped`, `jammed`, `waiting` | The three halt states. `jammed` is NMOS only, `waiting` is the CMOS parts and the 65816 |
-| `trace` | Set it to a list and every bus cycle is appended as `(address, value, kind)`. `kind` is `read` or `write` on 8-bit parts, and on the 65816 eight pin letters: data, program, vector pull, write, emulation, `m`, `x`, memory lock. A 65816 internal cycle records `None` as its value except the modify cycle in emulation mode, and a halted cycle records `(None, None, "--------")` |
-| `on_cycle` | Called once per cycle, at its end, after that cycle's bus activity and the work that follows it |
-| `model` | The canonical model name |
-| `package_pins` | The interrupt and ready lines the package brings out, such as `("irq", "nmi", "rdy")` |
-| `address_mask` | The address lines the package brings out. A 6507 reads `$F234` at `$1234` |
-| `reset_cycles` | Cycles a reset spends, 8 or 7 |
-| `memory` | The memory object |
-| `cycle_budget` | 65816 only. When set, `MVN` and `MVP` move only as many bytes as fit in that many cycles |
+| Attribute                                         | Meaning                                                                                                                                                                                                                                                                                                                                                                                |
+| :------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `a`, `x`, `y`, `s`, `pc`                          | The registers. On the 65816 `a`, `x`, `y` and `s` hold 16 bits                                                                                                                                                                                                                                                                                                                         |
+| `db`, `pb`, `d`                                   | 65816 only. Data bank, program bank and the direct page register                                                                                                                                                                                                                                                                                                                       |
+| `n`, `v`, `z`, `c`                                | The flags with the same meaning on every part, one `bool` each                                                                                                                                                                                                                                                                                                                         |
+| `i`, `d`, `b`, `decimal`                          | 8-bit parts. Interrupt disable, the decimal flag, the break flag, and whether a decimal adder is wired                                                                                                                                                                                                                                                                                 |
+| `irq_disable`, `decimal`, `m8`, `x8`, `emulation` | 65816 only. Interrupt disable, the decimal flag, 8-bit accumulator, 8-bit index registers, emulation mode                                                                                                                                                                                                                                                                              |
+| `irq_line`                                        | The request line as a level. It is sampled after each instruction, so a request withdrawn before then is not taken                                                                                                                                                                                                                                                                     |
+| `nmi_line`                                        | The non-maskable line. A low-to-high change interrupts once, and holding it high does not interrupt again. On an NMOS part a change that arrives during `BRK`, before its vector is read, replaces the `BRK` vector with the NMI vector, as WDC and Rockwell print                                                                                                                     |
+| `ready_line`                                      | While false, a read spends cycles until it is true again, so a host clears it from `on_cycle`. The CMOS parts and the 65816 hold writes the same way, and the NMOS parts do not                                                                                                                                                                                                        |
+| `cycles`                                          | Cycles since construction. A reset adds to it                                                                                                                                                                                                                                                                                                                                          |
+| `steps`                                           | Instructions since the last reset                                                                                                                                                                                                                                                                                                                                                      |
+| `stopped`, `jammed`, `waiting`                    | The three halt states. `jammed` is NMOS only, `waiting` is the CMOS parts and the 65816                                                                                                                                                                                                                                                                                                |
+| `trace`                                           | Set it to a list and every bus cycle is appended as `(address, value, kind)`. `kind` is `read` or `write` on 8-bit parts, and on the 65816 eight pin letters: data, program, vector pull, write, emulation, `m`, `x`, memory lock. A 65816 internal cycle records `None` as its value except the modify cycle in emulation mode, and a halted cycle records `(None, None, "--------")` |
+| `on_cycle`                                        | Called once per cycle, at its end, after that cycle's bus activity and the work that follows it                                                                                                                                                                                                                                                                                        |
+| `model`                                           | The canonical model name                                                                                                                                                                                                                                                                                                                                                               |
+| `package_pins`                                    | The interrupt and ready lines the package brings out, such as `("irq", "nmi", "rdy")`                                                                                                                                                                                                                                                                                                  |
+| `address_mask`                                    | The address lines the package brings out. A 6507 reads `$F234` at `$1234`                                                                                                                                                                                                                                                                                                              |
+| `reset_cycles`                                    | Cycles a reset spends, 8 or 7                                                                                                                                                                                                                                                                                                                                                          |
+| `memory`                                          | The memory object                                                                                                                                                                                                                                                                                                                                                                      |
+| `cycle_budget`                                    | 65816 only. When set, `MVN` and `MVP` move only as many bytes as fit in that many cycles                                                                                                                                                                                                                                                                                               |
 
 ```python
 from mos65xx import Cpu, Memory
@@ -142,40 +142,40 @@ print(cpu.step(), hex(cpu.pc))
 
 ### Errors
 
-| Error | Raised when |
-|:--|:--|
-| `UnknownModelError` | `Cpu()` gets no name, or a name no model or alias goes by |
-| `NoSuchPin` | `irq()` or `nmi()` on an 8-bit part whose package does not bring that line out |
+| Error               | Raised when                                                                                                                                                                                                       |
+| :------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `UnknownModelError` | `Cpu()` gets no name, or a name no model or alias goes by                                                                                                                                                         |
+| `NoSuchPin`         | `irq()` or `nmi()` on an 8-bit part whose package does not bring that line out                                                                                                                                    |
 | `InsideInstruction` | `irq()` or `nmi()` from outside a `Clock` paused inside an instruction or an interrupt entry, or at a boundary where a line's entry is pending. Tick to the instruction boundary, or set `irq_line` or `nmi_line` |
-| `RunLimit` | `run_until()` or `call()` reaches its `limit` |
-| `Stopped` | `step()` on a part that executed `STP` or jammed |
-| `Waiting` | `step()` on a part that executed `WAI`. A subclass of `Stopped`. `irq()` and `nmi()` release it |
-| `ClockClosed` | `tick()` on a closed `Clock` |
-| `Truncated` | `decode()` runs out of bytes before the instruction ends |
-| `UnsupportedError` | An opcode table names an instruction or addressing mode the core has no handler for |
+| `RunLimit`          | `run_until()` or `call()` reaches its `limit`                                                                                                                                                                     |
+| `Stopped`           | `step()` on a part that executed `STP` or jammed                                                                                                                                                                  |
+| `Waiting`           | `step()` on a part that executed `WAI`. A subclass of `Stopped`. `irq()` and `nmi()` release it                                                                                                                   |
+| `ClockClosed`       | `tick()` on a closed `Clock`                                                                                                                                                                                      |
+| `Truncated`         | `decode()` runs out of bytes before the instruction ends                                                                                                                                                          |
+| `UnsupportedError`  | An opcode table names an instruction or addressing mode the core has no handler for                                                                                                                               |
 
 ### Module contents
 
-| Name | Content |
-|:--|:--|
-| `MODELS` | The sixteen `Model` records, keyed by canonical name |
-| `Model` | `name`, `summary`, `address_bits`, `data_bits`, `decimal`, `pins`, `reset_cycles`, `aliases`, `narrows`, `revision`, `address_mask`, and `build(memory, **options)` |
-| `Clock(cpu)` | Runs a part one cycle at a time. See [Driving it one cycle at a time](#driving-it-one-cycle-at-a-time) |
-| `Memory(size=0x1000000, image=None, seed=UNSET_SEED, fill=None)` | A flat byte array, scrambled from `seed`, filled with `fill`, then overlaid with `image`. Its bytes are `data` |
-| `SparseMemory(seed=UNSET_SEED)` | 24 bits of address space that stores only what was written. Its written bytes are `cells` |
-| `scramble(size, seed=UNSET_SEED)` | The scrambled `bytearray` both memories and every part start from |
-| `UNSET_SEED` | The default seed, `0x5A5A5A5A` |
-| `Cpu65816(memory, seed=UNSET_SEED)` | The 65816 core class, for type checks |
-| `OPCODES`, `MODE_SIZE`, `FLAG_DEPENDENT` | The 65816 opcode table as `(mnemonic, mode)` pairs, operand bytes per mode, and the two modes whose width follows `m` or `x` |
-| `decode(data, offset=0, address=0, m=True, x=True)` | One 65816 `Instruction`: `address`, `offset`, `opcode`, `mnemonic`, `mode`, `operand`, `size`, `text` |
-| `disassemble(data, offset=0, address=0, count=None, m=True, x=True, stop_at_return=False)` | A list of 65816 instructions, tracking `REP` and `SEP`. It stops at the last whole instruction |
-| `operand_size(mode, m, x)`, `branch_target(address, size, operand, width)`, `render(mode, operand, address, size, width)`, `apply_flags(instruction, m, x)` | The steps `decode` and `disassemble` are built from |
-| `FLAG_C`, `FLAG_Z`, `FLAG_I`, `FLAG_D`, `FLAG_X`, `FLAG_M`, `FLAG_V`, `FLAG_N` | The 65816 status bits, `0x01` to `0x80` |
-| `NMOS`, `TABLES` | The 8-bit opcode tables as `(mnemonic, mode)` pairs: `NMOS` for the eleven NMOS models, and `TABLES` keyed `65c02`, `rockwell` and `wdc` for the three CMOS ones |
-| `decode8(data, offset, address, table=NMOS)` | One 8-bit instruction: `address`, `opcode`, `mnemonic`, `mode`, `operand`, `size`, and the `undocumented` and `unstable` properties. Raises `Truncated` when the bytes run out |
-| `disassemble8(data, offset, address, count=None, table=NMOS, stop_at_return=False)` | 8-bit instructions in order. It stops at the last whole instruction |
-| `render8(mode, operand, address, size)` | An 8-bit operand as assembler text, and a branch as the address it reaches |
-| `__version__` | The installed version |
+| Name                                                                                                                                                        | Content                                                                                                                                                                        |
+| :---------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MODELS`                                                                                                                                                    | The sixteen `Model` records, keyed by canonical name                                                                                                                           |
+| `Model`                                                                                                                                                     | `name`, `summary`, `address_bits`, `data_bits`, `decimal`, `pins`, `reset_cycles`, `aliases`, `narrows`, `revision`, `address_mask`, and `build(memory, **options)`            |
+| `Clock(cpu)`                                                                                                                                                | Runs a part one cycle at a time. See [Driving it one cycle at a time](#driving-it-one-cycle-at-a-time)                                                                         |
+| `Memory(size=0x1000000, image=None, seed=UNSET_SEED, fill=None)`                                                                                            | A flat byte array, scrambled from `seed`, filled with `fill`, then overlaid with `image`. Its bytes are `data`                                                                 |
+| `SparseMemory(seed=UNSET_SEED)`                                                                                                                             | 24 bits of address space that stores only what was written. Its written bytes are `cells`                                                                                      |
+| `scramble(size, seed=UNSET_SEED)`                                                                                                                           | The scrambled `bytearray` both memories and every part start from                                                                                                              |
+| `UNSET_SEED`                                                                                                                                                | The default seed, `0x5A5A5A5A`                                                                                                                                                 |
+| `Cpu65816(memory, seed=UNSET_SEED)`                                                                                                                         | The 65816 core class, for type checks                                                                                                                                          |
+| `OPCODES`, `MODE_SIZE`, `FLAG_DEPENDENT`                                                                                                                    | The 65816 opcode table as `(mnemonic, mode)` pairs, operand bytes per mode, and the two modes whose width follows `m` or `x`                                                   |
+| `decode(data, offset=0, address=0, m=True, x=True)`                                                                                                         | One 65816 `Instruction`: `address`, `offset`, `opcode`, `mnemonic`, `mode`, `operand`, `size`, `text`                                                                          |
+| `disassemble(data, offset=0, address=0, count=None, m=True, x=True, stop_at_return=False)`                                                                  | A list of 65816 instructions, tracking `REP` and `SEP`. It stops at the last whole instruction                                                                                 |
+| `operand_size(mode, m, x)`, `branch_target(address, size, operand, width)`, `render(mode, operand, address, size, width)`, `apply_flags(instruction, m, x)` | The steps `decode` and `disassemble` are built from                                                                                                                            |
+| `FLAG_C`, `FLAG_Z`, `FLAG_I`, `FLAG_D`, `FLAG_X`, `FLAG_M`, `FLAG_V`, `FLAG_N`                                                                              | The 65816 status bits, `0x01` to `0x80`                                                                                                                                        |
+| `NMOS`, `TABLES`                                                                                                                                            | The 8-bit opcode tables as `(mnemonic, mode)` pairs: `NMOS` for the eleven NMOS models, and `TABLES` keyed `65c02`, `rockwell` and `wdc` for the three CMOS ones               |
+| `decode8(data, offset, address, table=NMOS)`                                                                                                                | One 8-bit instruction: `address`, `opcode`, `mnemonic`, `mode`, `operand`, `size`, and the `undocumented` and `unstable` properties. Raises `Truncated` when the bytes run out |
+| `disassemble8(data, offset, address, count=None, table=NMOS, stop_at_return=False)`                                                                         | 8-bit instructions in order. It stops at the last whole instruction                                                                                                            |
+| `render8(mode, operand, address, size)`                                                                                                                     | An 8-bit operand as assembler text, and a branch as the address it reaches                                                                                                     |
+| `__version__`                                                                                                                                               | The installed version                                                                                                                                                          |
 
 The three 8-bit functions end in `8` so they never shadow the 65816 ones.
 
@@ -218,19 +218,19 @@ gave up after 100 instructions at $31D0
 
 ### Command-line tools
 
-| Command | Arguments | Exit codes |
-|:--|:--|:--|
-| `python3 mos65xx/doctor.py` | None | 0 when every check passes, 1 otherwise |
-| `python3 -m conformance.fetch` | `[directory] [--latest]`. Default `~/.cache/conformance-suites`. `--latest` takes each upstream head instead of the pin. A copy already there is moved to the pin, and a copy that does not end at the pin stops the run | 0, or 1 when an upstream cannot be reached |
-| `python3 -m conformance.singlestep` | `<suite directory> [tests per file] [filter] [--model name]`. Default model `65816` | 0 when every case agrees or no suite is there, 1 on a disagreement, 2 on bad arguments |
-| `python3 -m conformance.cycles` | The same as `singlestep` | The same as `singlestep` |
-| `python3 -m conformance.documents` | `[--check] [--only substring]` | 0 when every digest matches, 1 when one is refused or the arguments are wrong |
-| `python3 -m conformance.quotes` | None | 0 when every quote is found in its document or no document is here, 1 otherwise |
-| `python3 -m conformance.speed` | `[--instructions N] [--repeats N]`. Defaults 200,000 and 7 | 0 above the floor of 700,000 cycles per second, 1 below, 2 on bad arguments |
-| `python3 -m conformance.netlist` | None. Reads the `NETLIST` variable | 0 when every case agrees or no simulation is configured, 1 otherwise |
-| `python3 -m conformance.links` | None | 0, or 1 when a cited address answers 404 or 410 |
-| `python3 -m conformance.watch` | `[definition] [--moved]` | 0, or 1 when the definitions cannot be read or disagree |
-| `python3 -m conformance.package` | `<wheel>` | 0 when every module is in the wheel and no test is, 1 otherwise, 2 with no argument |
+| Command                             | Arguments                                                                                                                                                                                                                | Exit codes                                                                             |
+| :---------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------- |
+| `python3 mos65xx/doctor.py`         | None                                                                                                                                                                                                                     | 0 when every check passes, 1 otherwise                                                 |
+| `python3 -m conformance.fetch`      | `[directory] [--latest]`. Default `~/.cache/conformance-suites`. `--latest` takes each upstream head instead of the pin. A copy already there is moved to the pin, and a copy that does not end at the pin stops the run | 0, or 1 when an upstream cannot be reached                                             |
+| `python3 -m conformance.singlestep` | `<suite directory> [tests per file] [filter] [--model name]`. Default model `65816`                                                                                                                                      | 0 when every case agrees or no suite is there, 1 on a disagreement, 2 on bad arguments |
+| `python3 -m conformance.cycles`     | The same as `singlestep`                                                                                                                                                                                                 | The same as `singlestep`                                                               |
+| `python3 -m conformance.documents`  | `[--check] [--only substring]`                                                                                                                                                                                           | 0 when every digest matches, 1 when one is refused or the arguments are wrong          |
+| `python3 -m conformance.quotes`     | None                                                                                                                                                                                                                     | 0 when every quote is found in its document or no document is here, 1 otherwise        |
+| `python3 -m conformance.speed`      | `[--instructions N] [--repeats N]`. Defaults 200,000 and 7                                                                                                                                                               | 0 above the floor of 700,000 cycles per second, 1 below, 2 on bad arguments            |
+| `python3 -m conformance.netlist`    | None. Reads the `NETLIST` variable                                                                                                                                                                                       | 0 when every case agrees or no simulation is configured, 1 otherwise                   |
+| `python3 -m conformance.links`      | None                                                                                                                                                                                                                     | 0, or 1 when a cited address answers 404 or 410                                        |
+| `python3 -m conformance.watch`      | `[definition] [--moved]`                                                                                                                                                                                                 | 0, or 1 when the definitions cannot be read or disagree                                |
+| `python3 -m conformance.package`    | `<wheel>`                                                                                                                                                                                                                | 0 when every module is in the wheel and no test is, 1 otherwise, 2 with no argument    |
 
 ## Running it at a real speed
 
@@ -294,12 +294,12 @@ print([(hex(address), hex(value)) for address, value, _ in cpu.trace])
 
 `LDA $10` had fetched its opcode and operand when the byte at `$0010` changed, and its third cycle read the new value.
 
-| Call | Effect |
-|:--|:--|
-| `tick()` | Runs the part to the end of its next cycle and returns the clock's cycle count |
-| `run_for(cycles)` | `cycles` ticks. Returns the clock's cycle count |
-| `close()` | Stops the worker thread and restores the part's `on_cycle` |
-| `cycles`, `closed`, `cpu` | Ticks so far, whether it is closed, the part it drives |
+| Call                      | Effect                                                                         |
+| :------------------------ | :----------------------------------------------------------------------------- |
+| `tick()`                  | Runs the part to the end of its next cycle and returns the clock's cycle count |
+| `run_for(cycles)`         | `cycles` ticks. Returns the clock's cycle count                                |
+| `close()`                 | Stops the worker thread and restores the part's `on_cycle`                     |
+| `cycles`, `closed`, `cpu` | Ticks so far, whether it is closed, the part it drives                         |
 
 A `Clock` is a context manager and an iterator that yields one tick at a time. A halted part keeps ticking through `held_cycle()`. Python cannot suspend a call stack, so the clock runs the part on a worker thread and hands control across two semaphores every cycle. Use `step()` for throughput and `Clock` when the question is which cycle something happens in. A clock stopped on an instruction's last cycle leaves the part as `step()` does, whether it is then closed or not. `irq()` or `nmi()` called while a clock is paused at an instruction boundary acts at once, as it does between two steps, and its cycles count in `cpu.cycles` without being ticks. Paused inside an instruction, or inside an interrupt entry, there is no such place, so the call raises `InsideInstruction` and changes nothing: tick to the boundary, or set `irq_line` or `nmi_line`, which the part samples when the instruction completes. The same holds at a boundary whose lines will start an entry, an `nmi_line` edge not yet taken or an `irq_line` held with interrupts enabled: the step is not finished, and the error names the pending line.
 
@@ -307,24 +307,24 @@ A `Clock` is a context manager and an iterator that yields one tick at a time. A
 
 The model decides the address lines, the interrupt lines, the decimal adder and the instruction set.
 
-| Build it with | Address bits | Pins | Decimal | Part | Aliases |
-|:--|:--:|:--|:--:|:--|:--|
-| `Cpu("6502")` | 16 | IRQ, NMI, RDY | Yes | MOS 6502 | `mos6502`, `nmos6502`, `6510`, `8500` |
-| `Cpu("6503")` | 12 | IRQ, NMI | Yes | MOS 6503 | `mos6503` |
-| `Cpu("6504")` | 13 | IRQ | Yes | MOS 6504 | `mos6504` |
-| `Cpu("6505")` | 12 | IRQ, RDY | Yes | MOS 6505 | `mos6505` |
-| `Cpu("6506")` | 12 | IRQ | Yes | MOS 6506, a second clock output in place of RDY | `mos6506` |
-| `Cpu("6507")` | 13 | RDY | Yes | MOS 6507 | `mos6507` |
-| `Cpu("6512")` | 16 | IRQ, NMI, RDY | Yes | MOS 6512, the 6502 on an external two-phase clock | `mos6512` |
-| `Cpu("6513")` | 12 | IRQ, NMI | Yes | MOS 6513, the 6503 on an external clock | `mos6513` |
-| `Cpu("6514")` | 13 | IRQ | Yes | MOS 6514, the 6504 on an external clock | `mos6514` |
-| `Cpu("6515")` | 12 | IRQ, RDY | Yes | MOS 6515, the 6505 on an external clock | `mos6515` |
-| `Cpu("2a03")` | 16 | IRQ, NMI, RDY | No | Ricoh 2A03 and 2A07 | `ricoh2a03`, `2a07`, `ricoh2a07`, `nes6502`, `famicom` |
-| `Cpu("65c02")` | 16 | IRQ, NMI, RDY | Yes | The base CMOS design | `synertek65c02`, `s65c02`, `cmos6502` |
-| `Cpu("r65c02")` | 16 | IRQ, NMI, RDY | Yes | Rockwell R65C02, adding 32 single-bit instructions | `rockwell65c02`, `rockwell` |
-| `Cpu("w65c02")` | 16 | IRQ, NMI, RDY | Yes | WDC W65C02S, adding `STP` and `WAI` | `wdc65c02`, `w65c02s` |
-| `Cpu("65802")` | 16 | IRQ, NMI, RDY | Yes | WDC W65C802, the 65816 core with 16 address lines | `w65c802`, `65c802` |
-| `Cpu("65816")` | 24 | IRQ, NMI, RDY | Yes | WDC W65C816S | `w65c816`, `w65c816s`, `65c816`, `65816s` |
+| Build it with   | Address bits | Pins          | Decimal | Part                                               | Aliases                                                |
+| :-------------- | :----------: | :------------ | :-----: | :------------------------------------------------- | :----------------------------------------------------- |
+| `Cpu("6502")`   |      16      | IRQ, NMI, RDY |   Yes   | MOS 6502                                           | `mos6502`, `nmos6502`, `6510`, `8500`                  |
+| `Cpu("6503")`   |      12      | IRQ, NMI      |   Yes   | MOS 6503                                           | `mos6503`                                              |
+| `Cpu("6504")`   |      13      | IRQ           |   Yes   | MOS 6504                                           | `mos6504`                                              |
+| `Cpu("6505")`   |      12      | IRQ, RDY      |   Yes   | MOS 6505                                           | `mos6505`                                              |
+| `Cpu("6506")`   |      12      | IRQ           |   Yes   | MOS 6506, a second clock output in place of RDY    | `mos6506`                                              |
+| `Cpu("6507")`   |      13      | RDY           |   Yes   | MOS 6507                                           | `mos6507`                                              |
+| `Cpu("6512")`   |      16      | IRQ, NMI, RDY |   Yes   | MOS 6512, the 6502 on an external two-phase clock  | `mos6512`                                              |
+| `Cpu("6513")`   |      12      | IRQ, NMI      |   Yes   | MOS 6513, the 6503 on an external clock            | `mos6513`                                              |
+| `Cpu("6514")`   |      13      | IRQ           |   Yes   | MOS 6514, the 6504 on an external clock            | `mos6514`                                              |
+| `Cpu("6515")`   |      12      | IRQ, RDY      |   Yes   | MOS 6515, the 6505 on an external clock            | `mos6515`                                              |
+| `Cpu("2a03")`   |      16      | IRQ, NMI, RDY |   No    | Ricoh 2A03 and 2A07                                | `ricoh2a03`, `2a07`, `ricoh2a07`, `nes6502`, `famicom` |
+| `Cpu("65c02")`  |      16      | IRQ, NMI, RDY |   Yes   | The base CMOS design                               | `synertek65c02`, `s65c02`, `cmos6502`                  |
+| `Cpu("r65c02")` |      16      | IRQ, NMI, RDY |   Yes   | Rockwell R65C02, adding 32 single-bit instructions | `rockwell65c02`, `rockwell`                            |
+| `Cpu("w65c02")` |      16      | IRQ, NMI, RDY |   Yes   | WDC W65C02S, adding `STP` and `WAI`                | `wdc65c02`, `w65c02s`                                  |
+| `Cpu("65802")`  |      16      | IRQ, NMI, RDY |   Yes   | WDC W65C802, the 65816 core with 16 address lines  | `w65c802`, `65c802`                                    |
+| `Cpu("65816")`  |      24      | IRQ, NMI, RDY |   Yes   | WDC W65C816S                                       | `w65c816`, `w65c816s`, `65c816`, `65816s`              |
 
 The eleven NMOS models share one core, the three 65C02 models share a second, and the 65816 and 65802 share a third. A narrower package reaches less: the 65802 reads `$7E0012` at `$0012`, and a 6507 reads `$F234` at `$1234`. On the 2A03 the decimal flag can be set and changes nothing.
 
@@ -423,13 +423,13 @@ The suites are pinned by commit. A weekly job runs them at each upstream head an
 
 ## Working on it
 
-| Need | Where |
-|:--|:--|
-| Every gate and the order to run them | [CONTRIBUTING.md](CONTRIBUTING.md) |
-| The same material for a coding agent | [AGENTS.md](AGENTS.md) |
-| The standard this repository shares with the rest of the family | [FAMILY.md](FAMILY.md) |
-| Bug reports | [GitHub Issues](https://github.com/gufranco/mos65xx-python/issues) |
-| Security reports | [SECURITY.md](SECURITY.md) |
+| Need                                                            | Where                                                              |
+| :-------------------------------------------------------------- | :----------------------------------------------------------------- |
+| Every gate and the order to run them                            | [CONTRIBUTING.md](CONTRIBUTING.md)                                 |
+| The same material for a coding agent                            | [AGENTS.md](AGENTS.md)                                             |
+| The standard this repository shares with the rest of the family | [FAMILY.md](FAMILY.md)                                             |
+| Bug reports                                                     | [GitHub Issues](https://github.com/gufranco/mos65xx-python/issues) |
+| Security reports                                                | [SECURITY.md](SECURITY.md)                                         |
 
 ```bash
 uvx ruff@0.16.3 format --check .
@@ -444,20 +444,20 @@ Each module has a test file beside it, named after it, and each runs on its own 
 
 Every document below is copyrighted by its publisher and none is in this repository. [`conformance/documents.json`](conformance/documents.json) carries each one's full SHA-256, byte count and address. `python3 -m conformance.documents` downloads all twelve into `docs/`, which git ignores, and refuses any file whose digest does not match. `--check` verifies what is already there.
 
-| Document | Date | Pages | SHA-256 |
-|:--|:--|--:|:--|
-| [MOS Technology, Inc., *MCS6500 Microcomputer Family Hardware Manual*](https://archive.org/download/mcs-6500-family-hardware-manual-1976-01/MCS6500_family_hardware_manual_1976-01.pdf) | 1976-01 | 182 | `81ea570c9d68deff64d67365bdf24534df93a8c62121e53036aeac6a557cea23` |
-| [MOS Technology, Inc., *MCS6500 Microcomputer Family Programming Manual*](https://archive.org/download/6500-50A_MCS6500_Programming_Manual_1976_Jan/6500-50A_MCS6500_Programming_Manual_1976_Jan.pdf) | 1976-01 | 262 | `a2d54dd8b6557c7f2f275b4ddaa9180b5754274a762df122d79392f03264b483` |
-| [MOS Technology, Inc., *MOS 6500 Microprocessors*](https://6502.org/documents/datasheets/mos/mos_6500_mpu_nov_1985.pdf) | 1985-11 | 12 | `ccd72376d1e5db1fb13777de538417f4799ab38e1f746452f9695465c422dcd7` |
-| [MOS Technology, Inc., *MOS 6500 Microprocessors*](https://6502.org/documents/datasheets/mos/mos_6500_mpu_mar_1980.pdf) | 1980-03 | 12 | `a564c4de593ea178868a43eaf7e00fe7d3460016d2a7880d20eb756f2bf2d030` |
-| [Synertek, Inc., *SY6500 Microprocessors*](https://6502.org/documents/datasheets/synertek/synertek_sy6500_microprocessors.pdf) | Undated | 6 | `f20b50961df60bb0e1980f271ad49b4b788c46a143127ccc58e8d3ce84d99193` |
-| [Synertek, Inc., *SY6500 Hardware Manual*](https://6502.org/documents/datasheets/synertek/synertek_hardware_manual.pdf) | Undated | 178 | `9cd0991dcbb4a46bf63747528282ad175ed15e1957d08bd755ef14b978b67a1c` |
-| [Rockwell International, *R65C00 Microprocessors: R65C02, R65C102 and R65C112*](https://6502.org/documents/datasheets/rockwell/rockwell_r65c00_microprocessors.pdf) | 1987-06 | 16 | `63deee76c8d0d4faee7bb8f9c50ff21662c73f2e82093ebacfb284f527faf134` |
-| [The Western Design Center, Inc., *W65C02S 8-bit Microprocessor Data Sheet*](https://westerndesigncenter.com/wdc/documentation/w65c02s.pdf) | 2022-04-08 | 32 | `a6af3ca9da45c8a03504c94c7399cb6b08f15ce14185dd3e1e880433cdaa8cf5` |
-| [The Western Design Center, Inc., *W65C816S 8/16-bit Microprocessor Data Sheet*](https://datasheets.chipdb.org/Western%20Design/w65c816s.pdf) | 2004-06-14 | 62 | `60f21a3da0331273c6b92963ba7660408ab1ba3cf9dca2e37b1e55e7950ff313` |
-| [The Western Design Center, Inc., *W65C816S 8/16-bit Microprocessor Data Sheet*](https://6502.org/documents/datasheets/wdc/wdc_w65c816s_jul_1994.pdf) | 1994-07 | 72 | `823c2f286a97102fc3695596f7c03e26e2f01cff0f45023dc3bb71688e689bc7` |
-| [The Western Design Center, Inc., *W65C816S Datasheet*](https://westerndesigncenter.com/wdc/documentation/w65c816s.pdf) | 2024-03-13 | 55 | `b9177e1b045d2c8a801d1b23619abb4e5b29b88868fa491df7296dbc0b13447e` |
-| [The Western Design Center, Inc., David Eyes and Ron Lichty, *Programming the 65816, including the 6502, 65C02 and 65802*](https://github.com/gilligan/snesdev/blob/master/docs/programming_the_65816.pdf) | 2007 | 469 | `dbccafcc47d6e53436bdc1c0049b3c54ffacfc9034a4041a7d92b6e6c5d72bb5` |
+| Document                                                                                                                                                                                                   | Date       | Pages | SHA-256                                                            |
+| :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | ----: | :----------------------------------------------------------------- |
+| [MOS Technology, Inc., _MCS6500 Microcomputer Family Hardware Manual_](https://archive.org/download/mcs-6500-family-hardware-manual-1976-01/MCS6500_family_hardware_manual_1976-01.pdf)                    | 1976-01    |   182 | `81ea570c9d68deff64d67365bdf24534df93a8c62121e53036aeac6a557cea23` |
+| [MOS Technology, Inc., _MCS6500 Microcomputer Family Programming Manual_](https://archive.org/download/6500-50A_MCS6500_Programming_Manual_1976_Jan/6500-50A_MCS6500_Programming_Manual_1976_Jan.pdf)      | 1976-01    |   262 | `a2d54dd8b6557c7f2f275b4ddaa9180b5754274a762df122d79392f03264b483` |
+| [MOS Technology, Inc., _MOS 6500 Microprocessors_](https://6502.org/documents/datasheets/mos/mos_6500_mpu_nov_1985.pdf)                                                                                    | 1985-11    |    12 | `ccd72376d1e5db1fb13777de538417f4799ab38e1f746452f9695465c422dcd7` |
+| [MOS Technology, Inc., _MOS 6500 Microprocessors_](https://6502.org/documents/datasheets/mos/mos_6500_mpu_mar_1980.pdf)                                                                                    | 1980-03    |    12 | `a564c4de593ea178868a43eaf7e00fe7d3460016d2a7880d20eb756f2bf2d030` |
+| [Synertek, Inc., _SY6500 Microprocessors_](https://6502.org/documents/datasheets/synertek/synertek_sy6500_microprocessors.pdf)                                                                             | Undated    |     6 | `f20b50961df60bb0e1980f271ad49b4b788c46a143127ccc58e8d3ce84d99193` |
+| [Synertek, Inc., _SY6500 Hardware Manual_](https://6502.org/documents/datasheets/synertek/synertek_hardware_manual.pdf)                                                                                    | Undated    |   178 | `9cd0991dcbb4a46bf63747528282ad175ed15e1957d08bd755ef14b978b67a1c` |
+| [Rockwell International, _R65C00 Microprocessors: R65C02, R65C102 and R65C112_](https://6502.org/documents/datasheets/rockwell/rockwell_r65c00_microprocessors.pdf)                                        | 1987-06    |    16 | `63deee76c8d0d4faee7bb8f9c50ff21662c73f2e82093ebacfb284f527faf134` |
+| [The Western Design Center, Inc., _W65C02S 8-bit Microprocessor Data Sheet_](https://westerndesigncenter.com/wdc/documentation/w65c02s.pdf)                                                                | 2022-04-08 |    32 | `a6af3ca9da45c8a03504c94c7399cb6b08f15ce14185dd3e1e880433cdaa8cf5` |
+| [The Western Design Center, Inc., _W65C816S 8/16-bit Microprocessor Data Sheet_](https://datasheets.chipdb.org/Western%20Design/w65c816s.pdf)                                                              | 2004-06-14 |    62 | `60f21a3da0331273c6b92963ba7660408ab1ba3cf9dca2e37b1e55e7950ff313` |
+| [The Western Design Center, Inc., _W65C816S 8/16-bit Microprocessor Data Sheet_](https://6502.org/documents/datasheets/wdc/wdc_w65c816s_jul_1994.pdf)                                                      | 1994-07    |    72 | `823c2f286a97102fc3695596f7c03e26e2f01cff0f45023dc3bb71688e689bc7` |
+| [The Western Design Center, Inc., _W65C816S Datasheet_](https://westerndesigncenter.com/wdc/documentation/w65c816s.pdf)                                                                                    | 2024-03-13 |    55 | `b9177e1b045d2c8a801d1b23619abb4e5b29b88868fa491df7296dbc0b13447e` |
+| [The Western Design Center, Inc., David Eyes and Ron Lichty, _Programming the 65816, including the 6502, 65C02 and 65802_](https://github.com/gilligan/snesdev/blob/master/docs/programming_the_65816.pdf) | 2007       |   469 | `dbccafcc47d6e53436bdc1c0049b3c54ffacfc9034a4041a7d92b6e6c5d72bb5` |
 
 Ricoh published no data sheet for the 2A03, so the MOS documents cover the core it is built from. None of the three W65C816S revisions mentions the W65C802, so the 65816 documents cover its core and its package is undocumented.
 

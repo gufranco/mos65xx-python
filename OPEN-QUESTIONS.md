@@ -42,9 +42,9 @@ Source: W65C816S Data Sheet, 8.11.2.
 
 Source: Programming the 65816, the BRK entry, printed page 338.
 
-*Why that matters.* A step by step account of the same instruction in the same mode, by the same publisher, listing each thing the instruction does. The data bank register is not among them. Its native mode paragraph does name a bank register being cleared, the program bank, so the omission in the emulation paragraph is not the book being brief about banks in general.
+_Why that matters._ A step by step account of the same instruction in the same mode, by the same publisher, listing each thing the instruction does. The data bank register is not among them. Its native mode paragraph does name a bank register being cleared, the program bank, so the omission in the emulation paragraph is not the book being brief about banks in general.
 
-*How much it settles.* Not outright. Silence in a programmer's account is weaker than a statement, and the book is describing what a programmer must know rather than enumerating every register the sequence touches. But it is a second rung one source that declines to repeat the caveat, which leaves the caveat as the only place the claim appears against 30,000 recorded cases and one other publication.
+_How much it settles._ Not outright. Silence in a programmer's account is weaker than a statement, and the book is describing what a programmer must know rather than enumerating every register the sequence touches. But it is a second rung one source that declines to repeat the caveat, which leaves the caveat as the only place the claim appears against 30,000 recorded cases and one other publication.
 
 **The recordings say.** All 10,000 emulation BRK tests, all 10,000 emulation COP tests and all 10,000 native BRK tests leave the data bank register exactly as they found it. 9,960 of the emulation BRK tests start with a non-zero data bank, so the cases that would show a clear are present and none of them shows one. The program bank is zero afterwards in all 30,000, which is the half of the sentence both sources agree on.
 
@@ -292,7 +292,6 @@ question stay open on the same grounds as before. The Z80 side is unanswered too
 a port of the Z80Explorer netlist resolver was written in a session, does not
 converge, and is carried nowhere, so that sibling starts from a blank file rather
 than from a broken one. Its own record says so.
-
 
 Not unknown to the world, unverified in this repository.
 

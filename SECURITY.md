@@ -10,12 +10,12 @@ about what a malformed input can make the code do.
 
 ## What is in scope
 
-| Class | Example |
-|-------|---------|
-| Supply chain | A dependency or a pinned action that has been compromised |
+| Class           | Example                                                                                                         |
+| --------------- | --------------------------------------------------------------------------------------------------------------- |
+| Supply chain    | A dependency or a pinned action that has been compromised                                                       |
 | Malformed input | A crafted file that makes a reader allocate without bound, loop without end, or write outside where it was told |
-| Path handling | An input that causes a write outside the directory the caller named |
-| Digest handling | Anything that makes a verification pass when it should not |
+| Path handling   | An input that causes a write outside the directory the caller named                                             |
+| Digest handling | Anything that makes a verification pass when it should not                                                      |
 
 ## What is not
 

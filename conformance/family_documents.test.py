@@ -165,7 +165,7 @@ class EveryLinkResolvesTest(unittest.TestCase):
 
 
 class SharedFileTest(unittest.TestCase):
-    NAMED = re.compile(r"^\| `([^`]+)` \|", re.M)
+    NAMED = re.compile(r"^\| `([^`]+)` +\|", re.M)
 
     FILE = re.compile(r"[./]")
 

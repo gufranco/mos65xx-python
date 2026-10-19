@@ -8,6 +8,7 @@ Paste the output rather than describing it. A claim that the tests pass is not
 evidence that they did.
 
 ```text
+
 ```
 
 - [ ] `ruff format --check .` and `ruff check .` are clean

@@ -133,14 +133,14 @@ Eight sibling projects are held to the standard this one sets: nec-upd7725,
 snes-driver, snes-dsp, snes-mapper, snes-rom-image, snes-rtc, snes-star-ocean-nochip-fix
 and zilog-z80. When one of them needs a pattern, the pattern is here:
 
-| Thing | Where it lives here |
-|:--|:--|
-| Facts read from a manufacturer's document | [`conformance/hardware.json`](conformance/hardware.json), each with its sentence |
-| Where a document and a recording disagree | [`conformance/divergences.json`](conformance/divergences.json), both readings, and what would settle it |
-| Comparing state against a per-opcode corpus | [`conformance/singlestep.py`](conformance/singlestep.py) |
-| Comparing the bus, cycle by cycle and pin by pin | [`conformance/cycles.py`](conformance/cycles.py) |
-| Pinning and fetching a corpus nobody vendors | [`conformance/fetch.py`](conformance/fetch.py) and [`conformance/suites.json`](conformance/suites.json) |
-| Strict typing, every optional error class | the `[tool.mypy]` block in `pyproject.toml` |
+| Thing                                            | Where it lives here                                                                                     |
+| :----------------------------------------------- | :------------------------------------------------------------------------------------------------------ |
+| Facts read from a manufacturer's document        | [`conformance/hardware.json`](conformance/hardware.json), each with its sentence                        |
+| Where a document and a recording disagree        | [`conformance/divergences.json`](conformance/divergences.json), both readings, and what would settle it |
+| Comparing state against a per-opcode corpus      | [`conformance/singlestep.py`](conformance/singlestep.py)                                                |
+| Comparing the bus, cycle by cycle and pin by pin | [`conformance/cycles.py`](conformance/cycles.py)                                                        |
+| Pinning and fetching a corpus nobody vendors     | [`conformance/fetch.py`](conformance/fetch.py) and [`conformance/suites.json`](conformance/suites.json) |
+| Strict typing, every optional error class        | the `[tool.mypy]` block in `pyproject.toml`                                                             |
 
 The one thing to copy first is the pair of JSON files. A number written into the
 source is a claim nobody checks; a number in `hardware.json` with the sentence it came from
@@ -190,21 +190,21 @@ python3 -m conformance.singlestep
 
 ## Conventions that are not negotiable
 
-| Thing | Rule |
-|:------|:-----|
-| Language | Python only |
-| Comments | None in source, and a docstring counts as one |
-| Test layout | `<module>.test.py` beside the module it covers |
-| Coverage | 100% statements and branches, enforced |
-| Types | `mypy` at strict, plus every optional error class |
-| Commits | Conventional Commits, subject under 50 characters |
-| Suites | Fetched and pinned by commit, never vendored |
-| Documents | Read, quoted and pinned by digest. Never committed: none is redistributable |
-| Undefined state | Nothing starts cleared. Registers, flags and memory come up scrambled from the seed. `Cpu(model, fill=N)` is the family's one way to ask for a store holding one byte everywhere, for a run that must get through a few dozen instructions; it never clears registers or flags |
-| Fidelity | Where the part and convenience disagree, the part wins. A behaviour that exists only to make a test easier is a defect |
-| Public API | The two cores in this family present the same surface. `Cpu(name)`, `step()`, `reset()`, `irq()`, `nmi()`, `decode(data)`, `disassemble(data)`. A difference needs a hardware reason |
-| [`mos65xx/mos6502.py`](mos65xx/mos6502.py) length | Past 500 lines under the exemption for a single calculation engine sharing intermediate state: one `Cpu` whose opcode handlers share the registers, flags, pin lines and cycle state, and whose hooks the 65C02 overrides one by one |
-| [`mos65xx/wdc65816.py`](mos65xx/wdc65816.py) length | Past 500 lines under the same exemption: one `Cpu` whose opcode handlers share the register file, the width and emulation flags, the stack and the cycle state |
+| Thing                                               | Rule                                                                                                                                                                                                                                                                           |
+| :-------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Language                                            | Python only                                                                                                                                                                                                                                                                    |
+| Comments                                            | None in source, and a docstring counts as one                                                                                                                                                                                                                                  |
+| Test layout                                         | `<module>.test.py` beside the module it covers                                                                                                                                                                                                                                 |
+| Coverage                                            | 100% statements and branches, enforced                                                                                                                                                                                                                                         |
+| Types                                               | `mypy` at strict, plus every optional error class                                                                                                                                                                                                                              |
+| Commits                                             | Conventional Commits, subject under 50 characters                                                                                                                                                                                                                              |
+| Suites                                              | Fetched and pinned by commit, never vendored                                                                                                                                                                                                                                   |
+| Documents                                           | Read, quoted and pinned by digest. Never committed: none is redistributable                                                                                                                                                                                                    |
+| Undefined state                                     | Nothing starts cleared. Registers, flags and memory come up scrambled from the seed. `Cpu(model, fill=N)` is the family's one way to ask for a store holding one byte everywhere, for a run that must get through a few dozen instructions; it never clears registers or flags |
+| Fidelity                                            | Where the part and convenience disagree, the part wins. A behaviour that exists only to make a test easier is a defect                                                                                                                                                         |
+| Public API                                          | The two cores in this family present the same surface. `Cpu(name)`, `step()`, `reset()`, `irq()`, `nmi()`, `decode(data)`, `disassemble(data)`. A difference needs a hardware reason                                                                                           |
+| [`mos65xx/mos6502.py`](mos65xx/mos6502.py) length   | Past 500 lines under the exemption for a single calculation engine sharing intermediate state: one `Cpu` whose opcode handlers share the registers, flags, pin lines and cycle state, and whose hooks the 65C02 overrides one by one                                           |
+| [`mos65xx/wdc65816.py`](mos65xx/wdc65816.py) length | Past 500 lines under the same exemption: one `Cpu` whose opcode handlers share the register file, the width and emulation flags, the stack and the cycle state                                                                                                                 |
 
 The linter's ignores in [`pyproject.toml`](pyproject.toml) carry no comments, so
 their reasons live here:
@@ -236,6 +236,18 @@ The coverage exclusions carry none either:
   `^def accounts_for_a_reset\(` in the coverage exclusions: this member is not a
   part, so the family tests that build a `Chip` and account for its reset are
   skipped here and their bodies never run.
+
+The formatter's ignores in [`.prettierignore`](.prettierignore) carry no
+comments either, so their reasons live here:
+
+- `pnpm-lock.yaml` and `package-lock.json`: the package manager writes them, in
+  its own layout, on every install.
+- `node_modules/`, `.venv/`, `venv/`, `build/`, `dist/` and `*.egg-info/`:
+  installed or built, never written by hand.
+- `.coverage`, `coverage.json`, `htmlcov/` and the tool caches: the output of a
+  run, never committed.
+- `docs/`, `specs/`, `.work/` and `.claude/`: local working material, never
+  committed.
 
 ## Layout
 
@@ -300,7 +312,7 @@ being made in one of them and forgotten in the others, because a test in this
 repository cannot see the others, so the check is a command rather than a suite:
 
 ```sh
-shared() { sed '/^\*Everything above this line/q' "$1"; }
+shared() { sed '/^_Everything above this line/q' "$1"; }
 
 grep -o 'github\.com/[^/]*/\([a-z0-9-]*\))' FAMILY.md | sed 's|.*/||; s|)||' | sort -u |
 while read -r member; do

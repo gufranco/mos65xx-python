@@ -47,7 +47,7 @@ jobs:
       - name: Install the formatter
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Check that every JSON and YAML file is formatted
+      - name: Check that every file Prettier reads is formatted
         run: pnpm run format:check
 
       - name: Check the workflows, with actionlint verified by digest
