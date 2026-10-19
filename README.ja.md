@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16**品種、**17,900,000**件の状態ケースと**17,870,080**件のサイクル精度ケースを比較、説明のつかない失敗は**0**件、テスト**1,520**件、ステートメントとブランチのカバレッジ**100%**、依存関係なし
+**16**品種、**17,900,000**件の状態ケースと**17,870,080**件のサイクル精度ケースを比較、説明のつかない失敗は**0**件、テスト**1,545**件、ステートメントとブランチのカバレッジ**100%**、依存関係なし
 
 ```python
 from mos65xx import Cpu, SparseMemory

@@ -149,6 +149,8 @@ NOT_THIS_PACKAGES_WORDS = (
     "conformance/family_published.test.py",
     "conformance/family_record.test.py",
     "conformance/family_shared.py",
+    "conformance/family_sizes.test.py",
+    "conformance/family_test_roms.test.py",
     "conformance/family_tools.test.py",
     "conformance/family_translations.test.py",
     "conformance/family_writing.test.py",
