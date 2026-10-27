@@ -153,12 +153,12 @@ jobs:
         id: cache
         uses: actions/cache@v6
         with:
-          path: ~/.cache/conformance-suites
+          path: external/conformance-suites
           key: suites-${{ hashFiles('conformance/suites.json') }}
 
       - name: Fetch the suite
         if: steps.cache.outputs.cache-hit != 'true'
-        run: python -m conformance.fetch ~/.cache/conformance-suites
+        run: python -m conformance.fetch external/conformance-suites
 
       - name: Run every suite, a slice of each on a pull request
         run: |
@@ -287,12 +287,12 @@ jobs:
         id: cache
         uses: actions/cache@v6
         with:
-          path: ~/.cache/conformance-suites
+          path: external/conformance-suites
           key: suites-${{ hashFiles('conformance/suites.json') }}
 
       - name: Fetch the suite
         if: steps.cache.outputs.cache-hit != 'true'
-        run: python -m conformance.fetch ~/.cache/conformance-suites
+        run: python -m conformance.fetch external/conformance-suites
 
       - name: Compare the bus, cycle by cycle, a slice of each on a pull request
         run: |

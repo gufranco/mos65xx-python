@@ -75,7 +75,7 @@ jobs:
                   continue
               where = fetch.fetch(
                   suite,
-                  pathlib.Path.home() / ".cache" / "suite" / suite["name"],
+                  pathlib.Path("external") / "suite" / suite["name"],
                   group["latest"],
               )
               print(f"{suite['name']} {where}")
@@ -102,7 +102,7 @@ jobs:
           import fetch
           for suite in fetch.definitions():
               if suite["name"] == sys.argv[1]:
-                  print(pathlib.Path.home() / ".cache" / "suite" / suite["name"] / suite["path"])
+                  print(pathlib.Path("external") / "suite" / suite["name"] / suite["path"])
                   break
           PY
           )

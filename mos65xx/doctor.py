@@ -36,7 +36,7 @@ OLDEST_PYTHON = (3, 12)
 
 DEFINITION = Path(__file__).resolve().parent.parent / "conformance" / "suites.json"
 
-CACHE = Path.home() / ".cache" / "conformance-suites"
+CACHE = ROOT / "external" / "conformance-suites"
 
 
 class Finding:

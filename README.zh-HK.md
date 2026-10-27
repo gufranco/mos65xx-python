@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16** 款晶片，比對了 **17,900,000** 個狀態案例及 **17,870,080** 個週期精確案例，**0** 個未獲解釋的失敗，**1,600** 個測試，**100%** 語句及分支覆蓋率，無任何依賴
+**16** 款晶片，比對了 **17,900,000** 個狀態案例及 **17,870,080** 個週期精確案例，**0** 個未獲解釋的失敗，**1,651** 個測試，**100%** 語句及分支覆蓋率，無任何依賴
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -222,7 +222,7 @@ gave up after 100 instructions at $31D0
 | 指令                                | 參數                                                                                                                                                                            | 結束代碼                                                                         |
 | :---------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :------------------------------------------------------------------------------- |
 | `python3 mos65xx/doctor.py`         | 無                                                                                                                                                                              | 所有檢查通過時為 0，否則為 1                                                     |
-| `python3 -m conformance.fetch`      | `[directory] [--latest]`。預設為 `~/.cache/conformance-suites`。`--latest` 取用每個上游的最新提交，而非固定的版本。已有的副本會移到固定版本，最終不在固定版本上的副本會終止執行 | 0，或在無法連接上游時為 1                                                        |
+| `python3 -m conformance.fetch`      | `[directory] [--latest]`。預設為 `external/conformance-suites`。`--latest` 取用每個上游的最新提交，而非固定的版本。已有的副本會移到固定版本，最終不在固定版本上的副本會終止執行 | 0，或在無法連接上游時為 1                                                        |
 | `python3 -m conformance.singlestep` | `<suite directory> [tests per file] [filter] [--model name]`。預設型號為 `65816`                                                                                                | 所有案例一致或沒有測試套件時為 0，出現不一致時為 1，參數錯誤時為 2               |
 | `python3 -m conformance.cycles`     | 與 `singlestep` 相同                                                                                                                                                            | 與 `singlestep` 相同                                                             |
 | `python3 -m conformance.documents`  | `[--check] [--only substring]`                                                                                                                                                  | 所有摘要相符時為 0，有檔案被拒絕或參數錯誤時為 1                                 |
@@ -418,9 +418,9 @@ False
 每個核心都與為其晶片錄製的 SingleStepTests 測試套件比對，每個操作碼 10,000 個案例，橫跨六個測試套件：65816、6502、nes6502、synertek65c02、rockwell65c02 及 wdc65c02。狀態比對檢查暫存器、旗標及每個案例觸及的每個記憶體位元組：**17,900,000 個案例，沒有未獲解釋的失敗**。週期比對按次序檢查每個匯流排週期，逐個位址比對並區分讀取與寫入，在 65816 上亦比對八個針腳：**17,870,080 個案例，沒有未獲解釋的失敗**。
 
 ```bash
-python3 -m conformance.fetch ~/.cache/conformance-suites
-python3 -m conformance.singlestep ~/.cache/conformance-suites/6502/6502/v1 --model 6502
-python3 -m conformance.cycles ~/.cache/conformance-suites/6502/6502/v1 --model 6502
+python3 -m conformance.fetch external/conformance-suites
+python3 -m conformance.singlestep external/conformance-suites/6502/6502/v1 --model 6502
+python3 -m conformance.cycles external/conformance-suites/6502/6502/v1 --model 6502
 ```
 
 兩個總數均由 [`conformance/suites.json`](conformance/suites.json) 推導得出，並有測試確保本頁與之一致。wdc65c02 測試套件中 `WAI` 及 `STP` 的檔案是空的。週期總數不包括 29,920 個 CMOS 十進制案例，這些案例的額外週期記錄在一個沒有任何暫存器會產生的固定位址上。凡本核心依從其他來源而非測試套件之處，兩個執行器均列印另行處理的 65816 案例數目。沒有任何案例被排除。每個案例除讀法相異之處外全部比對：19,924 個模擬模式 `BRK` 及 `COP` 案例中的數據記憶庫暫存器，堆疊指標位於第一頁底部的四十三個 `JSR (a,x)` 案例中一次堆疊寫入的位址，以及指標在頁末結束的 265 個模擬模式 `(d,x)` 案例中指標第二個位元組的位址，該處本核心依從 gilyon 的測試程式。

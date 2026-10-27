@@ -33,6 +33,21 @@ README = DEFINITION.parent.parent / "README.md"
 
 
 class DefinitionTest(unittest.TestCase):
+    def test_the_manifest_pins_each_checkout_at_the_commit_its_record_names(self) -> None:
+        # Arrange
+        manifest = json.loads((ROOT / "artifacts.manifest.json").read_text())["external"]
+        exercisers = json.loads((ROOT / "conformance" / "exercisers.json").read_text())
+
+        # Act
+        pinned = {
+            one["path"]: one["commit"] for one in manifest.values() if one.get("kind") == "checkout"
+        }
+
+        # Assert
+        named = {f"conformance-suites/{one['name']}": one["commit"] for one in fetch.definitions()}
+        named["6502_65C02_functional_tests"] = exercisers["commit"]
+        self.assertEqual({path: pinned[path] for path in named if path in pinned}, named)
+
     def test_the_repository_declares_at_least_one_suite(self) -> None:
         self.assertTrue(fetch.definitions())
 
@@ -329,7 +344,8 @@ class MainTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("cannot reach", output)
 
-    def test_no_directory_falls_back_to_a_cache_below_the_home_directory(self) -> None:
+    def test_no_directory_falls_back_to_the_external_folder_of_this_repository(self) -> None:
+        # Arrange
         chosen: dict[str, Any] = {}
         original = fetch.fetch
 
@@ -345,10 +361,14 @@ class MainTest(unittest.TestCase):
         fetch.fetch = taking  # type: ignore[assignment]
         self.addCleanup(setattr, fetch, "fetch", original)
 
+        # Act
         code, _ = self.run_main([])
 
+        # Assert
         self.assertEqual(code, 0)
-        self.assertIn(".cache", str(chosen["directory"]))
+        self.assertEqual(
+            Path(str(chosen["directory"])).parent, ROOT / "external" / "conformance-suites"
+        )
 
 
 if __name__ == "__main__":

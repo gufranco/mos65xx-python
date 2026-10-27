@@ -21,9 +21,9 @@ evidence that they did.
 Six suites, and every one of them:
 
 ```bash
-python3 conformance/fetch.py ~/.cache/suite
+python3 conformance/fetch.py external/suite
 for name in 65816 6502 nes6502 synertek65c02 rockwell65c02 wdc65c02; do
-  python3 conformance/singlestep.py ~/.cache/suite/"${name}"/*/v1
+  python3 conformance/singlestep.py external/suite/"${name}"/*/v1
 done
 ```
 

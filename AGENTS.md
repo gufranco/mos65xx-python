@@ -198,9 +198,9 @@ beside it replay them with no image present:
   is not run against it.
 
 ```bash
-git clone https://github.com/Klaus2m5/6502_65C02_functional_tests.git /tmp/dormann
-git -C /tmp/dormann checkout 7954e2dbb49c469ea286070bf46cdd71aeb29e4b
-MOS65XX_EXERCISERS=/tmp/dormann python3 -m conformance.exercisers
+git clone https://github.com/Klaus2m5/6502_65C02_functional_tests.git external/6502_65C02_functional_tests
+git -C external/6502_65C02_functional_tests checkout 7954e2dbb49c469ea286070bf46cdd71aeb29e4b
+MOS65XX_EXERCISERS=external/6502_65C02_functional_tests python3 -m conformance.exercisers
 ```
 
 Without the variable it runs nothing, says so and exits 2, and CI turns that
@@ -236,8 +236,8 @@ pointer's second byte. [`conformance/screens.json`](conformance/screens.json) ho
 every program printed.
 
 ```bash
-MOS65XX_TEST_IMAGES=/path/to/images:/another/path python3 -m conformance.routines
-MOS65XX_TEST_IMAGES=/path/to/images:/another/path python3 -m conformance.screens
+MOS65XX_TEST_IMAGES=external/cartridges:external/snes-test-roms python3 -m conformance.routines
+MOS65XX_TEST_IMAGES=external/cartridges:external/snes-test-roms python3 -m conformance.screens
 ```
 
 Images are found by SHA-256 under any name. Without the variable both run
@@ -246,6 +246,33 @@ nothing, say so and exit 2, and CI turns that into a notice.
 **Two wait on a planned member.** Sour's instruction timing test times each
 instruction with the S-PPU's latched counters, so it waits on `snes-ppu`. The
 SA-1 speed test times the SA-1, so it waits on `snes-sa1`.
+
+## Files kept in `external/`
+
+Everything this member reads and may not ship sits in `external/`, which git
+ignores and Dropbox is told to leave alone, per FAMILY.md's "Where the files a
+member reads are kept". [`artifacts.manifest.json`](artifacts.manifest.json)
+names all 15 by size, CRC32, MD5, SHA-1 and SHA-256:
+
+- `external/cartridges/`, the seven factory and service cartridges the record
+  pins, each copied from the cartridge library and named by its `id` there.
+- `external/snes-test-roms`, the higan mirror of community test programs, and
+  `external/6502_65C02_functional_tests`, Klaus Dormann's exercisers, each a
+  git checkout at the commit [`conformance/testroms.json`](conformance/testroms.json)
+  and [`conformance/exercisers.json`](conformance/exercisers.json) pin.
+- `external/conformance-suites/`, the six SingleStepTests checkouts at the
+  commits [`conformance/suites.json`](conformance/suites.json) pins, fetched by
+  `python3 -m conformance.fetch`. A test holds every checkout's commit to its
+  record.
+
+```bash
+python3 -m conformance.external
+python3 -m conformance.external --describe external/<file>
+```
+
+The first says which are here, verified, missing or wrong. The second prints
+the manifest entry for a file being added, which gets its entry in the same
+change.
 
 ## Every gate, in the order to run them
 
@@ -382,6 +409,9 @@ conformance/
   routines.json  what each routine did
   screens.py     whole test programs run from reset and read off the text they print
   screens.json   what each printed
+  external.py       which files in external/ are here, verified, missing or wrong
+external/           the test cartridges, the exercisers, the higan mirror and the suites, never committed
+artifacts.manifest.json  every file in external/, by size and every digest
 ```
 
 ## Things that will bite you

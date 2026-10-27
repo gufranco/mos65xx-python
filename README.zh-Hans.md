@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16** 款芯片，比对了 **17,900,000** 个状态用例和 **17,870,080** 个周期精确用例，**0** 个无法解释的失败，**1,600** 个测试，**100%** 语句和分支覆盖率，无依赖
+**16** 款芯片，比对了 **17,900,000** 个状态用例和 **17,870,080** 个周期精确用例，**0** 个无法解释的失败，**1,651** 个测试，**100%** 语句和分支覆盖率，无依赖
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -222,7 +222,7 @@ gave up after 100 instructions at $31D0
 | 命令                                | 参数                                                                                                                                                                                | 退出码                                                                           |
 | :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------- |
 | `python3 mos65xx/doctor.py`         | 无                                                                                                                                                                                  | 所有检查通过时为 0，否则为 1                                                     |
-| `python3 -m conformance.fetch`      | `[directory] [--latest]`。默认为 `~/.cache/conformance-suites`。`--latest` 使用每个上游的最新提交，而不是固定的版本。已有的副本会被移到固定版本，最终不在固定版本上的副本会终止运行 | 0，无法访问某个上游时为 1                                                        |
+| `python3 -m conformance.fetch`      | `[directory] [--latest]`。默认为 `external/conformance-suites`。`--latest` 使用每个上游的最新提交，而不是固定的版本。已有的副本会被移到固定版本，最终不在固定版本上的副本会终止运行 | 0，无法访问某个上游时为 1                                                        |
 | `python3 -m conformance.singlestep` | `<suite directory> [tests per file] [filter] [--model name]`。默认型号为 `65816`                                                                                                    | 所有用例一致或没有测试套件时为 0，出现不一致时为 1，参数错误时为 2               |
 | `python3 -m conformance.cycles`     | 与 `singlestep` 相同                                                                                                                                                                | 与 `singlestep` 相同                                                             |
 | `python3 -m conformance.documents`  | `[--check] [--only substring]`                                                                                                                                                      | 所有摘要都匹配时为 0，有文件被拒绝或参数错误时为 1                               |
@@ -418,9 +418,9 @@ False
 每个内核都与为其芯片录制的 SingleStepTests 测试套件比对，每个操作码 10,000 个用例，共六个套件：65816、6502、nes6502、synertek65c02、rockwell65c02 和 wdc65c02。状态比对检查寄存器、标志以及每个用例触及的每个存储器字节：**17,900,000 个用例，没有无法解释的失败**。周期比对按顺序检查每个总线周期，逐个比对地址和读写方向，在 65816 上还比对八个引脚：**17,870,080 个用例，没有无法解释的失败**。
 
 ```bash
-python3 -m conformance.fetch ~/.cache/conformance-suites
-python3 -m conformance.singlestep ~/.cache/conformance-suites/6502/6502/v1 --model 6502
-python3 -m conformance.cycles ~/.cache/conformance-suites/6502/6502/v1 --model 6502
+python3 -m conformance.fetch external/conformance-suites
+python3 -m conformance.singlestep external/conformance-suites/6502/6502/v1 --model 6502
+python3 -m conformance.cycles external/conformance-suites/6502/6502/v1 --model 6502
 ```
 
 这两个总数都由 [`conformance/suites.json`](conformance/suites.json) 推导，并有一个测试确保本页与之一致。wdc65c02 套件中 `WAI` 和 `STP` 的文件是空的。周期总数排除了 29,920 个 CMOS 十进制用例，它们额外的周期记录在一个任何寄存器都无法产生的固定地址上。凡本内核遵循其他来源而非测试套件之处，两个运行器都打印另行处理的 65816 用例数量。没有任何用例被排除。每个用例除读法不同之处外全部比对：19,924 个仿真模式 `BRK` 和 `COP` 用例中的数据存储体寄存器，栈指针位于第一页底部的四十三个 `JSR (a,x)` 用例中一次入栈写入的地址，以及指针在页末结束的 265 个仿真模式 `(d,x)` 用例中指针第二个字节的地址，该处本内核遵循 gilyon 的测试程序。

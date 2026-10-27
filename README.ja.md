@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16**品種、**17,900,000**件の状態ケースと**17,870,080**件のサイクル精度ケースを比較、説明のつかない失敗は**0**件、テスト**1,600**件、ステートメントとブランチのカバレッジ**100%**、依存関係なし
+**16**品種、**17,900,000**件の状態ケースと**17,870,080**件のサイクル精度ケースを比較、説明のつかない失敗は**0**件、テスト**1,651**件、ステートメントとブランチのカバレッジ**100%**、依存関係なし
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -222,7 +222,7 @@ gave up after 100 instructions at $31D0
 | コマンド                            | 引数                                                                                                                                                                                            | 終了コード                                                                                        |
 | :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------ |
 | `python3 mos65xx/doctor.py`         | なし                                                                                                                                                                                            | すべてのチェックに合格すれば0、それ以外は1                                                        |
-| `python3 -m conformance.fetch`      | `[directory] [--latest]`。デフォルトは`~/.cache/conformance-suites`。`--latest`は固定版の代わりに各上流の最新を取得します。既存のコピーは固定版へ移し、固定版で終わらないコピーは実行を止めます | 0、または上流に到達できない場合は1                                                                |
+| `python3 -m conformance.fetch`      | `[directory] [--latest]`。デフォルトは`external/conformance-suites`。`--latest`は固定版の代わりに各上流の最新を取得します。既存のコピーは固定版へ移し、固定版で終わらないコピーは実行を止めます | 0、または上流に到達できない場合は1                                                                |
 | `python3 -m conformance.singlestep` | `<suite directory> [tests per file] [filter] [--model name]`。デフォルトのモデルは`65816`                                                                                                       | すべてのケースが一致するかスイートがなければ0、不一致があれば1、引数が不正なら2                   |
 | `python3 -m conformance.cycles`     | `singlestep`と同じ                                                                                                                                                                              | `singlestep`と同じ                                                                                |
 | `python3 -m conformance.documents`  | `[--check] [--only substring]`                                                                                                                                                                  | すべてのダイジェストが一致すれば0、1つでも拒否されるか引数が不正なら1                             |
@@ -418,9 +418,9 @@ False
 各コアは、その品種について記録されたSingleStepTestsスイートと比較されます。65816、6502、nes6502、synertek65c02、rockwell65c02、wdc65c02の6つのスイートにわたり、オペコードごとに10,000ケースです。状態の比較では、レジスタ、フラグ、各ケースが触れたメモリのすべてのバイトを確認します。結果は**17,900,000ケース、説明のつかない失敗なし**です。サイクルの比較では、すべてのバスサイクルを順番に、アドレスごとに、読み出しと書き込みの区別まで確認し、65816では8本のピンも確認します。結果は**17,870,080ケース、説明のつかない失敗なし**です。
 
 ```bash
-python3 -m conformance.fetch ~/.cache/conformance-suites
-python3 -m conformance.singlestep ~/.cache/conformance-suites/6502/6502/v1 --model 6502
-python3 -m conformance.cycles ~/.cache/conformance-suites/6502/6502/v1 --model 6502
+python3 -m conformance.fetch external/conformance-suites
+python3 -m conformance.singlestep external/conformance-suites/6502/6502/v1 --model 6502
+python3 -m conformance.cycles external/conformance-suites/6502/6502/v1 --model 6502
 ```
 
 どちらの合計も[`conformance/suites.json`](conformance/suites.json)から導出され、テストがこのページをその値に保っています。wdc65c02スイートは`WAI`と`STP`のファイルを空で配布しています。サイクルの合計からは、追加のサイクルがどのレジスタも生成しない一定のアドレスで記録されている29,920件のCMOS十進ケースを除いています。このコアがスイートではなく別の情報源に従う箇所について、どちらのランナーも別扱いにした65816のケースの件数を表示します。除くケースはありません。どのケースも読み方が食い違う部分以外をすべて比較します。エミュレーションの`BRK`と`COP`の19,924ケースではデータバンクレジスタ、スタックポインタがページ1の末尾にある`JSR (a,x)`の43ケースではスタックへの書き込み1回のアドレス、ポインタがページの末尾で終わるエミュレーションの`(d,x)`の265ケースではポインタの2バイト目のアドレスです。最後のものでは、このコアはgilyonのテストプログラムに従います。

@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent
+
+SUITES = ROOT.parent / "external" / "conformance-suites"
 DEFINITION = ROOT / "suites.json"
 
 PROBE_TIMEOUT = 60
@@ -113,11 +115,7 @@ def checked_out(directory: Path) -> str:
 
 
 def main(argv: Sequence[str], definition: Any = None) -> int:
-    directory = (
-        Path(argv[0])
-        if argv and not argv[0].startswith("-")
-        else (Path.home() / ".cache" / "conformance-suites")
-    )
+    directory = Path(argv[0]) if argv and not argv[0].startswith("-") else SUITES
     use_latest = "--latest" in argv
 
     for suite in definitions(definition):

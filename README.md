@@ -8,7 +8,7 @@ English | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md) | [繁�
 [![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**16** parts, **17,900,000** state cases and **17,870,080** cycle-exact cases compared, **0** unexplained failures, **1,600** tests, **100%** statement and branch coverage, no dependencies
+**16** parts, **17,900,000** state cases and **17,870,080** cycle-exact cases compared, **0** unexplained failures, **1,651** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 from mos65xx import Cpu, SparseMemory
@@ -222,7 +222,7 @@ gave up after 100 instructions at $31D0
 | Command                             | Arguments                                                                                                                                                                                                                | Exit codes                                                                                     |
 | :---------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------- |
 | `python3 mos65xx/doctor.py`         | None                                                                                                                                                                                                                     | 0 when every check passes, 1 otherwise                                                         |
-| `python3 -m conformance.fetch`      | `[directory] [--latest]`. Default `~/.cache/conformance-suites`. `--latest` takes each upstream head instead of the pin. A copy already there is moved to the pin, and a copy that does not end at the pin stops the run | 0, or 1 when an upstream cannot be reached                                                     |
+| `python3 -m conformance.fetch`      | `[directory] [--latest]`. Default `external/conformance-suites`. `--latest` takes each upstream head instead of the pin. A copy already there is moved to the pin, and a copy that does not end at the pin stops the run | 0, or 1 when an upstream cannot be reached                                                     |
 | `python3 -m conformance.singlestep` | `<suite directory> [tests per file] [filter] [--model name]`. Default model `65816`                                                                                                                                      | 0 when every case agrees or no suite is there, 1 on a disagreement, 2 on bad arguments         |
 | `python3 -m conformance.cycles`     | The same as `singlestep`                                                                                                                                                                                                 | The same as `singlestep`                                                                       |
 | `python3 -m conformance.documents`  | `[--check] [--only substring]`                                                                                                                                                                                           | 0 when every digest matches, 1 when one is refused or the arguments are wrong                  |
@@ -414,9 +414,9 @@ False
 Every core is compared with the SingleStepTests suite recorded for its part, 10,000 cases per opcode across six suites: 65816, 6502, nes6502, synertek65c02, rockwell65c02 and wdc65c02. The state comparison checks registers, flags and every byte of memory each case touched: **17,900,000 cases, no unexplained failures**. The cycle comparison checks every bus cycle in order, address by address and read against write, and on the 65816 the eight pins as well: **17,870,080 cases, no unexplained failures**.
 
 ```bash
-python3 -m conformance.fetch ~/.cache/conformance-suites
-python3 -m conformance.singlestep ~/.cache/conformance-suites/6502/6502/v1 --model 6502
-python3 -m conformance.cycles ~/.cache/conformance-suites/6502/6502/v1 --model 6502
+python3 -m conformance.fetch external/conformance-suites
+python3 -m conformance.singlestep external/conformance-suites/6502/6502/v1 --model 6502
+python3 -m conformance.cycles external/conformance-suites/6502/6502/v1 --model 6502
 ```
 
 Both totals are derived from [`conformance/suites.json`](conformance/suites.json), and a test holds this page to them. The wdc65c02 suite ships the files for `WAI` and `STP` empty. The cycle total leaves out 29,920 CMOS decimal cases whose extra cycle is recorded at a constant address no register produces. Where this core follows another source against the suite, both runners print how many 65816 cases they treated differently. None is left out. Each is compared in everything but what the readings disagree on: the data bank register in 19,924 emulation `BRK` and `COP` cases, the address of one stack write in forty-three `JSR (a,x)` cases with the stack pointer at the bottom of page one, and the address of the pointer's second byte in 265 emulation `(d,x)` cases whose pointer ends a page, where this core follows gilyon's test program.
