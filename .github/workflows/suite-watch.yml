@@ -19,6 +19,7 @@ jobs:
   survey:
     name: Ask every upstream where it is now
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
     outputs:
       moved: ${{ steps.ask.outputs.moved }}
       any: ${{ steps.ask.outputs.any }}
@@ -48,6 +49,7 @@ jobs:
     needs: survey
     if: needs.survey.outputs.any == 'true'
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:

@@ -18,6 +18,7 @@ jobs:
   ask:
     name: Ask every address whether it still answers
     runs-on: ubuntu-26.04
+    timeout-minutes: 56
     steps:
       - uses: actions/checkout@v7
 

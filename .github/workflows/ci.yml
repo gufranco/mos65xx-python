@@ -21,6 +21,7 @@ jobs:
   lint:
     name: Format and lint
     runs-on: ubuntu-26.04
+    timeout-minutes: 33
     steps:
       - uses: actions/checkout@v7
 
@@ -77,6 +78,7 @@ jobs:
   types:
     name: Types
     runs-on: ubuntu-26.04
+    timeout-minutes: 33
     steps:
       - uses: actions/checkout@v7
 
@@ -95,6 +97,7 @@ jobs:
   test:
     name: Tests on Python ${{ matrix.python }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 33
     strategy:
       fail-fast: false
       matrix:
@@ -138,6 +141,7 @@ jobs:
   conformance:
     name: Conformance against SingleStepTests
     runs-on: ubuntu-26.04
+    timeout-minutes: 33
     steps:
       - uses: actions/checkout@v7
 
@@ -183,6 +187,7 @@ jobs:
   exercisers:
     name: Klaus Dormann's exercisers, on the bare processor
     runs-on: ubuntu-26.04
+    timeout-minutes: 33
     steps:
       - uses: actions/checkout@v7
 
@@ -220,6 +225,7 @@ jobs:
   routines:
     name: Processor routines taken out of test images
     runs-on: ubuntu-26.04
+    timeout-minutes: 33
     steps:
       - uses: actions/checkout@v7
 
@@ -244,6 +250,7 @@ jobs:
   screens:
     name: Whole test programs, read off the text they print
     runs-on: ubuntu-26.04
+    timeout-minutes: 33
     steps:
       - uses: actions/checkout@v7
 
@@ -268,6 +275,7 @@ jobs:
   cycles:
     name: Cycle for cycle against SingleStepTests
     runs-on: ubuntu-26.04
+    timeout-minutes: 33
     steps:
       - uses: actions/checkout@v7
 
@@ -313,6 +321,7 @@ jobs:
   package:
     name: package
     runs-on: ubuntu-26.04
+    timeout-minutes: 33
     steps:
       - uses: actions/checkout@v7
 
