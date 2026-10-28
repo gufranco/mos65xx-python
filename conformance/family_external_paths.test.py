@@ -14,7 +14,7 @@ from conformance.family_member import ROOT
 
 FOLDER = "external"
 
-HOME = re.compile("(?:^|[\\s\"'`(=])(?:" + "~" + "/|\\$" + "HOME/|/" + "Users/)")
+HOME = re.compile("(?:^|[\\s\"'`(=])(?:" + "~" + "/|\\$\\{?" + "HOME\\}?/|/" + "Users/)")
 
 
 def tracked_files(where: Path, run: Any = None) -> list[str]:
@@ -124,14 +124,21 @@ class TheGitignoreReaderTest(unittest.TestCase):
 class TheHomeFolderSweepTest(unittest.TestCase):
     def test_each_way_of_naming_a_home_folder_is_found_by_line(self) -> None:
         # Arrange
-        lines = ["ok", "cat ~" + "/lib", "cd $" + "HOME/lib", 'p = "/' + 'Users/me"', "a~/b"]
+        lines = [
+            "ok",
+            "cat ~" + "/lib",
+            "cd $" + "HOME/lib",
+            'p = "/' + 'Users/me"',
+            'run "${' + 'HOME}/lib"',
+            "a~/b",
+        ]
         where = a_folder_holding({"notes.md": "\n".join(lines)})
 
         # Act
         found = naming_a_home_folder(where, ["notes.md"])
 
         # Assert
-        self.assertEqual(found, ["notes.md:2", "notes.md:3", "notes.md:4"])
+        self.assertEqual(found, ["notes.md:2", "notes.md:3", "notes.md:4", "notes.md:5"])
 
     def test_a_binary_file_and_a_listed_file_that_is_gone_are_passed_over(self) -> None:
         # Arrange

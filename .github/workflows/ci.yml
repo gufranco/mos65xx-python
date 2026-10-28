@@ -170,8 +170,12 @@ jobs:
           status=0
           while read -r suite model; do
             echo "::group::${suite} as a ${model}"
+            if [ ! -d "external/conformance-suites/${suite}" ]; then
+              echo "::error::no suite at external/conformance-suites/${suite}"
+              status=1
+            fi
             python -m conformance.singlestep \
-              "${HOME}/.cache/conformance-suites/${suite}" "${limit}" --model "${model}" || status=1
+              "external/conformance-suites/${suite}" "${limit}" --model "${model}" || status=1
             echo "::endgroup::"
           done <<'SUITES'
           65816/v1 65816
@@ -304,8 +308,12 @@ jobs:
           status=0
           while read -r suite model; do
             echo "::group::${suite} as a ${model}"
+            if [ ! -d "external/conformance-suites/${suite}" ]; then
+              echo "::error::no suite at external/conformance-suites/${suite}"
+              status=1
+            fi
             python -m conformance.cycles \
-              "${HOME}/.cache/conformance-suites/${suite}" "${limit}" --model "${model}" || status=1
+              "external/conformance-suites/${suite}" "${limit}" --model "${model}" || status=1
             echo "::endgroup::"
           done <<'SUITES'
           65816/v1 65816
