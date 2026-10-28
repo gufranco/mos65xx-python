@@ -5,7 +5,7 @@ style guide. It is the set of decisions that were expensive to reach, so that a
 repository starting today does not have to reach them again and a repository
 already running does not drift away from them quietly.
 
-The family is twenty five repositories. Where they differ from each other, the
+The family is twenty six repositories. Where they differ from each other, the
 difference is something the hardware forces rather than something nobody got
 round to.
 
@@ -31,6 +31,7 @@ round to.
 | [ti-tms9918-python](https://github.com/gufranco/ti-tms9918-python)                                   | The TMS9918A, TMS9928A and TMS9929A video display processors                                     | Part         |
 | [ti-sn76489-python](https://github.com/gufranco/ti-sn76489-python)                                   | The SN76489AN and SN76494N sound generators                                                      | Part         |
 | [sega-vdp-python](https://github.com/gufranco/sega-vdp-python)                                       | The 315-5124, 315-5246 and 315-5378 video display processors and the sound generator inside each | Part         |
+| [sms-mapper-python](https://github.com/gufranco/sms-mapper-python)                                   | The Mark III, Master System and Game Gear board: memory map, paging and ports                    | Board        |
 | [snes-driver-python](https://github.com/gufranco/snes-driver-python)                                 | What a cartridge says to its coprocessor, read out of the cartridge's own code                   | Tool         |
 | [snes-dungeon-master-nochip](https://github.com/gufranco/snes-dungeon-master-nochip)                 | Dungeon Master with its graphics coprocessor designed out                                        | Tool         |
 | [snes-pilotwings-nochip](https://github.com/gufranco/snes-pilotwings-nochip)                         | Pilotwings with its mathematical coprocessor designed out                                        | Tool         |
@@ -72,7 +73,6 @@ the way the next section describes.
 | snes-wram            | Work memory and its $2180 port                                                                                               | The work memory checks in the same programs                               |
 | snes-sa1             | The SA-1 coprocessor                                                                                                         | The SA-1 speed test                                                       |
 | snes-joypad          | The controller ports and the automatic read                                                                                  | The controller checks and the controller test cassette                    |
-| sms-mapper-python    | The Master System cartridge mapper                                                                                           | The paging checks                                                         |
 | sega-sms-python      | The Master System as a machine                                                                                               | The region, media enable and FM detection checks                          |
 | yamaha-ym2413-python | The FM sound unit                                                                                                            | The FM tool                                                               |
 
