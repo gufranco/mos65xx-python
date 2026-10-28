@@ -122,6 +122,10 @@ def unlisted(held: Mapping[str, Mapping[str, Any]], folder: Path) -> list[str]:
     )
 
 
+def say(line: str) -> None:
+    sys.stdout.write(line + "\n")
+
+
 def described(path: Path, folder: Path) -> dict[str, Any]:
     inside = path.is_relative_to(folder)
     where = path.relative_to(folder) if inside else path
@@ -133,10 +137,10 @@ def describe(paths: Sequence[str], folder: Path) -> int:
     for given in paths:
         path = Path(given).resolve()
         if not path.is_file():
-            print(f"REFUSED {given} is not a file")
+            say(f"REFUSED {given} is not a file")
             refused += 1
             continue
-        print(json.dumps(described(path, folder.resolve()), indent=2))
+        say(json.dumps(described(path, folder.resolve()), indent=2))
     return 1 if refused else 0
 
 
@@ -146,12 +150,12 @@ def report(held: Mapping[str, Mapping[str, Any]], folder: Path) -> int:
     for name, artifact in held.items():
         state, line = examine(name, artifact, folder)
         counts[state] += 1
-        print(f"{'ok' if state == VERIFIED else state.upper()} {line}")
+        say(f"{'ok' if state == VERIFIED else state.upper()} {line}")
         failed = failed or state == WRONG or (state == MISSING and bool(artifact.get("required")))
     extra = unlisted(held, folder)
     for rel in extra:
-        print(f"UNLISTED {rel} is in {folder.name}/ and in no manifest entry")
-    print(
+        say(f"UNLISTED {rel} is in {folder.name}/ and in no manifest entry")
+    say(
         f"{counts[VERIFIED]} of {len(held)} verified, {counts[MISSING]} missing, "
         f"{counts[WRONG]} wrong, {len(extra)} unlisted"
     )

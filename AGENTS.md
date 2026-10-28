@@ -252,10 +252,10 @@ SA-1 speed test times the SA-1, so it waits on `snes-sa1`.
 Everything this member reads and may not ship sits in `external/`, which git
 ignores and Dropbox is told to leave alone, per FAMILY.md's "Where the files a
 member reads are kept". [`artifacts.manifest.json`](artifacts.manifest.json)
-names all 15 by size, CRC32, MD5, SHA-1 and SHA-256:
+names all 14 by size, CRC32, MD5, SHA-1 and SHA-256:
 
-- `external/cartridges/`, the seven factory and service cartridges the record
-  pins, each copied from the cartridge library and named by its `id` there.
+- `external/cartridges/`, the six factory and service cartridges whose routines
+  run here, each copied from the cartridge library and named by its `id` there.
 - `external/snes-test-roms`, the higan mirror of community test programs, and
   `external/6502_65C02_functional_tests`, Klaus Dormann's exercisers, each a
   git checkout at the commit [`conformance/testroms.json`](conformance/testroms.json)

@@ -428,7 +428,7 @@
       "id": "sa1-speed-test-5-1",
       "title": "SA-1 speed test 5.1",
       "sha256": "21c24e4b0ec2cb32eeba25c5311aa39bd3228fc1327d2719c0b88671884c2541",
-      "source": "external/cartridges/, by its id",
+      "source": "the cartridge library's 5 Tools & Service Test Carts folder; not kept here, since it waits on a planned member",
       "file": "SA-1 Speed Test (World) (v5.1) (Program) (Aftermarket) (Unl).sfc",
       "exercises": "how fast the SA-1's 65C816 core runs the same loops as this processor; the SA-1 is the part under test",
       "outcome": "hosted",

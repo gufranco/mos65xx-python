@@ -109,33 +109,6 @@
         }
       ]
     },
-    "cartridges-sa1-speed-test-5-1-sfc": {
-      "required": false,
-      "purpose": "A factory or service test cartridge whose processor routine this member runs, or which waits on a planned member.",
-      "usedBy": ["conformance/routines.py", "conformance/screens.py"],
-      "canonical_form": {
-        "container": "raw",
-        "header": "none",
-        "notes": "The cartridge image as the library holds it, with no copier header, kept under the id conformance/testroms.json gives it; the record pins the same SHA-256."
-      },
-      "accepted": [
-        {
-          "label": "sa1-speed-test-5-1",
-          "path": "cartridges/sa1-speed-test-5-1.sfc",
-          "common_filename": "sa1-speed-test-5-1.sfc",
-          "size": 65536,
-          "crc32": "8beffd94",
-          "md5": "cf62b6d186954e6f5d9feec3adc8ffbc",
-          "sha1": "2f2f061ee81bafb4c48b83993a56969012162d68",
-          "sha256": "21c24e4b0ec2cb32eeba25c5311aa39bd3228fc1327d2719c0b88671884c2541",
-          "preferred": true,
-          "provenance": {
-            "db": "the cartridge library's 5 Tools & Service Test Carts folder",
-            "dat_version": "copied 2026-10-27"
-          }
-        }
-      ]
-    },
     "cartridges-snsp-aging-1-02-65c816-sfc": {
       "required": false,
       "purpose": "A factory or service test cartridge whose processor routine this member runs, or which waits on a planned member.",

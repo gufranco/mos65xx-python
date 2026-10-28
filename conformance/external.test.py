@@ -1,4 +1,5 @@
 import contextlib
+import importlib
 import io
 import json
 import subprocess
@@ -11,9 +12,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from conformance import external as _external  # noqa: E402
-
-external: Any = _external
+external: Any = importlib.import_module("conformance.external")
 
 ABC = {
     "size": 3,
