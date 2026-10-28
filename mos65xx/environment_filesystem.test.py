@@ -60,6 +60,32 @@ class LineEndingTest(unittest.TestCase):
         # Assert
         self.assertIn("autocrlf", found.advice)
 
+    def test_a_checkout_kept_under_external_is_not_sampled(self) -> None:
+        # Arrange
+        where = Path(tempfile.mkdtemp())
+        (where / "external" / "upstream").mkdir(parents=True)
+        (where / "external" / "upstream" / "readme.txt").write_bytes(b"one\r\n")
+        (where / "a.md").write_bytes(b"one\n")
+
+        # Act
+        found = environment.line_endings(where)
+
+        # Assert
+        self.assertEqual((found.ok, found.detail), (True, "line feeds in 1 sampled files"))
+
+    def test_notes_kept_under_docs_are_not_sampled(self) -> None:
+        # Arrange
+        where = Path(tempfile.mkdtemp())
+        (where / "docs").mkdir()
+        (where / "docs" / "notes.txt").write_bytes(b"one\r\n")
+        (where / "a.md").write_bytes(b"one\n")
+
+        # Act
+        found = environment.line_endings(where)
+
+        # Assert
+        self.assertEqual((found.ok, found.detail), (True, "line feeds in 1 sampled files"))
+
     def test_a_tree_with_nothing_to_read_says_so_rather_than_passing(self) -> None:
         # Arrange
         where = Path(tempfile.mkdtemp())

@@ -40,6 +40,8 @@ GENERATED = frozenset(
     }
 )
 
+NOT_SAMPLED = frozenset({"node_modules", "external", "docs"})
+
 TEXT_SUFFIXES = (".md", ".py", ".yml", ".yaml", ".json", ".toml", ".txt", ".cfg")
 
 SAMPLE = 200
@@ -90,7 +92,7 @@ def line_endings(root: Path, sample: int = SAMPLE) -> Observation:
             break
         if not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES:
             continue
-        if any(part.startswith(".") or part == "node_modules" for part in path.parts):
+        if any(part.startswith(".") or part in NOT_SAMPLED for part in path.parts):
             continue
         try:
             head = path.read_bytes()[:4096]
