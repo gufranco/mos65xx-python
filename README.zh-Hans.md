@@ -4,9 +4,11 @@
 
 [English](README.md) | [日本語](README.ja.md) | 简体中文 | [繁體中文（香港）](README.zh-HK.md)
 
-[![CI](https://github.com/gufranco/mos65xx-python/actions/workflows/ci.yml/badge.svg)](https://github.com/gufranco/mos65xx-python/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/gufranco/mos65xx-python)](https://github.com/gufranco/mos65xx-python/releases)
-[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![ci](https://img.shields.io/github/actions/workflow/status/gufranco/mos65xx-python/ci.yml?branch=main&style=flat-square&label=ci)](https://github.com/gufranco/mos65xx-python/actions/workflows/ci.yml)
+[![release](https://img.shields.io/github/v/release/gufranco/mos65xx-python?style=flat-square&label=release)](https://github.com/gufranco/mos65xx-python/releases/latest)
+[![coverage](https://img.shields.io/badge/coverage-100%25-brightgreen?style=flat-square)](https://github.com/gufranco/mos65xx-python/actions/workflows/ci.yml)
+[![openssf scorecard](https://img.shields.io/ossf-scorecard/github.com/gufranco/mos65xx-python?style=flat-square&label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/gufranco/mos65xx-python)
+[![license](https://img.shields.io/github/license/gufranco/mos65xx-python?style=flat-square&label=license)](LICENSE)
 
 **16** 款芯片，比对了 **17,900,000** 个状态用例和 **17,870,080** 个周期精确用例，**0** 个无法解释的失败，**1,653** 个测试，**100%** 语句和分支覆盖率，无依赖
 
