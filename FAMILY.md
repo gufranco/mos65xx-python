@@ -9,34 +9,34 @@ The family is twenty six repositories. Where they differ from each other, the
 difference is something the hardware forces rather than something nobody got
 round to.
 
-| Member                                                                                               | What it models                                                                                   | Kind         |
-| :--------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------- | :----------- |
-| [mos65xx-python](https://github.com/gufranco/mos65xx-python)                                         | The 65xx family: sixteen parts, from the 6502 to the 65816                                       | Clocked part |
-| [zilog-z80-python](https://github.com/gufranco/zilog-z80-python)                                     | The Z80: three parts, NMOS and CMOS                                                              | Clocked part |
-| [nec-upd7725-96050-python](https://github.com/gufranco/nec-upd7725-96050-python)                     | The NEC uPD7725 and uPD96050 digital signal processors                                           | Clocked part |
-| [sony-spc700-python](https://github.com/gufranco/sony-spc700-python)                                 | The SPC700, the processor inside the audio unit                                                  | Clocked part |
-| [arm6-python](https://github.com/gufranco/arm6-python)                                               | The ARM6: a 32 bit processor, and the one part of its family whose bus is documented             | Clocked part |
-| [snes-obc1-python](https://github.com/gufranco/snes-obc1-python)                                     | The OBC1 sprite remapper                                                                         | Part         |
-| [snes-rtc-python](https://github.com/gufranco/snes-rtc-python)                                       | The two real-time clocks a cartridge could carry                                                 | Part         |
-| [sony-s-dsp-python](https://github.com/gufranco/sony-s-dsp-python)                                   | The S-DSP: eight voices on a thirty two step clock schedule                                      | Part         |
-| [snes-dsp-python](https://github.com/gufranco/snes-dsp-python)                                       | The DSP-1 through DSP-4, the uPD77C25 as Nintendo shipped it                                     | Part         |
-| [snes-st-python](https://github.com/gufranco/snes-st-python)                                         | The ST010 and ST011, the two coprocessors Seta made                                              | Part         |
-| [snes-sdd1-python](https://github.com/gufranco/snes-sdd1-python)                                     | The S-DD1's arithmetic decompressor                                                              | Part         |
-| [snes-spc7110-python](https://github.com/gufranco/snes-spc7110-python)                               | The SPC7110's decompressor, all three of its modes                                               | Part         |
-| [sony-s-smp-python](https://github.com/gufranco/sony-s-smp-python)                                   | The S-SMP: the processor, the sound generator and the boot program between them                  | Board        |
-| [snes-mapper-python](https://github.com/gufranco/snes-mapper-python)                                 | The cartridge memory map and its transfer engine                                                 | Board        |
-| [snes-graphics-python](https://github.com/gufranco/snes-graphics-python)                             | The graphics formats: tiles, palettes, tilemaps, sprites and mode 7                              | Format       |
-| [snes-rom-image-python](https://github.com/gufranco/snes-rom-image-python)                           | The forms a cartridge image is stored and shipped in                                             | Format       |
-| [sms-rom-image-python](https://github.com/gufranco/sms-rom-image-python)                             | A Master System, Game Gear or SG-1000 cartridge image as a file                                  | Format       |
-| [ti-tms9918-python](https://github.com/gufranco/ti-tms9918-python)                                   | The TMS9918A, TMS9928A and TMS9929A video display processors                                     | Part         |
-| [ti-sn76489-python](https://github.com/gufranco/ti-sn76489-python)                                   | The SN76489AN and SN76494N sound generators                                                      | Part         |
-| [sega-vdp-python](https://github.com/gufranco/sega-vdp-python)                                       | The 315-5124, 315-5246 and 315-5378 video display processors and the sound generator inside each | Part         |
-| [sms-mapper-python](https://github.com/gufranco/sms-mapper-python)                                   | The Mark III, Master System and Game Gear board: memory map, paging and ports                    | Board        |
-| [snes-driver-python](https://github.com/gufranco/snes-driver-python)                                 | What a cartridge says to its coprocessor, read out of the cartridge's own code                   | Tool         |
-| [snes-dungeon-master-nochip](https://github.com/gufranco/snes-dungeon-master-nochip)                 | Dungeon Master with its graphics coprocessor designed out                                        | Tool         |
-| [snes-pilotwings-nochip](https://github.com/gufranco/snes-pilotwings-nochip)                         | Pilotwings with its mathematical coprocessor designed out                                        | Tool         |
-| [snes-star-ocean-nochip-fix](https://github.com/gufranco/snes-star-ocean-nochip-fix)                 | A header correction for two rebuilt images                                                       | Tool         |
-| [snes-street-fighter-alpha-2-nochip](https://github.com/gufranco/snes-street-fighter-alpha-2-nochip) | Street Fighter Alpha 2 with its decompression chip designed out                                  | Tool         |
+| Member                                                                               | What it models                                                                                              | Kind         |
+| :----------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------- | :----------- |
+| [mos65xx-python](https://github.com/gufranco/mos65xx-python)                         | The 65xx family: sixteen parts, from the 6502 to the 65816                                                  | Clocked part |
+| [zilog-z80-python](https://github.com/gufranco/zilog-z80-python)                     | The Z80: three parts, NMOS and CMOS                                                                         | Clocked part |
+| [nec-upd7725-96050-python](https://github.com/gufranco/nec-upd7725-96050-python)     | The NEC uPD7725 and uPD96050 digital signal processors                                                      | Clocked part |
+| [sony-spc700-python](https://github.com/gufranco/sony-spc700-python)                 | The SPC700, the processor inside the audio unit                                                             | Clocked part |
+| [arm6-python](https://github.com/gufranco/arm6-python)                               | The ARM6: a 32 bit processor, and the one part of its family whose bus is documented                        | Clocked part |
+| [snes-obc1-python](https://github.com/gufranco/snes-obc1-python)                     | The OBC1 sprite remapper                                                                                    | Part         |
+| [snes-rtc-python](https://github.com/gufranco/snes-rtc-python)                       | The two real-time clocks a cartridge could carry                                                            | Part         |
+| [sony-s-dsp-python](https://github.com/gufranco/sony-s-dsp-python)                   | The S-DSP: eight voices on a thirty two step clock schedule                                                 | Part         |
+| [snes-dsp-python](https://github.com/gufranco/snes-dsp-python)                       | The DSP-1 through DSP-4, the uPD77C25 as Nintendo shipped it                                                | Part         |
+| [snes-st-python](https://github.com/gufranco/snes-st-python)                         | The ST010 and ST011, the two coprocessors Seta made                                                         | Part         |
+| [snes-sdd1-python](https://github.com/gufranco/snes-sdd1-python)                     | The S-DD1's arithmetic decompressor                                                                         | Part         |
+| [snes-spc7110-python](https://github.com/gufranco/snes-spc7110-python)               | The SPC7110's decompressor, all three of its modes                                                          | Part         |
+| [sony-s-smp-python](https://github.com/gufranco/sony-s-smp-python)                   | The S-SMP: the processor, the sound generator and the boot program between them                             | Board        |
+| [snes-mapper-python](https://github.com/gufranco/snes-mapper-python)                 | The cartridge memory map and its transfer engine                                                            | Board        |
+| [snes-graphics-python](https://github.com/gufranco/snes-graphics-python)             | The graphics formats: tiles, palettes, tilemaps, sprites and mode 7                                         | Format       |
+| [snes-rom-image-python](https://github.com/gufranco/snes-rom-image-python)           | The forms a cartridge image is stored and shipped in                                                        | Format       |
+| [sms-rom-image-python](https://github.com/gufranco/sms-rom-image-python)             | A Master System, Game Gear or SG-1000 cartridge image as a file                                             | Format       |
+| [ti-tms9918-python](https://github.com/gufranco/ti-tms9918-python)                   | The TMS9918A, TMS9928A and TMS9929A video display processors                                                | Part         |
+| [ti-sn76489-python](https://github.com/gufranco/ti-sn76489-python)                   | The SN76489AN and SN76494N sound generators                                                                 | Part         |
+| [sega-vdp-python](https://github.com/gufranco/sega-vdp-python)                       | The 315-5124, 315-5246 and 315-5378 video display processors and the sound generator inside each            | Part         |
+| [sms-mapper-python](https://github.com/gufranco/sms-mapper-python)                   | The Mark III, Master System and Game Gear board: memory map, paging and ports                               | Board        |
+| [sega-sms-python](https://github.com/gufranco/sega-sms-python)                       | The Mark III, Master System and Game Gear as one machine: the processor, the VDP and the board on one clock | Board        |
+| [snes-driver-python](https://github.com/gufranco/snes-driver-python)                 | What a cartridge says to its coprocessor, read out of the cartridge's own code                              | Tool         |
+| [snes-dungeon-master-nochip](https://github.com/gufranco/snes-dungeon-master-nochip) | Dungeon Master with its graphics coprocessor designed out                                                   | Tool         |
+| [snes-pilotwings-nochip](https://github.com/gufranco/snes-pilotwings-nochip)         | Pilotwings with its mathematical coprocessor designed out                                                   | Tool         |
+| [snes-star-ocean-nochip-fix](https://github.com/gufranco/snes-star-ocean-nochip-fix) | A header correction for two rebuilt images                                                                  | Tool         |
 
 The kind decides which parts of this file apply. A clocked part answers to all of
 it. A part, a board, a format or a tool skips the section about a clock and keeps
@@ -73,7 +73,6 @@ the way the next section describes.
 | snes-wram            | Work memory and its $2180 port                                                                                               | The work memory checks in the same programs                               |
 | snes-sa1             | The SA-1 coprocessor                                                                                                         | The SA-1 speed test                                                       |
 | snes-joypad          | The controller ports and the automatic read                                                                                  | The controller checks and the controller test cassette                    |
-| sega-sms-python      | The Master System as a machine                                                                                               | The region, media enable and FM detection checks                          |
 | yamaha-ym2413-python | The FM sound unit                                                                                                            | The FM tool                                                               |
 
 ## How a repository joins
@@ -213,8 +212,8 @@ one session at a time. Every one is checkable, and the family tests,
       that can be broken, and a traceback in place of a report helps nobody.
 - [ ] A throughput floor, several times below what the model does, run
       uninstrumented and outside the coverage step.
-- [ ] Every worked example in the README is run and its output compared to what
-      the README claims.
+- [ ] Every worked example in the README, or in `REFERENCE.md` where a member
+      keeps one, is run and its output compared to what the document claims.
 - [ ] Every required field in an issue form is actually required. `validations`
       indented one level too far is ignored in silence.
 - [ ] The test count the README advertises is the count there is.
@@ -325,6 +324,16 @@ one session at a time. Every one is checkable, and the family tests,
       member's readme, would change what a reader does if it were deleted, and
       sits in a structure its content chose. A sentence that fails any of the
       three is filler, and filler is cut rather than reworded.
+- [ ] A member may split the readme in two instead. `README.md` is then a short
+      guide for a person who wants to use the thing: what it is, what it needs,
+      how to install or build it, what it produces, what it was tested on and
+      where it stops, still under the seven sections and in the four languages.
+      Its interface section names the entry points a user runs and links once
+      to `REFERENCE.md`, which documents the whole interface under the rule
+      above, in English. The line of numbers then opens the reference, and every
+      check that reads the readme for the interface, a worked example or an
+      advertised figure reads the reference instead. A member that keeps one
+      readme keeps everything in it.
 - [ ] It opens with a line of numbers somebody ran, before any prose: what was
       compared, how much of it failed, the test count, the coverage, and what it
       costs to install. A count of what was compared with no result beside it is
@@ -951,38 +960,38 @@ on trust.
 
 ## What every repository carries
 
-| File                                        | Holds                                                                                                                                                       |
-| :------------------------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `README.md`                                 | The document for a person: how to run it, the whole interface, why it can be trusted, and a References section naming every source with its digest          |
-| `AGENTS.md`                                 | The document for an agent. `CLAUDE.md` points at it so the two cannot drift                                                                                 |
-| `FAMILY.md`                                 | This file, identical in every repository                                                                                                                    |
-| `OPEN-QUESTIONS.md`                         | Every place fidelity is still a claim, and the measurement that would close it                                                                              |
-| `conformance/speed.py`                      | A throughput floor, so the model cannot get several times slower without a failure                                                                          |
-| `conformance/readme.test.py`                | Every worked example in the README, run, with its output compared to what the README claims                                                                 |
-| `conformance/family_member.py`              | What this member answers to the family tests: its kind, its package, its interface, its interrupt lines, its tool modules and the machines it must not name |
-| `conformance/family_shared.py`              | What more than one family test reads: the record's path and a scratch folder holding one file                                                               |
-| `conformance/family_interface.test.py`      | The constructor, the calls and the counters a caller drives, and the store it hands back                                                                    |
-| `conformance/family_published.test.py`      | The names the package publishes, the catalogue of models, and each model built in the readme                                                                |
-| `conformance/family_package.test.py`        | One errors module, one definition per name, names rather than modules published, and slots                                                                  |
-| `conformance/family_imports.test.py`        | Every module reached, and nothing imported from outside the standard library                                                                                |
-| `conformance/family_record.test.py`         | The record's documents, its authority ladder and its divergences                                                                                            |
-| `conformance/family_printed_facts.test.py`  | Every quote checkable, and every printed fact held by a named test or marked unreachable                                                                    |
-| `conformance/family_end_to_end.test.py`     | Every test driving the package through what it exports                                                                                                      |
-| `conformance/family_tools.test.py`          | The advertised test count, tools run as modules, the throughput floor, and the release stamps                                                               |
-| `conformance/family_documents.test.py`      | Links that resolve, the files this table names, and the agents file                                                                                         |
-| `conformance/family_carried.test.py`        | Nothing carried that is somebody else's, and no machine named that this part outlived                                                                       |
-| `conformance/family_writing.test.py`        | The readme's sections, no comment or docstring, tests named as sentences, and strict checkers                                                               |
-| `conformance/testroms.json`                 | Every test cartridge that exercises what this member models, and whether it runs, is read, or waits on a member                                             |
-| `artifacts.manifest.json`                   | Every file the member reads and may not ship, kept under `external/`, identified by size, CRC32, MD5, SHA-1 and SHA-256                                     |
-| `conformance/external.py`                   | Which of those files are here, verified, missing or wrong, and which files in `external/` no entry names                                                    |
-| `conformance/family_external.test.py`       | The manifest complete: every file by every digest, every checkout by its pin, every path inside `external/`                                                 |
-| `conformance/family_external_paths.test.py` | `external/` ignored, and no tracked file pointing outside the repository                                                                                    |
-| `conformance/family_test_roms.test.py`      | The test cartridges recorded, each run, read or waiting on a named member                                                                                   |
-| `conformance/family_sizes.test.py`          | No tracked source over 500 lines unless `LONG_FILES` in `family_member.py` says why                                                                         |
-| `conformance/family_translations.test.py`   | The four readmes, kept in step with the English                                                                                                             |
-| `CITATION.cff`                              | How to cite the work, stamped with the released version by the same script that stamps the package                                                          |
-| `SECURITY.md`                               | Where to report a security problem, and what counts as one here                                                                                             |
-| `.github/ISSUE_TEMPLATE/bug_report.yml`     | What a report has to carry to be actionable, with the doctor's output first                                                                                 |
+| File                                        | Holds                                                                                                                                                                                         |
+| :------------------------------------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `README.md`                                 | The document for a person: how to run it, the whole interface or a link to the `REFERENCE.md` holding it, why it can be trusted, and a References section naming every source with its digest |
+| `AGENTS.md`                                 | The document for an agent. `CLAUDE.md` points at it so the two cannot drift                                                                                                                   |
+| `FAMILY.md`                                 | This file, identical in every repository                                                                                                                                                      |
+| `OPEN-QUESTIONS.md`                         | Every place fidelity is still a claim, and the measurement that would close it                                                                                                                |
+| `conformance/speed.py`                      | A throughput floor, so the model cannot get several times slower without a failure                                                                                                            |
+| `conformance/readme.test.py`                | Every worked example in the README, or in `REFERENCE.md` where a member keeps one, run, with its output compared to what the document claims                                                  |
+| `conformance/family_member.py`              | What this member answers to the family tests: its kind, its package, its interface, its interrupt lines, its tool modules and the machines it must not name                                   |
+| `conformance/family_shared.py`              | What more than one family test reads: the record's path and a scratch folder holding one file                                                                                                 |
+| `conformance/family_interface.test.py`      | The constructor, the calls and the counters a caller drives, and the store it hands back                                                                                                      |
+| `conformance/family_published.test.py`      | The names the package publishes, the catalogue of models, and each model built in the readme                                                                                                  |
+| `conformance/family_package.test.py`        | One errors module, one definition per name, names rather than modules published, and slots                                                                                                    |
+| `conformance/family_imports.test.py`        | Every module reached, and nothing imported from outside the standard library                                                                                                                  |
+| `conformance/family_record.test.py`         | The record's documents, its authority ladder and its divergences                                                                                                                              |
+| `conformance/family_printed_facts.test.py`  | Every quote checkable, and every printed fact held by a named test or marked unreachable                                                                                                      |
+| `conformance/family_end_to_end.test.py`     | Every test driving the package through what it exports                                                                                                                                        |
+| `conformance/family_tools.test.py`          | The advertised test count, tools run as modules, the throughput floor, and the release stamps                                                                                                 |
+| `conformance/family_documents.test.py`      | Links that resolve, the files this table names, and the agents file                                                                                                                           |
+| `conformance/family_carried.test.py`        | Nothing carried that is somebody else's, and no machine named that this part outlived                                                                                                         |
+| `conformance/family_writing.test.py`        | The readme's sections, no comment or docstring, tests named as sentences, and strict checkers                                                                                                 |
+| `conformance/testroms.json`                 | Every test cartridge that exercises what this member models, and whether it runs, is read, or waits on a member                                                                               |
+| `artifacts.manifest.json`                   | Every file the member reads and may not ship, kept under `external/`, identified by size, CRC32, MD5, SHA-1 and SHA-256                                                                       |
+| `conformance/external.py`                   | Which of those files are here, verified, missing or wrong, and which files in `external/` no entry names                                                                                      |
+| `conformance/family_external.test.py`       | The manifest complete: every file by every digest, every checkout by its pin, every path inside `external/`                                                                                   |
+| `conformance/family_external_paths.test.py` | `external/` ignored, and no tracked file pointing outside the repository                                                                                                                      |
+| `conformance/family_test_roms.test.py`      | The test cartridges recorded, each run, read or waiting on a named member                                                                                                                     |
+| `conformance/family_sizes.test.py`          | No tracked source over 500 lines unless `LONG_FILES` in `family_member.py` says why                                                                                                           |
+| `conformance/family_translations.test.py`   | The four readmes, kept in step with the English                                                                                                                                               |
+| `CITATION.cff`                              | How to cite the work, stamped with the released version by the same script that stamps the package                                                                                            |
+| `SECURITY.md`                               | Where to report a security problem, and what counts as one here                                                                                                                               |
+| `.github/ISSUE_TEMPLATE/bug_report.yml`     | What a report has to carry to be actionable, with the doctor's output first                                                                                                                   |
 
 A tool under `conformance/` is run as a module, `python3 -m conformance.name`,
 and imports its siblings through the package. Run as a script, its own directory
