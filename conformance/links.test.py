@@ -105,6 +105,16 @@ class ReadingTest(unittest.TestCase):
 
         self.assertEqual(found, ["https://example.com/a"])
 
+    def test_it_stops_at_the_backtick_that_closes_inline_code(self) -> None:
+        # Arrange
+        line = "`pip install git+https://example.com/a.git` installs it"
+
+        # Act
+        found = links.addresses(line)
+
+        # Assert
+        self.assertEqual(found, ["https://example.com/a.git"])
+
     def test_it_leaves_badges_alone(self) -> None:
         found = links.addresses("![b](https://img.shields.io/x) [c](https://example.com/c)")
 

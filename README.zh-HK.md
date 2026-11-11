@@ -10,7 +10,7 @@
 [![openssf scorecard](https://img.shields.io/ossf-scorecard/github.com/gufranco/mos65xx-python?style=flat-square&label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/gufranco/mos65xx-python)
 [![license](https://img.shields.io/github/license/gufranco/mos65xx-python?style=flat-square&label=license)](LICENSE)
 
-**16** 款晶片，比對了 **17,900,000** 個狀態案例及 **17,870,080** 個週期精確案例，**0** 個未獲解釋的失敗，**1,653** 個測試，**100%** 語句及分支覆蓋率，無任何依賴
+**16** 款晶片，比對了 **17,900,000** 個狀態案例及 **17,870,080** 個週期精確案例，**0** 個未獲解釋的失敗，**1,654** 個測試，**100%** 語句及分支覆蓋率，無任何依賴
 
 ```python
 from mos65xx import Cpu, SparseMemory
