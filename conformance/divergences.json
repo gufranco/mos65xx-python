@@ -37,6 +37,20 @@
         "readIn": "wdc-programming-the-65816-2007.pdf",
         "why": "A step by step account of the same instruction in the same mode, by the same publisher, listing each thing the instruction does. The data bank register is not among them. Its native mode paragraph does name a bank register being cleared, the program bank, so the omission in the emulation paragraph is not the book being brief about banks in general.",
         "howMuchItSettles": "Not outright. Silence in a programmer's account is weaker than a statement, and the book is describing what a programmer must know rather than enumerating every register the sequence touches. But it is a second rung one source that declines to repeat the caveat, which leaves the caveat as the only place the claim appears against 30,000 recorded cases and one other publication."
+      },
+      "andAnFpgaCoreKeepsTheBank": {
+        "source": "sd2snes, the SA-1 core of the SD2SNES and FXPAK Pro firmware",
+        "url": "https://github.com/mrehkopf/sd2snes/blob/b081ff9b977f0417213c52eed1f84ffc0bcf639b/verilog/sd2snes_sa1/sa1.v",
+        "commit": "b081ff9b977f0417213c52eed1f84ffc0bcf639b",
+        "lines": "111, 3119-3130, 3225",
+        "code": [
+          "// [_] 65c816 emulation mode.  (known holes in emulation execution)",
+          "if (~int_pending_r) exe_target_r <= {8'h00,exe_data_r[15:0]};",
+          "else                exe_target_r <= {8'h00,int_vector_r};",
+          "DBR_r         <= exe_dbr_r;"
+        ],
+        "what": "The core's BRK, COP and interrupt entry loads the program bank with 00 and never writes the data bank register, in either mode. The data bank changes only through PLB, a block move or reset, so an interrupt leaves it as it was, as the suite records.",
+        "howMuchItSettles": "Nothing. It is a third implementation, a reimplementation of the 65C816 inside the SA-1 rather than WDC silicon, and its own feature list marks emulation mode as unfinished, the one mode this entry is about. It agrees with the suite and the book, and ranks below the data sheet as they do."
       }
     },
     {
